@@ -14,10 +14,11 @@ path = "src/main.rs"
 [dependencies]
 leptos = { version = "0.8", features = ["ssr"] }
 leptos_axum = { version = "0.8" }
-leptos-hl-contact = { path = "../../leptos-hl-contact-crate", features = ["ssr", "smtp-lettre", "axum-helpers"] }
-axum = { version = "0.7" }
+leptos_router = { version = "0.8" }
+leptos-hl-contact = { path = "../../crates/core", features = ["ssr", "smtp-lettre", "axum-helpers"] }
+axum = { version = "0.8" }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
-tower = { version = "0.4" }
+tower = { version = "0.5" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dotenvy = "0.15"

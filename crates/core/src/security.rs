@@ -31,19 +31,10 @@ pub fn sanitize_header_value(value: &str) -> String {
     value.replace(['\r', '\n'], " ")
 }
 
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn header_injection_attempt_is_sanitised() {
-        let input = "Subject\r\nBcc: evil@example.com";
-        let result = sanitize_header_value(input);
-        assert!(!result.contains('\n'));
-        assert!(!result.contains('\r'));
-    }
-}
+mod tests;

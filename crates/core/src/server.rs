@@ -6,7 +6,7 @@ use leptos::server_fn::error::ServerFnError;
 #[cfg(feature = "ssr")]
 use crate::{
     delivery::ContactDeliveryContext,
-    error::{ContactFieldErrors, ContactValidationError},
+    error::ContactValidationError,
     model::ContactInput,
 };
 
@@ -107,40 +107,10 @@ pub async fn submit_contact(
     Err(ServerFnError::ServerError("SSR not enabled".into()))
 }
 
+
 // ---------------------------------------------------------------------------
-// Server-side security tests
+// Tests
 // ---------------------------------------------------------------------------
 
 #[cfg(all(test, feature = "ssr"))]
-mod tests {
-    use crate::error::FIELD_ERROR_PREFIX;
-
-    #[test]
-    fn field_error_prefix_is_not_empty() {
-        assert!(!FIELD_ERROR_PREFIX.is_empty());
-    }
-
-    /// Ensure the encoded field-error payload starts with the sentinel prefix
-    /// so the client can reliably distinguish it from a generic error string.
-    #[test]
-    fn field_error_message_has_prefix() {
-        use crate::error::ContactFieldErrors;
-        let errs = ContactFieldErrors {
-            name: Some("required".into()),
-            ..Default::default()
-        };
-        let msg = errs.into_server_fn_message();
-        assert!(
-            msg.starts_with(FIELD_ERROR_PREFIX),
-            "encoded message must start with sentinel prefix"
-        );
-    }
-
-    /// Verify that generic delivery errors do NOT start with the sentinel
-    /// prefix, so the client correctly falls back to the generic error label.
-    #[test]
-    fn generic_error_has_no_prefix() {
-        let generic = "Failed to send message. Please try again later.";
-        assert!(!generic.starts_with(FIELD_ERROR_PREFIX));
-    }
-}
+mod tests;

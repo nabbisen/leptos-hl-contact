@@ -53,7 +53,7 @@ leptos-hl-contact = { version = "0.1", features = ["hydrate"] }
 
 ```rust,ignore
 use std::sync::Arc;
-use leptos_contact_form::{
+use leptos_hl_contact::{
     delivery::{ContactDeliveryContext, smtp::{LettreSmtpDelivery, SmtpConfig, SmtpTlsMode}},
 };
 
@@ -78,7 +78,7 @@ See [`examples/axum-basic`](./examples/axum-basic) for the full Axum wiring.
 ### 3. Place the component
 
 ```rust,ignore
-use leptos_contact_form::ContactForm;
+use leptos_hl_contact::ContactForm;
 
 view! { <ContactForm /> }
 ```

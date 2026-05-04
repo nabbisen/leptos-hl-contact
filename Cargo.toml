@@ -1,13 +1,13 @@
 [workspace]
 resolver = "2"
 members = [
-    "leptos-hl-contact-crate",
+    "crates/core",
     "examples/axum-basic",
 ]
 
 [workspace.package]
 edition = "2024"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["nabbisen"]
 license = "Apache-2.0"
 repository = "https://github.com/nabbisen/leptos-hl-contact"

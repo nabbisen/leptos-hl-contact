@@ -32,8 +32,6 @@ fn ContactPage() -> impl IntoView {
         <main style="max-width: 600px; margin: 2rem auto; padding: 0 1rem; font-family: sans-serif;">
             <h1>"Contact us"</h1>
             <ContactForm
-                // Example: plain inline styles via class injection.
-                // Replace with your own Tailwind / CSS classes.
                 classes=ContactFormClasses {
                     root: "contact-form".into(),
                     field: "contact-field".into(),

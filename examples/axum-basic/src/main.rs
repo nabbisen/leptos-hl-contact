@@ -1,6 +1,6 @@
 // examples/axum-basic/src/main.rs
 //
-// Demonstrates how to integrate leptos-hl-contact with an Axum server.
+// Demonstrates how to integrate leptos-hl-contact with an Axum 0.8 server.
 //
 // SECURITY NOTICE:
 //   - Load all SMTP credentials from environment variables — never hard-code them.
@@ -17,11 +17,11 @@
 //   SMTP_PASS=secret           \
 //   SMTP_FROM=noreply@example.com \
 //   CONTACT_TO=inbox@example.com  \
-//   cargo run -p axum-basic --features smtp-lettre
+//   cargo run -p axum-basic
 
 use std::sync::Arc;
 
-use axum::{Router, routing::post};
+use axum::{Router, body::Body, extract::Request, routing::post};
 use leptos::config::get_configuration;
 use leptos_axum::{LeptosRoutes, generate_route_list, handle_server_fns_with_context};
 use leptos_hl_contact::{
@@ -68,8 +68,9 @@ async fn main() {
     // ------------------------------------------------------------------
     let delivery: ContactDeliveryContext = Arc::new(NoopDelivery);
 
-    // Build a reusable context closure with delivery_context_fn.
-    // This avoids manual Arc::clone repetition at both injection sites.
+    // Build a reusable context closure.
+    // delivery_context_fn returns an Arc-cloning Fn() closure that can be
+    // passed to both Axum handler sites without manual Arc::clone repetition.
     let ctx = delivery_context_fn(delivery);
 
     let conf = get_configuration(None).unwrap();
@@ -79,11 +80,15 @@ async fn main() {
 
     let app = Router::new()
         // Server function handler — delivery context provided here.
+        // In Axum 0.8 the closure must be explicitly async.
         .route(
             "/api/*fn_name",
             post({
                 let ctx = ctx.clone();
-                move |req| handle_server_fns_with_context(ctx.clone(), req)
+                move |req: Request<Body>| {
+                    let ctx = ctx.clone();
+                    async move { handle_server_fns_with_context(ctx, req).await }
+                }
             }),
         )
         // SSR renderer — delivery context must also be provided here.
