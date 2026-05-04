@@ -12,6 +12,7 @@
 - [Styling](./styling.md)
 - [Accessibility](./accessibility.md)
 - [Security](./security.md)
+  - [Turnstile Integration](./turnstile.md)
 - [Delivery Backends](./delivery-backends.md)
 - [Axum Integration](./axum-integration.md)
 

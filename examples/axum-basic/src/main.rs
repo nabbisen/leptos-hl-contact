@@ -3,34 +3,40 @@
 // Demonstrates how to integrate leptos-hl-contact with an Axum server.
 //
 // SECURITY NOTICE:
-//   - Load all SMTP credentials from environment variables.
-//   - Never hard-code passwords or API keys in source code.
+//   - Load all SMTP credentials from environment variables — never hard-code them.
 //   - Enable HTTPS (TLS termination) in production.
-//   - Add rate limiting middleware before exposing this publicly.
+//   - Add rate-limiting middleware before exposing this publicly.
+//   - Set SameSite=Lax or Strict cookies to mitigate CSRF risk.
 //
-// Run:
-//   SMTP_HOST=smtp.example.com \
-//   SMTP_USER=you@example.com \
-//   SMTP_PASS=secret \
-//   SMTP_FROM=noreply@example.com \
-//   CONTACT_TO=you@example.com \
+// Run with NoopDelivery (discards submissions — safe for local dev):
 //   cargo run -p axum-basic
+//
+// Run with real SMTP:
+//   SMTP_HOST=smtp.example.com \
+//   SMTP_USER=you@example.com  \
+//   SMTP_PASS=secret           \
+//   SMTP_FROM=noreply@example.com \
+//   CONTACT_TO=inbox@example.com  \
+//   cargo run -p axum-basic --features smtp-lettre
 
 use std::sync::Arc;
 
-use axum::Router;
+use axum::{Router, routing::post};
 use leptos::config::get_configuration;
 use leptos_axum::{LeptosRoutes, generate_route_list, handle_server_fns_with_context};
-use leptos_hl_contact::delivery::{ContactDeliveryContext, noop::NoopDelivery};
+use leptos_hl_contact::{
+    axum_helpers::delivery_context_fn,
+    delivery::{ContactDeliveryContext, noop::NoopDelivery},
+};
 
-// Uncomment and configure to use real SMTP delivery:
+// Uncomment to use real SMTP delivery (requires smtp-lettre feature):
 // use leptos_hl_contact::delivery::smtp::{LettreSmtpDelivery, SmtpConfig, SmtpTlsMode};
 
 mod app;
 
 #[tokio::main]
 async fn main() {
-    // Initialise logging.
+    // Initialise tracing.
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -38,13 +44,14 @@ async fn main() {
         )
         .init();
 
-    // Load .env file if present (for local development only).
+    // Load .env file if present (local dev only — not for production).
     let _ = dotenvy::dotenv();
 
     // ------------------------------------------------------------------
     // Build the delivery backend.
     //
-    // For production, replace NoopDelivery with LettreSmtpDelivery:
+    // NoopDelivery discards all submissions. Replace with LettreSmtpDelivery
+    // for production:
     //
     //   let delivery: ContactDeliveryContext = Arc::new(LettreSmtpDelivery {
     //       config: SmtpConfig {
@@ -61,38 +68,26 @@ async fn main() {
     // ------------------------------------------------------------------
     let delivery: ContactDeliveryContext = Arc::new(NoopDelivery);
 
-    // Read Leptos config from the environment / leptos.toml.
+    // Build a reusable context closure with delivery_context_fn.
+    // This avoids manual Arc::clone repetition at both injection sites.
+    let ctx = delivery_context_fn(delivery);
+
     let conf = get_configuration(None).unwrap();
     let leptos_options = conf.leptos_options.clone();
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(app::App);
 
-    // Clone the delivery context so it can be moved into both closures below.
-    let delivery_for_server_fns = Arc::clone(&delivery);
-
     let app = Router::new()
-        // Server function handler — delivery context must be provided here.
+        // Server function handler — delivery context provided here.
         .route(
             "/api/*fn_name",
-            axum::routing::post(move |req| {
-                let d = Arc::clone(&delivery_for_server_fns);
-                handle_server_fns_with_context(
-                    move || {
-                        leptos::context::provide_context(Arc::clone(&d));
-                    },
-                    req,
-                )
+            post({
+                let ctx = ctx.clone();
+                move |req| handle_server_fns_with_context(ctx.clone(), req)
             }),
         )
-        // SSR page renderer — delivery context must also be provided here.
-        .leptos_routes_with_context(
-            &leptos_options,
-            routes,
-            move || {
-                leptos::context::provide_context(Arc::clone(&delivery));
-            },
-            app::App,
-        )
+        // SSR renderer — delivery context must also be provided here.
+        .leptos_routes_with_context(&leptos_options, routes, ctx, app::App)
         .with_state(leptos_options);
 
     tracing::info!("Listening on http://{addr}");

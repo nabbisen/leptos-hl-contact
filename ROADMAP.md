@@ -1,8 +1,6 @@
 # Roadmap
 
-## MVP
-
-Initial release targeting Leptos v0.8.
+## MVP (v0.1.0 — released)
 
 - [x] `ContactForm` component
 - [x] `submit_contact` server function
@@ -11,19 +9,21 @@ Initial release targeting Leptos v0.8.
 - [x] `ContactDelivery` trait
 - [x] `NoopDelivery`
 - [x] `LettreSmtpDelivery`
-- [x] Class and labels injection via `ContactFormClasses` / `ContactFormLabels`
-- [x] `ContactFormOptions` (subject visibility, max message length)
-- [x] Basic documentation (`docs/`)
-- [x] Axum example (`examples/axum-basic`)
+- [x] Class and labels injection
+- [x] `ContactFormOptions`
+- [x] Basic documentation
+- [x] Axum example
 - [x] Apache-2.0 licence
 
-## Near-term
+## Near-term (v0.2.0 — in progress)
 
-- [ ] Axum helper: `provide_contact_delivery` convenience function
-- [ ] CSRF guidance and example middleware configuration
-- [ ] Rate limit guide (tower-governor / axum-governor)
-- [ ] Better client-side error detail for individual field validation
-- [ ] Cloudflare Turnstile integration guide
+- [x] Per-field validation errors (`ContactFieldErrors`)
+- [x] `axum-helpers` feature: `delivery_context_fn`, `provide_contact_delivery`
+- [x] CSRF guidance and example middleware
+- [x] Rate limit guide (tower-governor / axum-governor)
+- [x] Cloudflare Turnstile integration guide
+- [ ] CSRF token helper (server-side generation + form field)
+- [ ] Rate limit integration test example
 
 ## Future
 
@@ -33,7 +33,7 @@ Initial release targeting Leptos v0.8.
 - [ ] Database persistence adapter
 - [ ] Queue-based delivery adapter
 - [ ] Advanced slot / render prop API (submit button, success/error slots)
-- [ ] Multi-language preset library
+- [ ] Multi-language label preset library
 - [ ] mdBook-published documentation site
 
 ## Not planned for now

@@ -21,17 +21,19 @@ hydrate = ["leptos/hydrate"]
 ssr = ["leptos/ssr"]
 islands = ["leptos/islands"]
 smtp-lettre = ["ssr", "dep:lettre", "dep:tokio"]
-axum-helpers = ["ssr", "dep:leptos_axum"]
+axum-helpers = ["ssr", "dep:leptos_axum", "dep:axum"]
 
 [dependencies]
 leptos = { version = "0.8", features = [] }
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 thiserror = "2"
 validator = { version = "0.20", features = ["derive"] }
 tracing = "0.1"
 
 # SSR-only (optional)
 leptos_axum = { version = "0.8", optional = true }
+axum = { version = "0.7", optional = true }
 
 # SMTP (optional, smtp-lettre feature)
 lettre = { version = "0.11", features = ["smtp-transport", "tokio1", "tokio1-native-tls", "builder", "hostname"], default-features = false, optional = true }

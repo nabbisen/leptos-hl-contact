@@ -143,6 +143,35 @@ impl ContactInput {
             .map_err(|e| ContactValidationError::InvalidInput(e.to_string()))
     }
 
+    /// Run server-side validation and return per-field errors safe for client display.
+    ///
+    /// Unlike [`validate_input`](Self::validate_input), which returns an opaque
+    /// server-internal message, this method returns a
+    /// [`ContactFieldErrors`](crate::error::ContactFieldErrors) value with a
+    /// generic human-readable message for each failed field.
+    pub fn validate_fields(&self) -> crate::error::ContactFieldErrors {
+        use validator::Validate as _;
+        let mut out = crate::error::ContactFieldErrors::default();
+
+        if let Err(ve) = self.validate() {
+            for (field, errors) in ve.field_errors() {
+                let msg = errors
+                    .first()
+                    .and_then(|e| e.message.as_deref())
+                    .unwrap_or("Invalid value")
+                    .to_owned();
+                match field.as_ref() {
+                    "name" => out.name = Some(msg),
+                    "email" => out.email = Some(msg),
+                    "subject" => out.subject = Some(msg),
+                    "message" => out.message = Some(msg),
+                    _ => {}
+                }
+            }
+        }
+        out
+    }
+
     /// Resolve the effective subject line, falling back to a default when the
     /// caller did not supply one or it was blank after trimming.
     pub fn effective_subject(&self, fallback: &str) -> String {
