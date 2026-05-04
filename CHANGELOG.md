@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2] — Unreleased
+
+### Changed
+
+- Renamed crate directory from `crates/core` to `crates/leptos-hl-contact`
+  for clarity. The published crate name (`leptos-hl-contact`) is unchanged.
+
 ## [0.2.0] — Unreleased
 
 ### Added
