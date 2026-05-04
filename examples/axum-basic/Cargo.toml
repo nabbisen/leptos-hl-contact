@@ -1,0 +1,23 @@
+[package]
+name = "axum-basic"
+description = "Basic Axum integration example for leptos-hl-contact."
+edition.workspace = true
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[[bin]]
+name = "axum-basic"
+path = "src/main.rs"
+
+[dependencies]
+leptos = { version = "0.8", features = ["ssr"] }
+leptos_axum = { version = "0.8" }
+leptos-hl-contact = { path = "../../leptos-hl-contact-crate", features = ["ssr", "smtp-lettre", "axum-helpers"] }
+axum = { version = "0.7" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tower = { version = "0.4" }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dotenvy = "0.15"

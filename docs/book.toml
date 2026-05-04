@@ -1,0 +1,10 @@
+[book]
+title = "leptos-hl-contact"
+description = "Documentation for the leptos-hl-contact crate"
+authors = ["nabbisen"]
+language = "en"
+src = "src"
+
+[output.html]
+site-url = "/leptos-hl-contact/"
+git-repository-url = "https://github.com/nabbisen/leptos-hl-contact"

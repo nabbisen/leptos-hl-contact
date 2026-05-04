@@ -1,0 +1,41 @@
+[package]
+name = "leptos-hl-contact"
+description = "A reusable, secure contact form plugin for Leptos v0.8 with pluggable delivery backends."
+keywords = ["leptos", "contact-form", "email", "smtp", "webassembly"]
+categories = ["web-programming", "email"]
+homepage = "https://github.com/nabbisen/leptos-hl-contact"
+documentation = "https://docs.rs/leptos-hl-contact"
+edition.workspace = true
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+hydrate = ["leptos/hydrate"]
+ssr = ["leptos/ssr"]
+islands = ["leptos/islands"]
+smtp-lettre = ["ssr", "dep:lettre", "dep:tokio"]
+axum-helpers = ["ssr", "dep:leptos_axum"]
+
+[dependencies]
+leptos = { version = "0.8", features = [] }
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+validator = { version = "0.20", features = ["derive"] }
+tracing = "0.1"
+
+# SSR-only (optional)
+leptos_axum = { version = "0.8", optional = true }
+
+# SMTP (optional, smtp-lettre feature)
+lettre = { version = "0.11", features = ["smtp-transport", "tokio1", "tokio1-native-tls", "builder", "hostname"], default-features = false, optional = true }
+tokio = { version = "1", features = ["rt"], optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
