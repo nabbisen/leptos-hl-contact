@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.2] — Unreleased
+
+### Fixed
+
+- `cargo package` now succeeds without errors or warnings.
+  - **Root cause**: `examples/axum-basic` and `examples/axum-with-security` were
+    listed as workspace `members`.  Their `path = "../../crates/leptos-hl-contact"`
+    dependencies cannot be resolved during `cargo package` verification (the
+    examples directory is not part of the `.crate` tarball).
+  - **Fix**: removed examples from workspace `members`; added them to
+    `workspace.exclude`.  Examples are now standalone Cargo projects run via
+    `cd examples/<name> && cargo run`.  Their `Cargo.toml` files no longer use
+    `*.workspace = true`.
+- `[workspace.package]` now includes `homepage` and `documentation`, eliminating
+  the "manifest has no documentation, homepage or repository" warning during
+  `cargo package`.
+
 ## [0.3.1] — Unreleased
 
 ### Security (Critical)

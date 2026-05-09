@@ -1,15 +1,22 @@
 [workspace]
 resolver = "2"
+# Examples are NOT workspace members: they use path deps and would cause
+# `cargo package` verification to fail.  Run examples with:
+#   cd examples/axum-basic && cargo run
 members = [
     "crates/leptos-hl-contact",
+]
+exclude = [
     "examples/axum-basic",
     "examples/axum-with-security",
 ]
 
 [workspace.package]
-edition = "2024"
-version = "0.3.1"
-authors = ["nabbisen"]
-license = "Apache-2.0"
-repository = "https://github.com/nabbisen/leptos-hl-contact"
-rust-version = "1.85"
+edition       = "2024"
+version       = "0.3.2"
+authors       = ["nabbisen"]
+license       = "Apache-2.0"
+repository    = "https://github.com/nabbisen/leptos-hl-contact"
+homepage      = "https://github.com/nabbisen/leptos-hl-contact"
+documentation = "https://docs.rs/leptos-hl-contact"
+rust-version  = "1.85"

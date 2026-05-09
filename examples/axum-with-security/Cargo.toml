@@ -1,27 +1,30 @@
+# This example is NOT a workspace member.
+# Run it standalone:
+#   cd examples/axum-with-security && cargo run
 [package]
-name = "axum-with-security"
-description = "Example: leptos-hl-contact with rate limiting, CSRF, and Origin validation."
-edition.workspace = true
-version.workspace = true
-authors.workspace = true
-license.workspace = true
-publish = false
+name        = "axum-with-security"
+description = "Production example: leptos-hl-contact with rate limiting, CSRF, and Origin validation."
+version     = "0.3.2"
+edition     = "2024"
+authors     = ["nabbisen"]
+license     = "Apache-2.0"
+publish     = false
 
 [[bin]]
 name = "axum-with-security"
 path = "src/main.rs"
 
 [dependencies]
-leptos = { version = "0.8", features = ["ssr"] }
-leptos_axum = { version = "0.8" }
-leptos_router = { version = "0.8" }
+leptos         = { version = "0.8", features = ["ssr"] }
+leptos_axum    = { version = "0.8" }
+leptos_router  = { version = "0.8" }
 leptos-hl-contact = { path = "../../crates/leptos-hl-contact", features = ["ssr", "smtp-lettre", "axum-helpers", "csrf"] }
-axum = { version = "0.8" }
+axum           = { version = "0.8" }
 tower_governor = { version = "0.8" }
-tower = { version = "0.5" }
-tower-http = { version = "0.6", features = ["limit"] }
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
-tracing = "0.1"
+tower          = { version = "0.5" }
+tower-http     = { version = "0.6", features = ["limit"] }
+tokio          = { version = "1", features = ["rt-multi-thread", "macros"] }
+tracing        = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-dotenvy = "0.15"
-url = "2"
+dotenvy        = "0.15"
+url            = "2"
