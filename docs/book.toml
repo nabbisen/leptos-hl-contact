@@ -1,10 +1,17 @@
 [book]
-title = "leptos-hl-contact"
-description = "Documentation for the leptos-hl-contact crate"
-authors = ["nabbisen"]
-language = "en"
-src = "src"
+title       = "leptos-hl-contact"
+description = "A reusable, secure contact form plugin for Leptos v0.8"
+authors     = ["nabbisen"]
+language    = "en"
+src         = "src"
 
 [output.html]
-site-url = "/leptos-hl-contact/"
-git-repository-url = "https://github.com/nabbisen/leptos-hl-contact"
+site-url            = "/leptos-hl-contact/"
+git-repository-url  = "https://github.com/nabbisen/leptos-hl-contact"
+git-repository-icon = "fa-github"
+edit-url-template   = "https://github.com/nabbisen/leptos-hl-contact/edit/main/docs/{path}"
+default-theme       = "light"
+preferred-dark-theme = "navy"
+
+[output.html.playground]
+editable = false

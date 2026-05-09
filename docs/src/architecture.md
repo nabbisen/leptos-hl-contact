@@ -1,79 +1,193 @@
 # Architecture
 
+This document describes the design goals, principles, and internal structure
+of `leptos-hl-contact` for maintainers, contributors, and anyone extending
+the crate.
+
+---
+
+## Design philosophy
+
+### Secure by default
+
+Every design decision prioritises security over convenience.
+
+- SMTP credentials and recipient addresses are **never** compiled into WASM.
+- Server-side validation runs on **every** submission regardless of client state.
+- The honeypot is a server-side check, not a JavaScript trick.
+- Error messages to the client are always generic; details stay in server logs.
+- `ContactDelivery::deliver` receives a fully-validated `ContactInput` — no
+  raw strings reach the delivery layer.
+
+### Minimal but extensible
+
+The crate ships the smallest useful surface:
+
+- One component, one server function, one delivery trait.
+- No mandatory framework dependencies in the core path.
+- Feature flags isolate SMTP, Axum, and Islands code behind opt-in gates.
+
+Extensions (SendGrid, SES, DB persistence, CAPTCHA) are left to implementors
+rather than bundled, to avoid dependency bloat and security surface growth.
+
+### Progressive enhancement first
+
+`<ActionForm/>` is the chosen submission mechanism because it works as a
+plain HTML form POST when WebAssembly is unavailable.  This is a stronger
+guarantee than "works with JS off" — it works with no JS runtime at all.
+
+### Accessibility is not optional
+
+ARIA attributes, label associations, per-field error announcements, and
+keyboard navigation are part of the default component, not an add-on.
+Downstream users who do not supply any props get an accessible form.
+
+### Documentation-driven development
+
+Public API items have rustdoc comments with usage examples, feature
+conditions, and security notes before they reach a release.
+
+---
+
 ## Layer overview
 
 ```
-┌──────────────────────────────────────────┐
-│  ContactForm component                   │  client + server
-│  ├─ ContactFormClasses (CSS injection)   │
-│  ├─ ContactFormLabels  (text injection)  │
-│  └─ ContactFormOptions (behaviour)       │
-├──────────────────────────────────────────┤
-│  submit_contact server function          │  server only
-│  ├─ ContactInput::from_raw (normalise)   │
-│  ├─ check_honeypot                       │
-│  ├─ validate_fields → ContactFieldErrors │
-│  └─ ContactDelivery::deliver             │
-├──────────────────────────────────────────┤
-│  ContactDelivery trait                   │  server only
-│  ├─ NoopDelivery                         │
-│  └─ LettreSmtpDelivery (smtp-lettre)     │
-└──────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│  ContactForm                                         │
+│    ContactFormClasses  (CSS injection)               │  client + server
+│    ContactFormLabels   (text injection)              │
+│    ContactFormOptions  (behaviour flags)             │
+├──────────────────────────────────────────────────────┤
+│  submit_contact  (server function)                   │
+│    from_raw → check_honeypot → validate_fields       │  server only
+│    → use_context::<ContactDeliveryContext>            │
+│    → ContactDelivery::deliver                        │
+├──────────────────────────────────────────────────────┤
+│  ContactDelivery  (trait)                            │
+│    NoopDelivery                                      │  server only
+│    LettreSmtpDelivery   (smtp-lettre feature)        │
+└──────────────────────────────────────────────────────┘
 ```
+
+---
 
 ## Module map
 
-| Module | Purpose |
-|--------|---------|
-| `model` | `ContactInput` — internal data model, validation, normalisation |
-| `config` | `ContactFormClasses` / `ContactFormLabels` / `ContactFormOptions` — client-safe config |
-| `error` | `ContactFieldErrors`, `ContactDeliveryError`, `ContactValidationError` |
-| `security` | `sanitize_header_value` — defence-in-depth header sanitisation |
-| `components` | `ContactForm` — the public Leptos component |
-| `server` | `submit_contact` — the server function |
-| `delivery` | `ContactDelivery` trait + `ContactDeliveryContext` type alias |
-| `delivery::noop` | `NoopDelivery` — discards all submissions |
-| `delivery::smtp` | `LettreSmtpDelivery` — SMTP via `lettre` |
-| `axum_helpers` | `provide_contact_delivery`, `delivery_context_fn` (axum-helpers feature) |
+| Module | Role | Notes |
+|--------|------|-------|
+| `model` | `ContactInput` — validation and normalisation | server + client (shapes only) |
+| `config` | `ContactFormClasses` / `ContactFormLabels` / `ContactFormOptions` | client-safe, no secrets |
+| `error` | `ContactFieldErrors`, `ContactDeliveryError`, `ContactValidationError` | field errors cross the wire; delivery errors do not |
+| `security` | `sanitize_header_value` | defence-in-depth utility |
+| `components` | `ContactForm` | references `SubmitContact` generated by `#[server]` |
+| `server` | `submit_contact` | `ssr` feature only; requires `ContactDeliveryContext` in context |
+| `delivery` | `ContactDelivery` trait + `ContactDeliveryContext` alias | server only |
+| `delivery::noop` | `NoopDelivery` | no feature flag |
+| `delivery::smtp` | `LettreSmtpDelivery` | `smtp-lettre` feature |
+| `axum_helpers` | `provide_contact_delivery`, `delivery_context_fn` | `axum-helpers` feature |
+
+---
 
 ## Data flow
 
 ```
 Browser
-  │  HTML form POST / WASM fetch
+  │  HTML form POST  (or WASM fetch)
   ▼
-submit_contact (server function)
-  │  ContactInput::from_raw()  — trim, normalise
-  │  check_honeypot()          — silent success on trigger
-  │  validate_fields()         — per-field validation errors
+submit_contact  (POST /api/submit_contact)
+  │  ContactInput::from_raw()          trim + normalise
+  │  check_honeypot()                  silent Ok(()) on trigger
+  │  validate_fields()                 per-field ContactFieldErrors on failure
   │  use_context::<ContactDeliveryContext>()
   ▼
-ContactDelivery::deliver()
-  │  build_message()           — From / Reply-To / Subject / Body
+ContactDelivery::deliver(ContactInput)
+  │  build_message()                   From / Reply-To / Subject / Body
   ▼
-SMTP relay → admin inbox
+SMTP relay  →  admin inbox
 ```
+
+---
 
 ## Error flow to the client
 
 ```
 ServerFnError::Args("field_errors:{...json...}")
-  → ContactFieldErrors::from_error_str()
-  → FieldError component (per input)
+  ↓  ContactFieldErrors::from_error_str()
+  ↓  FieldError component rendered beside each input
+  ↓  aria-invalid + aria-describedby updated
 
 ServerFnError::ServerError("Failed to send...")
-  → generic error div (role="alert")
+  ↓  generic error <div role="alert">
 ```
 
-The `field_errors:` sentinel prefix lets the component reliably distinguish
-per-field payloads from generic delivery-failure strings.
+The `field_errors:` sentinel prefix lets the component distinguish per-field
+validation payloads from generic delivery-failure strings without a separate
+error type crossing the wire.
 
-## Feature flag design rationale
+---
 
-- `default = []` — minimum footprint; UI types compile without any server code.
-- `hydrate` / `ssr` — mirror Leptos's own feature split.
-- `smtp-lettre` — pulls in `lettre` + `tokio`; server-only.
-- `axum-helpers` — pulls in `axum` + `leptos_axum`; server-only.
+## Feature flag rationale
 
-No Axum code leaks into the crate's surface unless `axum-helpers` is enabled.
-This keeps the crate usable with Actix-Web or other backends.
+```
+default = []            — zero footprint; types compile without server code
+hydrate                 — client side; no server deps
+ssr                     — server side; no client WASM
+smtp-lettre             — pulls lettre + tokio; server only
+axum-helpers            — pulls axum + leptos_axum; server only
+islands                 — Leptos Islands; forward-compat
+```
+
+Axum is an optional dependency so that the crate remains usable with
+Actix-Web, Warp, or any other HTTP framework.
+
+---
+
+## Source layout
+
+```
+crates/leptos-hl-contact/
+  Cargo.toml
+  src/
+    lib.rs                  public re-exports
+    model.rs                ContactInput
+    model/tests.rs
+    config.rs               ContactFormClasses / Labels / Options
+    config/tests.rs
+    error.rs                ContactFieldErrors + error enums
+    error/tests.rs
+    security.rs             sanitize_header_value
+    security/tests.rs
+    components.rs           ContactForm
+    server.rs               submit_contact
+    server/tests.rs
+    delivery.rs             ContactDelivery trait (Rust 2018+ style)
+    delivery/
+      noop.rs
+      noop/tests.rs
+      smtp.rs
+      smtp/tests.rs
+    axum_helpers.rs         delivery_context_fn
+    axum_helpers/tests.rs
+
+examples/
+  axum-basic/
+
+docs/
+  book.toml
+  src/
+    SUMMARY.md
+    ...
+```
+
+Test modules follow the Rust 2018+ convention: each `foo.rs` declares
+`#[cfg(test)] mod tests;` and the tests live in `foo/tests.rs`.
+
+---
+
+## Release process
+
+1. Update `version` in `Cargo.toml` (workspace root).
+2. Update `CHANGELOG.md` — move items from `Unreleased` to the new version.
+3. Run `cargo test --all-features` and `cargo fmt --all -- --check`.
+4. Tag `vX.Y.Z` and push; CI publishes to crates.io.
+5. Update `ROADMAP.md` to reflect completed items.

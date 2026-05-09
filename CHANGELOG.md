@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.3] — Unreleased
+
+### Changed
+
+- `cargo outdated` check: all 14 dependencies confirmed up to date
+  (`leptos` 0.8.19, `axum` 0.8.9, `lettre` 0.11.21, `tokio` 1.52.3, etc.).
+- README.md rewritten to match the project specification: six-section structure,
+  updated Quick Start to `v0.2` and `delivery_context_fn`, no license text body.
+- `docs/src/SUMMARY.md` reorganised around three reader personas
+  (New Users / Experienced Users / Maintainers).
+- `docs/src/introduction.md` expanded with full feature list and scope.
+- `docs/src/quick-start.md` rewritten as a step-by-step tutorial.
+- `docs/src/api-reference.md` written (was placeholder).
+- `docs/src/troubleshooting.md` written (was placeholder).
+- `docs/src/faq.md` added (new page).
+- `docs/src/architecture.md` expanded with design philosophy, principles,
+  and release process.
+- `docs/book.toml` updated with full mdBook HTML output configuration.
+
 ## [0.2.2] — Unreleased
 
 ### Changed
