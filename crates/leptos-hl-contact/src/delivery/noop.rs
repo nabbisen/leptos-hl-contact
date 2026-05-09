@@ -25,14 +25,10 @@ pub struct NoopDelivery;
 impl ContactDelivery for NoopDelivery {
     fn deliver(
         &self,
-        input: ContactInput,
+        _input: ContactInput,
     ) -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>> {
         Box::pin(async move {
-            tracing::debug!(
-                name = %input.name,
-                email = %input.email,
-                "NoopDelivery: discarding contact form submission"
-            );
+            tracing::debug!("NoopDelivery: discarding contact form submission");
             Ok(())
         })
     }

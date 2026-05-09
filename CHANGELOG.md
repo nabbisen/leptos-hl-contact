@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.3.3] — Unreleased
+
+### Fixed
+
+- **PII removed from delivery logs** (was listed as done in v0.3.1 but not
+  applied): `NoopDelivery` and `LettreSmtpDelivery` no longer log `name` or
+  `email` fields.  Log messages are now plain strings without personal data.
+- **`Reply-To` built with `Mailbox::new`** (was listed as done in v0.3.1 but
+  not applied): replaced `format!("{name} <{email}>").parse()` with
+  `Mailbox::new(Some(input.name.clone()), email_address)`.  Handles special
+  characters in display names (quotes, commas, angle brackets) correctly.
+- **`CSRF_SECRET` / `ALLOWED_ORIGIN` now required in `axum-with-security`**:
+  removed the insecure fallback to a hardcoded default secret.  Both variables
+  now use `.expect(...)` so the application refuses to start without them.
+  Production-ready examples must not silently use known secrets.
+
+### Added
+
+- Tests for `Reply-To` with special characters in the display name.
+- Test confirming CSRF missing-context error is a `ServerError` (not a
+  field-level error), verifying the fail-closed path returns the right shape.
+- Test confirming PII log message strings contain no interpolation specifiers.
+
+### Documentation
+
+- `docs/src/quick-start.md` restructured: base steps use only `ssr +
+  smtp-lettre + axum-helpers` (no `csrf` feature); CSRF setup moved to a
+  dedicated **Adding CSRF protection** section with full context injection
+  example.  This prevents the fail-closed `csrf` feature from silently
+  breaking a minimal quick-start setup.
+- `docs/src/configuration.md`: added `ContactServerPolicy` section with
+  clear UI-vs-security-boundary distinction; updated `SmtpTlsMode` table to
+  show `DangerousPlaintext` (was still showing `None`).
+- `docs/src/faq.md`: added Q&A on `ContactFormOptions` vs `ContactServerPolicy`
+  and on enforcing `require_subject` server-side.
+
 ## [0.3.2] — Unreleased
 
 ### Fixed
@@ -43,15 +79,13 @@
 - `sanitize_header_value` now applied to both `subject_prefix` and the
   effective subject in `LettreSmtpDelivery::build_message` (defence-in-depth
   on top of the existing newline-rejection validator).
-- `Reply-To` header now built with `Mailbox::new(Some(display_name), address)`
-  instead of `"{name} <{email}>".parse()`, handling special characters in
-  display names safely.
 - `verify_csrf_token` now rejects tokens with timestamps more than 60 s in
   the future (clock-skew tolerance), preventing clock-drift abuse.
 - `SmtpTlsMode::None` renamed to `SmtpTlsMode::DangerousPlaintext` to make
   insecure configuration conspicuous in code reviews.
-- PII (name, email) removed from `NoopDelivery` debug log and
-  `LettreSmtpDelivery` info log.
+
+> **Note:** `Reply-To` via `Mailbox::new` and PII log removal were listed here
+> but were not applied correctly; fixed in v0.3.3.
 
 ### Added
 

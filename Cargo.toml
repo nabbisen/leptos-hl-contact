@@ -13,7 +13,7 @@ exclude = [
 
 [workspace.package]
 edition       = "2024"
-version       = "0.3.2"
+version       = "0.3.3"
 authors       = ["nabbisen"]
 license       = "Apache-2.0"
 repository    = "https://github.com/nabbisen/leptos-hl-contact"

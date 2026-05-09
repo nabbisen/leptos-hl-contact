@@ -53,6 +53,37 @@ let options = ContactFormOptions {
 };
 ```
 
+## ContactServerPolicy
+
+**Server-side** enforcement of constraints, independent of `ContactFormOptions`.
+
+> **Important distinction:**
+> `ContactFormOptions` controls the *UI* (what is shown, required, or capped
+> client-side).  Because the server function is a public HTTP endpoint that any
+> HTTP client can call directly, `ContactFormOptions` is **not a security boundary**.
+> `ContactServerPolicy` is the server-authoritative source of truth.
+
+```rust,ignore
+use leptos_hl_contact::ContactServerPolicy;
+
+// Provide in both SSR renderer and server-fn handler closures:
+leptos::context::provide_context(ContactServerPolicy {
+    require_subject: true,   // enforced regardless of ContactFormOptions
+    max_message_len: 2000,   // overrides the UI maxlength attribute
+});
+```
+
+If `require_subject = true` is set only in `ContactFormOptions` but not in
+`ContactServerPolicy`, a direct POST request can bypass the requirement.
+
+### Fields
+
+| Field | Default | Effect |
+|-------|---------|--------|
+| `require_subject` | `false` | Reject submissions with an absent or blank subject |
+| `max_message_len` | `4000` | Reject messages longer than this (must be ≤ 4000) |
+
+
 ## SmtpConfig
 
 All fields are server-side only.  Load credentials from environment variables.
@@ -78,4 +109,4 @@ let config = SmtpConfig {
 |---------|-------------|-------|
 | `StartTls` | 587 | Recommended for most providers |
 | `Tls` | 465 | Implicit TLS |
-| `None` | any | **Development only** — plaintext, never use in production |
+| `DangerousPlaintext` | any | **Development only** — plaintext, never use in production |

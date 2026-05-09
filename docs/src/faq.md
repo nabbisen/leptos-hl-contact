@@ -136,9 +136,40 @@ ContactFormOptions { show_subject: false, ..Default::default() }
 
 ### Can I make the subject field required?
 
+To enforce it **in the UI only** (can be bypassed by direct POST):
+
 ```rust,ignore
 ContactFormOptions { show_subject: true, require_subject: true, ..Default::default() }
 ```
+
+To enforce it **server-side** (cannot be bypassed):
+
+```rust,ignore
+// In both SSR renderer and server-fn handler closures:
+leptos::context::provide_context(ContactServerPolicy {
+    require_subject: true,
+    max_message_len: 4000,
+});
+```
+
+Both together give the best user experience **and** security.
+The UI shows an error immediately; the server rejects direct POST requests.
+See [Configuration — ContactServerPolicy](./configuration.md#contactserverpolicy).
+
+
+### What is the difference between `ContactFormOptions` and `ContactServerPolicy`?
+
+`ContactFormOptions` is **client-visible** configuration passed as a component
+prop.  It controls what the form shows and validates in the browser.  Because it
+is compiled into WASM and rendered on the client, any HTTP client can bypass it
+by sending a request without those constraints.
+
+`ContactServerPolicy` is **server-side** configuration provided via Leptos
+context.  `submit_contact` reads it on every request and rejects submissions
+that violate the policy, regardless of what the client sent.
+
+Rule of thumb: use `ContactFormOptions` for UX, use `ContactServerPolicy`
+for security boundaries.
 
 ---
 

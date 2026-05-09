@@ -6,7 +6,7 @@ use std::{future::Future, pin::Pin};
 
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
-    message::{SinglePart, header::ContentType},
+    message::{Mailbox, SinglePart, header::ContentType},
     transport::smtp::authentication::Credentials,
 };
 
@@ -217,11 +217,15 @@ impl LettreSmtpDelivery {
                 ContactDeliveryError::Configuration(format!("invalid to_address: {e}"))
             })?;
 
-        let reply_to = format!("{} <{}>", input.name, input.email)
+        // Build Reply-To with Mailbox::new to handle special characters in the
+        // display name (quotes, commas, angle brackets) safely.
+        let reply_to_addr: lettre::Address = input
+            .email
             .parse()
             .map_err(|e: lettre::address::AddressError| {
-                ContactDeliveryError::MessageBuild(format!("invalid reply-to address: {e}"))
+                ContactDeliveryError::MessageBuild(format!("invalid reply-to email: {e}"))
             })?;
+        let reply_to = Mailbox::new(Some(input.name.clone()), reply_to_addr);
 
         // Defence-in-depth: sanitize even though validation already rejects newlines.
         let effective_subject = sanitize_header_value(&input.effective_subject("(no subject)"));
@@ -259,10 +263,7 @@ impl ContactDelivery for LettreSmtpDelivery {
                 ContactDeliveryError::Transport(e.to_string())
             })?;
 
-            tracing::info!(
-                name = %input.name,
-                "contact form submission delivered via SMTP"
-            );
+            tracing::info!("contact form submission delivered via SMTP");
             Ok(())
         })
     }

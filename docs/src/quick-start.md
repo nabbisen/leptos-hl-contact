@@ -1,50 +1,48 @@
 # Quick Start
 
-This guide walks through adding a working contact form to a Leptos + Axum
-application from scratch.  Estimated time: **10 minutes**.
+This guide gets a contact form running in a Leptos + Axum application in
+a few minutes.  For production-ready wiring (rate limiting + CSRF + Origin
+validation), see
+[`examples/axum-with-security`](https://github.com/nabbisen/leptos-hl-contact/tree/main/examples/axum-with-security).
 
 ## Prerequisites
 
 - Rust 1.85 or later
 - A Leptos v0.8 SSR application with Axum
-- An SMTP relay you can send from (or run [MailHog](https://github.com/mailhog/MailHog) locally)
 
 ---
 
 ## Step 1 — Add dependencies
 
-In your **server binary** `Cargo.toml`:
+**Server binary `Cargo.toml`:**
 
 ```toml
 [dependencies]
-leptos-hl-contact = { version = "0.3", features = ["ssr", "smtp-lettre", "axum-helpers", "csrf"] }
+leptos-hl-contact = { version = "0.3", features = ["ssr", "smtp-lettre", "axum-helpers"] }
 ```
 
-In your **WASM binary** `Cargo.toml`:
+**WASM binary `Cargo.toml`:**
 
 ```toml
 [dependencies]
 leptos-hl-contact = { version = "0.3", features = ["hydrate"] }
 ```
 
+> For local development you can use the `NoopDelivery` backend, which
+> discards all submissions.  Add the `smtp-lettre` feature only when you
+> are ready to configure real SMTP.
+
 ---
 
 ## Step 2 — Set environment variables
 
 ```bash
-# Never commit these values to source control.
-CSRF_SECRET=$(openssl rand -hex 32)   # CSRF signing key
+# SMTP — never commit these values to source control
 SMTP_HOST=smtp.example.com
 SMTP_USER=you@example.com
 SMTP_PASS=your-smtp-password
 SMTP_FROM=noreply@example.com
 CONTACT_TO=inbox@example.com
-```
-
-Load them with [dotenvy](https://docs.rs/dotenvy) during development:
-
-```rust,ignore
-let _ = dotenvy::dotenv();
 ```
 
 ---
@@ -72,7 +70,7 @@ let delivery: ContactDeliveryContext = Arc::new(LettreSmtpDelivery {
 });
 ```
 
-For local development without a real SMTP server, use `NoopDelivery` instead:
+For local development, substitute `NoopDelivery`:
 
 ```rust,ignore
 use leptos_hl_contact::delivery::noop::NoopDelivery;
@@ -81,21 +79,16 @@ let delivery: ContactDeliveryContext = Arc::new(NoopDelivery);
 
 ---
 
-## Step 4 — Inject the delivery context into Axum
-
-The delivery backend must be provided to **two** places in your Axum router.
-`delivery_context_fn` builds a reusable closure that handles the `Arc::clone`
-for you:
+## Step 4 — Inject context into Axum
 
 ```rust,ignore
 use axum::{Router, body::Body, extract::Request, routing::post};
 use leptos_axum::{LeptosRoutes, generate_route_list, handle_server_fns_with_context};
 
-let ctx = delivery_context_fn(delivery);   // build once
+let ctx = delivery_context_fn(delivery);
 let routes = generate_route_list(App);
 
 let app = Router::new()
-    // 1. Server function handler
     .route("/api/*fn_name", post({
         let ctx = ctx.clone();
         move |req: Request<Body>| {
@@ -103,14 +96,9 @@ let app = Router::new()
             async move { handle_server_fns_with_context(ctx, req).await }
         }
     }))
-    // 2. SSR renderer
     .leptos_routes_with_context(&leptos_options, routes, ctx, App)
     .with_state(leptos_options);
 ```
-
-> **Why both?** Leptos server functions are dispatched by their own HTTP handler
-> (`/api/*fn_name`), separately from the SSR renderer.  Both need access to
-> the delivery context.
 
 ---
 
@@ -129,27 +117,71 @@ fn ContactPage() -> impl IntoView {
 }
 ```
 
-The form renders with English labels, no extra classes, and the default options
-(subject field visible and optional, max 4 000 characters).
-
 ---
 
-## Step 6 — Verify
+## Adding CSRF protection
 
-1. Start your server.
-2. Navigate to the page with `ContactForm`.
-3. Fill in the form and submit.
-4. If using `NoopDelivery`, check your server log for
-   `NoopDelivery: discarding contact form submission`.
-5. If using `LettreSmtpDelivery`, check your inbox.
+The steps above do **not** enable CSRF token verification.  To enable it:
+
+**1. Add the `csrf` feature:**
+
+```toml
+leptos-hl-contact = { version = "0.3", features = ["ssr", "smtp-lettre", "axum-helpers", "csrf"] }
+```
+
+**2. Generate and set `CSRF_SECRET`:**
+
+```bash
+CSRF_SECRET=$(openssl rand -hex 32)
+```
+
+**3. Inject `CsrfConfigContext` and `CsrfToken` in both handler closures:**
+
+```rust,ignore
+use leptos_hl_contact::csrf::{CsrfConfig, CsrfConfigContext, generate_csrf_token};
+
+let csrf_config: CsrfConfigContext = Arc::new(CsrfConfig {
+    secret_key:     std::env::var("CSRF_SECRET").expect("CSRF_SECRET").into_bytes(),
+    token_ttl_secs: 3600,
+});
+let csrf_for_fn  = Arc::clone(&csrf_config);
+let csrf_for_ssr = Arc::clone(&csrf_config);
+
+// Server function handler — inject config for verification:
+.route("/api/*fn_name", post({
+    let ctx  = ctx.clone();
+    let csrf = Arc::clone(&csrf_for_fn);
+    move |req: Request<Body>| {
+        let ctx  = ctx.clone();
+        let csrf = Arc::clone(&csrf);
+        async move {
+            handle_server_fns_with_context(move || {
+                ctx();
+                leptos::context::provide_context::<CsrfConfigContext>(Arc::clone(&csrf));
+            }, req).await
+        }
+    }
+}))
+// SSR renderer — inject config AND a fresh per-request token:
+.leptos_routes_with_context(&opts, routes, move || {
+    ctx.clone()();
+    leptos::context::provide_context::<CsrfConfigContext>(Arc::clone(&csrf_for_ssr));
+    leptos::context::provide_context(generate_csrf_token(&csrf_for_ssr));
+}, App)
+```
+
+> **Important:** when `csrf` feature is enabled, `CsrfConfigContext` **must**
+> be provided in both closures.  If it is absent, `submit_contact` returns an
+> error (fail-closed behaviour).
+
+See [`examples/axum-with-security`](https://github.com/nabbisen/leptos-hl-contact/tree/main/examples/axum-with-security)
+for the complete production-ready integration.
 
 ---
 
 ## Next steps
 
 - [Configuration](./configuration.md) — customise classes, labels, and options
+- [Security](./security.md) — rate limiting, deployment checklist
+- [CSRF Protection](./csrf.md) — full CSRF guide
 - [Styling](./styling.md) — Tailwind / CSS class injection
-- [Security](./security.md) — rate limiting, CSRF, deployment checklist
-- [CSRF Protection](./csrf.md) — enable CSRF token verification
-- [Delivery Backends](./delivery-backends.md) — implement a custom backend
-- [Full Axum example](https://github.com/nabbisen/leptos-hl-contact/tree/main/examples/axum-basic)

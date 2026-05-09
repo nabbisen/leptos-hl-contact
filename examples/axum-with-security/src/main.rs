@@ -6,9 +6,9 @@
 //   - CSRF token verification via HMAC-SHA256 (stateless, no session needed)
 //   - Strict Origin / Referer validation (URL-parsed, scheme+host+port compared)
 //
-// Environment variables:
-//   CSRF_SECRET=<openssl rand -hex 32>    # required; 32+ random bytes
-//   ALLOWED_ORIGIN=https://example.com   # required in production
+// Required environment variables:
+//   CSRF_SECRET=<openssl rand -hex 32>    # 32+ random bytes; NO default fallback
+//   ALLOWED_ORIGIN=https://example.com   # origin URL; NO default fallback
 //   SMTP_HOST / SMTP_USER / SMTP_PASS / SMTP_FROM / CONTACT_TO  (for real SMTP)
 //
 // SECURITY NOTICE:
@@ -112,14 +112,12 @@ async fn main() {
     // ------------------------------------------------------------------
     // CSRF configuration — fail-closed if CSRF_SECRET is missing
     // ------------------------------------------------------------------
+    // CSRF_SECRET is required.  Generate with: openssl rand -hex 32
     let csrf_secret = std::env::var("CSRF_SECRET")
-        .unwrap_or_else(|_| {
-            tracing::warn!(
-                "CSRF_SECRET not set — using an insecure default. \
-                 Set a 32+ byte random secret in production! (openssl rand -hex 32)"
-            );
-            "insecure-placeholder-change-before-deploying-this-app".into()
-        })
+        .expect(
+            "CSRF_SECRET must be set to a 32+ byte random value. \
+             Generate one with: openssl rand -hex 32",
+        )
         .into_bytes();
 
     let csrf_config: CsrfConfigContext = Arc::new(CsrfConfig {
@@ -148,8 +146,9 @@ async fn main() {
     // ------------------------------------------------------------------
     // Strict origin validation
     // ------------------------------------------------------------------
+    // ALLOWED_ORIGIN is required in production (e.g. https://example.com).
     let allowed_origin_str = std::env::var("ALLOWED_ORIGIN")
-        .unwrap_or_else(|_| "http://localhost:3000".into());
+        .expect("ALLOWED_ORIGIN must be set (e.g. https://example.com)");
     let allowed_origin = Url::parse(&allowed_origin_str)
         .unwrap_or_else(|e| panic!("ALLOWED_ORIGIN is not a valid URL: {e}"));
     let security_state = SecurityState {
