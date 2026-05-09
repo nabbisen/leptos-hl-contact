@@ -17,6 +17,7 @@
 # For Experienced Users
 
 - [Security](./security.md)
+  - [CSRF Protection](./csrf.md)
   - [Turnstile Integration](./turnstile.md)
 - [Delivery Backends](./delivery-backends.md)
 - [Axum Integration](./axum-integration.md)

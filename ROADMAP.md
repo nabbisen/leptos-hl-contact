@@ -15,15 +15,15 @@
 - [x] Axum example
 - [x] Apache-2.0 licence
 
-## Near-term (v0.2.0 — in progress)
+## Near-term (v0.2.x / v0.3.0 — released)
 
 - [x] Per-field validation errors (`ContactFieldErrors`)
 - [x] `axum-helpers` feature: `delivery_context_fn`, `provide_contact_delivery`
 - [x] CSRF guidance and example middleware
 - [x] Rate limit guide (tower-governor / axum-governor)
 - [x] Cloudflare Turnstile integration guide
-- [ ] CSRF token helper (server-side generation + form field)
-- [ ] Rate limit integration test example
+- [x] CSRF token helper (`csrf` feature) — HMAC-SHA256 stateless tokens
+- [x] Rate limit integration example (`examples/axum-with-security`)
 
 ## Future
 

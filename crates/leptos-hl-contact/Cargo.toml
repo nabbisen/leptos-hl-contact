@@ -22,6 +22,7 @@ ssr = ["leptos/ssr"]
 islands = ["leptos/islands"]
 smtp-lettre = ["ssr", "dep:lettre", "dep:tokio"]
 axum-helpers = ["ssr", "dep:leptos_axum", "dep:axum"]
+csrf = ["ssr", "dep:hmac", "dep:sha2", "dep:rand", "dep:hex"]
 
 [dependencies]
 leptos = { version = "0.8", features = [] }
@@ -38,6 +39,12 @@ axum = { version = "0.8", optional = true }
 # SMTP (optional, smtp-lettre feature)
 lettre = { version = "0.11", features = ["smtp-transport", "tokio1", "tokio1-native-tls", "builder", "hostname"], default-features = false, optional = true }
 tokio = { version = "1", features = ["rt"], optional = true }
+
+# CSRF (optional, csrf feature)
+hmac = { version = "0.13", optional = true }
+sha2 = { version = "0.11", optional = true }
+rand = { version = "0.8", optional = true }
+hex = { version = "0.4", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

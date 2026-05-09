@@ -49,10 +49,10 @@ The **delivery backend** is an abstract trait. The crate ships SMTP
 
 ```toml
 # server binary
-leptos-hl-contact = { version = "0.2", features = ["ssr", "smtp-lettre", "axum-helpers"] }
+leptos-hl-contact = { version = "0.3", features = ["ssr", "smtp-lettre", "axum-helpers", "csrf"] }
 
 # WASM binary
-leptos-hl-contact = { version = "0.2", features = ["hydrate"] }
+leptos-hl-contact = { version = "0.3", features = ["hydrate"] }
 ```
 
 **2. Wire up the delivery backend (Axum)**
@@ -101,6 +101,7 @@ view! { <ContactForm /> }
 | `islands` | Leptos Islands architecture |
 | `smtp-lettre` | SMTP delivery via `lettre` (implies `ssr`) |
 | `axum-helpers` | `delivery_context_fn` helper (implies `ssr`) |
+| `csrf`         | HMAC-SHA256 CSRF token generation + verification (implies `ssr`) |
 
 ---
 
@@ -110,6 +111,7 @@ view! { <ContactForm /> }
 - **Progressive enhancement** — `<ActionForm/>` works without JavaScript.
 - **Pluggable delivery** — implement `ContactDelivery` for any backend.
 - **Accessible by default** — labels, ARIA, per-field errors, keyboard nav.
+- **CSRF protection built-in** — stateless HMAC-SHA256 tokens, no session required (`csrf` feature).
 - **Framework-neutral core** — Axum helpers are opt-in; the delivery trait is
   not tied to any HTTP framework.
 

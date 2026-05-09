@@ -1,85 +1,137 @@
 # Security
 
 This page explains the security model of `leptos-hl-contact` and the steps
-you should take before exposing the form publicly.
+you must take before exposing the form publicly.
 
 ## What the crate handles
 
-| Concern | Handled |
-|---------|---------|
-| Server-side input validation | ✅ Always, regardless of client state |
-| Per-field validation error feedback | ✅ Generic messages, no PII echo |
-| Honeypot bot detection | ✅ Built-in |
-| Email header injection | ✅ Newlines rejected in `name` / `subject` |
-| Credential isolation | ✅ SMTP config never reaches WASM |
-| Generic client errors | ✅ Internal details logged; not forwarded |
-| Input escaping in `view!` | ✅ Leptos escapes output by default |
+| Concern | Handled | Notes |
+|---------|---------|-------|
+| Server-side input validation | ✅ Always | Regardless of client state |
+| Per-field validation errors | ✅ Generic messages | Never echoes user input |
+| Honeypot bot detection | ✅ Built-in | Silent success on trigger |
+| Email header injection | ✅ Newlines rejected | In `name` / `subject` |
+| Credential isolation | ✅ | SMTP config never reaches WASM |
+| Generic client errors | ✅ | Internal details logged only |
+| CSRF token generation + verification | ✅ (`csrf` feature) | HMAC-SHA256 stateless tokens |
+| Input escaping in `view!` | ✅ | Leptos escapes output by default |
 
-## What you must handle in your application
+## What you must configure in your application
 
 ### HTTPS
 
-Run behind TLS in production. Credentials and form data are transmitted
+Run behind TLS in production.  Credentials and form data are transmitted
 over HTTP — only TLS prevents interception.
 
-### Rate limiting
+---
 
-A public form without rate limiting will be flooded by bots.  Add
-middleware at the Axum layer before going live.
+## CSRF Protection (`csrf` feature)
 
-Recommended crates:
+`leptos-hl-contact` ships a stateless HMAC-SHA256 CSRF token helper that
+requires no session storage or database.
 
-| Crate | Notes |
-|-------|-------|
-| [`tower-governor`](https://docs.rs/tower-governor) | Tower middleware, IP-based leaky-bucket |
-| [`axum-governor`](https://docs.rs/axum-governor) | Axum wrapper around tower-governor |
+### How it works
 
-#### Axum example
+1. At startup, create a `CsrfConfig` with a secret key loaded from an
+   environment variable.
+2. Provide `Arc<CsrfConfig>` (`CsrfConfigContext`) to both the SSR renderer
+   and the server-function handler via Leptos context.
+3. In the SSR renderer, also call `generate_csrf_token(&config)` and provide
+   the `CsrfToken` via context. Each page render gets a unique token.
+4. `ContactForm` automatically embeds the token in a hidden
+   `<input name="csrf_token">` field.
+5. `submit_contact` verifies the token before processing the submission.
+
+### Setup
+
+```toml
+leptos-hl-contact = { version = "0.3", features = ["ssr", "csrf"] }
+```
+
+```bash
+# .env — server-side only, never commit
+CSRF_SECRET=<output of: openssl rand -hex 32>
+```
 
 ```rust,ignore
 use std::sync::Arc;
-use axum_governor::{GovernorConfigBuilder, GovernorLayer};
+use leptos_hl_contact::csrf::{CsrfConfig, CsrfConfigContext, generate_csrf_token};
+
+let csrf_config: CsrfConfigContext = Arc::new(CsrfConfig {
+    secret_key:     std::env::var("CSRF_SECRET").expect("CSRF_SECRET").into_bytes(),
+    token_ttl_secs: 3600,
+});
+
+// In both SSR renderer and server-fn handler closures:
+provide_context::<CsrfConfigContext>(Arc::clone(&csrf_config));
+
+// In SSR renderer closure only (generates unique token per page render):
+provide_context(generate_csrf_token(&csrf_config));
+```
+
+See [`examples/axum-with-security`](https://github.com/nabbisen/leptos-hl-contact/tree/main/examples/axum-with-security)
+for the complete wiring.
+
+### Token format
+
+```
+{unix_timestamp_secs}|{random_nonce_hex}|{hmac_sha256_hex}
+```
+
+Each token encodes its creation time and a random 16-byte nonce, signed with
+HMAC-SHA256.  Verification checks the signature (constant-time comparison) and
+rejects tokens older than `token_ttl_secs`.
+
+---
+
+## Rate limiting
+
+A public form without rate limiting will be flooded by bots.  Add middleware
+at the Axum layer before going live.
+
+### `tower_governor` example
+
+```toml
+tower_governor = { version = "0.8" }
+```
+
+```rust,ignore
+use std::sync::Arc;
+use tower_governor::{
+    GovernorLayer,
+    governor::GovernorConfigBuilder,
+    key_extractor::SmartIpKeyExtractor,
+};
 
 let governor_config = Arc::new(
     GovernorConfigBuilder::default()
-        .per_second(2)   // 2 requests per second sustained
-        .burst_size(5)   // up to 5 at once
+        .key_extractor(SmartIpKeyExtractor)
+        .per_second(2)
+        .burst_size(5)
         .finish()
-        .unwrap(),
+        .expect("valid config"),
 );
 
 let app = Router::new()
-    // … your routes …
-    .layer(GovernorLayer { config: governor_config });
+    // … routes …
+    .layer(GovernorLayer::new(governor_config));
 ```
 
-Apply the layer **before** the server-function route so that bursts of
-automated POST requests are throttled.
+Exceeding the limit returns HTTP 429 Too Many Requests automatically.
 
-### CSRF protection
+> In production, ensure your reverse proxy sets and validates
+> `X-Forwarded-For` before traffic reaches Axum, so
+> `SmartIpKeyExtractor` reads the real client IP.
 
-Leptos `<ActionForm/>` uses standard HTML form `POST` semantics. Protect
-against cross-site request forgery with:
+---
 
-1. **`SameSite=Lax` (or `Strict`) cookies** — prevents cross-site form
-   submission in most browsers.  This is the minimum viable protection.
+## Origin / Referer validation
 
-2. **`Origin` / `Referer` header validation** — reject requests whose
-   `Origin` does not match your domain.
-
-3. **CSRF tokens** — for applications with stricter requirements, use a
-   signed, per-session token embedded as a hidden form field and verified
-   server-side.
-
-#### Axum middleware snippet
+Add a middleware that rejects POST requests from unknown origins.
+This is a complementary layer to CSRF tokens.
 
 ```rust,ignore
-use axum::{
-    extract::Request,
-    http::{StatusCode, header},
-    middleware::{Next, from_fn},
-    response::Response,
-};
+use axum::{extract::Request, http::{StatusCode, header}, middleware::Next, response::Response};
 
 async fn check_origin(req: Request, next: Next) -> Result<Response, StatusCode> {
     if req.method() == axum::http::Method::POST {
@@ -88,47 +140,45 @@ async fn check_origin(req: Request, next: Next) -> Result<Response, StatusCode> 
             .or_else(|| req.headers().get(header::REFERER))
             .and_then(|v| v.to_str().ok())
             .unwrap_or("");
-
         if !origin.starts_with("https://your-domain.com") {
             return Err(StatusCode::FORBIDDEN);
         }
     }
     Ok(next.run(req).await)
 }
-
-// Add to your router:
-let app = Router::new()
-    // … routes …
-    .layer(from_fn(check_origin));
 ```
 
-### Cloudflare Turnstile (optional CAPTCHA)
+---
 
-For high-traffic or high-value forms, add a CAPTCHA. See
-[Turnstile integration](./turnstile.md) for a step-by-step guide.
+## Cloudflare Turnstile (optional CAPTCHA)
 
-### Secrets management
+For high-traffic or high-value forms, add a CAPTCHA.  See
+[Turnstile Integration](./turnstile.md) for a step-by-step guide.
 
-Load SMTP credentials from environment variables or a dedicated secret
-store (HashiCorp Vault, AWS Secrets Manager, etc.).  Never commit them
-to source control.
+---
+
+## Secrets management
+
+Load all secrets from environment variables or a dedicated secret store
+(HashiCorp Vault, AWS Secrets Manager, etc.).  Never commit them to source
+control.
 
 ```bash
-# .env — never committed, loaded via dotenvy in development
-SMTP_HOST=smtp.example.com
-SMTP_USER=you@example.com
-SMTP_PASS=super-secret
-SMTP_FROM=noreply@example.com
-CONTACT_TO=inbox@example.com
+# .env (never committed — loaded via dotenvy in development)
+CSRF_SECRET=<32+ random bytes>
+SMTP_PASS=<smtp password>
 ```
+
+---
 
 ## Deployment checklist
 
 - [ ] HTTPS enabled (TLS termination by reverse proxy or load balancer)
+- [ ] `CSRF_SECRET` set to a 32+ byte random value in production
 - [ ] Rate limiting middleware configured
+- [ ] Origin / Referer validation middleware enabled
 - [ ] `SameSite=Lax` or `Strict` cookies set on the session
-- [ ] `Origin` / `Referer` validation enabled (or CSRF token in use)
 - [ ] SMTP credentials loaded from environment variables, not source code
-- [ ] Logs contain no raw message bodies, email addresses, or passwords
-- [ ] Reverse proxy strips or validates `X-Forwarded-For` for IP-based limits
-- [ ] Form smoke-tested with JavaScript disabled (progressive enhancement)
+- [ ] Server logs contain no raw message bodies or passwords
+- [ ] Reverse proxy validates `X-Forwarded-For` for IP-based rate limits
+- [ ] Form smoke-tested with JavaScript disabled

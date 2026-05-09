@@ -298,3 +298,57 @@ pub fn sanitize_header_value(value: &str) -> String
 Replace `\r` and `\n` with spaces.  Defence-in-depth for email header
 injection.  The input validation layer already rejects newlines; this function
 is an additional safety net for custom code paths.
+
+---
+
+## CSRF Token Helper
+
+**Feature:** `csrf`
+
+### `CsrfConfig`
+
+```rust
+pub struct CsrfConfig {
+    pub secret_key:     Vec<u8>,  // HMAC signing key — server-side only
+    pub token_ttl_secs: u64,      // default 3600 (one hour)
+}
+```
+
+Load `secret_key` from an environment variable; never hard-code it.
+
+### `CsrfToken`
+
+```rust
+pub struct CsrfToken(pub String);
+```
+
+Provide this via Leptos context in the SSR renderer closure (one per request).
+`ContactForm` reads it and embeds the value in a hidden `<input name="csrf_token">`.
+
+### `CsrfConfigContext`
+
+```rust
+pub type CsrfConfigContext = Arc<CsrfConfig>;
+```
+
+Provide in **both** the SSR renderer and the server-function handler so that
+token verification works for every `submit_contact` call.
+
+### `generate_csrf_token`
+
+```rust
+pub fn generate_csrf_token(config: &CsrfConfig) -> CsrfToken
+```
+
+Generates a fresh `{timestamp}|{nonce}|{hmac}` token.  Call once per SSR
+render; provide the result as a Leptos context value.
+
+### `verify_csrf_token`
+
+```rust
+pub fn verify_csrf_token(token: &str, config: &CsrfConfig) -> bool
+```
+
+Verifies the HMAC signature (constant-time) and checks the token has not
+expired.  Called automatically by `submit_contact` when `CsrfConfigContext`
+is in context.

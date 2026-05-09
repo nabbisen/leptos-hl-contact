@@ -1,0 +1,25 @@
+[package]
+name = "axum-with-security"
+description = "Example: leptos-hl-contact with rate limiting (tower_governor) and CSRF protection."
+edition.workspace = true
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[[bin]]
+name = "axum-with-security"
+path = "src/main.rs"
+
+[dependencies]
+leptos = { version = "0.8", features = ["ssr"] }
+leptos_axum = { version = "0.8" }
+leptos_router = { version = "0.8" }
+leptos-hl-contact = { path = "../../crates/leptos-hl-contact", features = ["ssr", "smtp-lettre", "axum-helpers", "csrf"] }
+axum = { version = "0.8" }
+tower_governor = { version = "0.8" }
+tower = { version = "0.5" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dotenvy = "0.15"

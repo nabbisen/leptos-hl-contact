@@ -8,6 +8,9 @@ use crate::{
     server::SubmitContact,
 };
 
+#[cfg(feature = "csrf")]
+use crate::csrf::CsrfToken;
+
 // ---------------------------------------------------------------------------
 // Helper — small inline error paragraph
 // ---------------------------------------------------------------------------
@@ -94,6 +97,18 @@ pub fn ContactForm(
     options: ContactFormOptions,
 ) -> impl IntoView {
     let submit_action = ServerAction::<SubmitContact>::new();
+
+    // Read CSRF token from Leptos context (provided per SSR render when the
+    // `csrf` feature is enabled and `CsrfConfigContext` is configured).
+    // Stored in StoredValue so the reactive closure is FnMut (not FnOnce).
+    #[cfg(feature = "csrf")]
+    let csrf_token_value = StoredValue::new(
+        leptos::context::use_context::<CsrfToken>()
+            .map(|t| t.0.clone())
+            .unwrap_or_default(),
+    );
+    #[cfg(not(feature = "csrf"))]
+    let csrf_token_value = StoredValue::new(String::new());
     let pending = submit_action.pending();
     let value = submit_action.value();
 
@@ -257,7 +272,16 @@ pub fn ContactForm(
                             <FieldError input_id="contact-message" class=ec.clone() message=fe.message />
                         </div>
 
-                        // Honeypot — visually hidden; excluded from assistive tech.
+                        // CSRF token — hidden field; populated server-side.
+                        // Empty when the `csrf` feature is disabled or CsrfConfigContext
+                        // is not provided.
+                        <input
+                            type="hidden"
+                            name="csrf_token"
+                            value=csrf_token_value.get_value()
+                        />
+
+                                                // Honeypot — visually hidden; excluded from assistive tech.
                         <div
                             aria-hidden="true"
                             style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden"

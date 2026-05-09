@@ -48,6 +48,10 @@ pub mod components;
 // Server function — compiled only when `ssr` is active.
 pub mod server;
 
+// CSRF token helper — compiled only when `csrf` is active.
+#[cfg(feature = "csrf")]
+pub mod csrf;
+
 // Axum integration helpers — compiled only when `axum-helpers` is active.
 #[cfg(feature = "axum-helpers")]
 pub mod axum_helpers;
@@ -62,3 +66,6 @@ pub use delivery::{ContactDelivery, ContactDeliveryContext};
 pub use error::{ContactDeliveryError, ContactFieldErrors, ContactValidationError};
 pub use model::ContactInput;
 pub use server::submit_contact;
+
+#[cfg(feature = "csrf")]
+pub use csrf::{CsrfConfig, CsrfConfigContext, CsrfToken, generate_csrf_token, verify_csrf_token};

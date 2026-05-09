@@ -1,9 +1,41 @@
-# Changelog
+## [0.3.0] — Unreleased
 
-## [0.2.3] — Unreleased
+### Added
+
+- `csrf` feature: stateless HMAC-SHA256 CSRF token helper.
+  - `CsrfConfig` — secret key + TTL configuration (server-side only).
+  - `CsrfToken` — per-request token provided via Leptos context.
+  - `generate_csrf_token(&config) -> CsrfToken` — generates a signed
+    `{timestamp}|{nonce}|{hmac}` token on each SSR render.
+  - `verify_csrf_token(token, &config) -> bool` — constant-time HMAC
+    verification with TTL check.
+  - `CsrfConfigContext` type alias (`Arc<CsrfConfig>`) for Leptos context.
+  - 8 unit tests covering token round-trip, tamper detection, expiry,
+    key mismatch, malformed tokens, and uniqueness.
+- `ContactForm` now embeds a hidden `<input name="csrf_token">` field
+  automatically when `CsrfToken` is present in the Leptos context.
+- `submit_contact` gains a `csrf_token: String` parameter; when
+  `CsrfConfigContext` is in context the token is verified before
+  processing the form. Backward-compatible: verification is skipped
+  when `CsrfConfigContext` is absent.
+- `examples/axum-with-security` — complete example demonstrating:
+  - `tower_governor` rate limiting (IP-based, 2 req/s, burst 5).
+  - HMAC CSRF token injection and verification.
+  - Origin/Referer header validation middleware.
+  - `CSRF_SECRET` and `ALLOWED_ORIGIN` environment variable setup.
 
 ### Changed
 
+- Near-term roadmap items fully completed (v0.2.x + v0.3.0).
+
+# Changelog
+
+## [0.2.2] — Unreleased
+
+### Changed
+
+- Renamed crate directory from `crates/core` to `crates/leptos-hl-contact`
+  for clarity. The published crate name (`leptos-hl-contact`) is unchanged.
 - `cargo outdated` check: all 14 dependencies confirmed up to date
   (`leptos` 0.8.19, `axum` 0.8.9, `lettre` 0.11.21, `tokio` 1.52.3, etc.).
 - README.md rewritten to match the project specification: six-section structure,
@@ -18,13 +50,6 @@
 - `docs/src/architecture.md` expanded with design philosophy, principles,
   and release process.
 - `docs/book.toml` updated with full mdBook HTML output configuration.
-
-## [0.2.2] — Unreleased
-
-### Changed
-
-- Renamed crate directory from `crates/core` to `crates/leptos-hl-contact`
-  for clarity. The published crate name (`leptos-hl-contact`) is unchanged.
 
 ## [0.2.0] — Unreleased
 
