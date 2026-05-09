@@ -61,7 +61,7 @@ pub mod axum_helpers;
 // ---------------------------------------------------------------------------
 
 pub use components::ContactForm;
-pub use config::{ContactFormClasses, ContactFormLabels, ContactFormOptions};
+pub use config::{ContactFormClasses, ContactFormLabels, ContactFormOptions, ContactServerPolicy};
 pub use delivery::{ContactDelivery, ContactDeliveryContext};
 pub use error::{ContactDeliveryError, ContactFieldErrors, ContactValidationError};
 pub use model::ContactInput;

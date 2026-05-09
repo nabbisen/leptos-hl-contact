@@ -132,21 +132,36 @@ This is a complementary layer to CSRF tokens.
 
 ```rust,ignore
 use axum::{extract::Request, http::{StatusCode, header}, middleware::Next, response::Response};
+use url::Url;
+
+// Parse once at startup; panics on invalid URL (intentional — misconfiguration).
+let allowed: Url = Url::parse("https://your-domain.com").unwrap();
+
+fn origin_matches(value: &str, allowed: &Url) -> bool {
+    let Ok(parsed) = Url::parse(value) else { return false; };
+    parsed.scheme() == allowed.scheme()
+        && parsed.host_str() == allowed.host_str()
+        && parsed.port_or_known_default() == allowed.port_or_known_default()
+}
 
 async fn check_origin(req: Request, next: Next) -> Result<Response, StatusCode> {
     if req.method() == axum::http::Method::POST {
-        let origin = req.headers()
+        let value = req.headers()
             .get(header::ORIGIN)
             .or_else(|| req.headers().get(header::REFERER))
             .and_then(|v| v.to_str().ok())
             .unwrap_or("");
-        if !origin.starts_with("https://your-domain.com") {
+        if !origin_matches(value, &allowed) {
             return Err(StatusCode::FORBIDDEN);
         }
     }
     Ok(next.run(req).await)
 }
 ```
+
+> **Why not `starts_with`?**  A check like `origin.starts_with("https://example.com")`
+> would accept `https://example.com.evil.test`.  Parsing the URL and comparing
+> scheme, host, and port individually prevents this class of bypass.
 
 ---
 

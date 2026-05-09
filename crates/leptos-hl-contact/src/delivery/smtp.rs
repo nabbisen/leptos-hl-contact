@@ -10,7 +10,12 @@ use lettre::{
     transport::smtp::authentication::Credentials,
 };
 
-use crate::{delivery::ContactDelivery, error::ContactDeliveryError, model::ContactInput};
+use crate::{
+    delivery::ContactDelivery,
+    error::ContactDeliveryError,
+    model::ContactInput,
+    security::sanitize_header_value,
+};
 
 // ---------------------------------------------------------------------------
 // SmtpTlsMode
@@ -35,7 +40,9 @@ pub enum SmtpTlsMode {
     ///
     /// Use this mode **only** for local development or internal networks.
     /// Credentials and message content are transmitted unencrypted.
-    None,
+    /// The name `DangerousPlaintext` is intentional — it should be conspicuous
+    /// in production configuration reviews.
+    DangerousPlaintext,
 }
 
 // ---------------------------------------------------------------------------
@@ -68,7 +75,7 @@ pub enum SmtpTlsMode {
 ///     tls_mode:       SmtpTlsMode::StartTls,
 /// };
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SmtpConfig {
     /// Hostname of the SMTP relay (e.g. `smtp.mailgun.org`).
     pub host: String,
@@ -90,6 +97,21 @@ pub struct SmtpConfig {
     pub subject_prefix: String,
     /// TLS negotiation mode.
     pub tls_mode: SmtpTlsMode,
+}
+
+impl std::fmt::Debug for SmtpConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SmtpConfig")
+            .field("host", &self.host)
+            .field("port", &self.port)
+            .field("username", &self.username)
+            .field("password", &"<redacted>")
+            .field("from_address", &self.from_address)
+            .field("to_address", &self.to_address)
+            .field("subject_prefix", &self.subject_prefix)
+            .field("tls_mode", &self.tls_mode)
+            .finish()
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -128,10 +150,17 @@ pub struct SmtpConfig {
 ///     },
 /// });
 /// ```
-#[derive(Debug)]
 pub struct LettreSmtpDelivery {
     /// SMTP relay configuration.
     pub config: SmtpConfig,
+}
+
+impl std::fmt::Debug for LettreSmtpDelivery {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LettreSmtpDelivery")
+            .field("config", &self.config)
+            .finish()
+    }
 }
 
 impl LettreSmtpDelivery {
@@ -152,7 +181,7 @@ impl LettreSmtpDelivery {
                 .port(self.config.port)
                 .credentials(creds)
                 .build(),
-            SmtpTlsMode::None => {
+            SmtpTlsMode::DangerousPlaintext => {
                 AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(&self.config.host)
                     .port(self.config.port)
                     .credentials(creds)
@@ -194,8 +223,10 @@ impl LettreSmtpDelivery {
                 ContactDeliveryError::MessageBuild(format!("invalid reply-to address: {e}"))
             })?;
 
-        let effective_subject = input.effective_subject("(no subject)");
-        let subject = format!("{} {}", self.config.subject_prefix, effective_subject);
+        // Defence-in-depth: sanitize even though validation already rejects newlines.
+        let effective_subject = sanitize_header_value(&input.effective_subject("(no subject)"));
+        let subject_prefix    = sanitize_header_value(&self.config.subject_prefix);
+        let subject = format!("{subject_prefix} {effective_subject}");
         let body = build_plain_text_body(input);
 
         let message = Message::builder()

@@ -151,6 +151,55 @@ impl Default for ContactFormOptions {
 
 
 // ---------------------------------------------------------------------------
+// ContactServerPolicy
+// ---------------------------------------------------------------------------
+
+/// Server-side enforcement policy for contact form submissions.
+///
+/// Provide this via Leptos context in both the SSR renderer and the
+/// server-function handler closures to enforce constraints server-side,
+/// independent of whatever the client-side [`ContactFormOptions`] states.
+///
+/// # Why this is separate from `ContactFormOptions`
+///
+/// [`ContactFormOptions`] controls the UI (whether fields are shown, required,
+/// or length-capped).  It is client-visible and cannot be trusted as a security
+/// boundary.  `ContactServerPolicy` is the server-authoritative source of truth.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use leptos::context::provide_context;
+/// use leptos_hl_contact::config::ContactServerPolicy;
+///
+/// // In both SSR renderer and server-fn handler closures:
+/// provide_context(ContactServerPolicy {
+///     require_subject: true,
+///     max_message_len: 2000,
+/// });
+/// ```
+#[derive(Clone, Debug)]
+pub struct ContactServerPolicy {
+    /// Reject submissions where `subject` is absent or blank.
+    /// Defaults to `false`.
+    pub require_subject: bool,
+
+    /// Maximum allowed length of the `message` field in characters.
+    /// Must not exceed the hard validation limit of 4 000.
+    /// Defaults to `4000`.
+    pub max_message_len: usize,
+}
+
+impl Default for ContactServerPolicy {
+    fn default() -> Self {
+        Self {
+            require_subject: false,
+            max_message_len: 4000,
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 

@@ -64,7 +64,7 @@ type HmacSha256 = Hmac<Sha256>;
 ///     token_ttl_secs: 3600,
 /// });
 /// ```
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct CsrfConfig {
     /// HMAC signing key.  Must be kept server-side only.
     pub secret_key: Vec<u8>,
@@ -72,6 +72,15 @@ pub struct CsrfConfig {
     /// Token validity window in seconds.  After this period, a token is
     /// considered expired.  Defaults to 3 600 (one hour).
     pub token_ttl_secs: u64,
+}
+
+impl std::fmt::Debug for CsrfConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CsrfConfig")
+            .field("secret_key", &"<redacted>")
+            .field("token_ttl_secs", &self.token_ttl_secs)
+            .finish()
+    }
 }
 
 impl CsrfConfig {
@@ -179,11 +188,18 @@ pub fn verify_csrf_token(token: &str, config: &CsrfConfig) -> bool {
         return false;
     }
 
-    // Check TTL
+    // Check TTL and reject future timestamps beyond clock-skew tolerance.
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
+
+    // Allow up to 60 s of clock skew for tokens from slightly-ahead clocks.
+    const ALLOWED_FUTURE_SKEW_SECS: u64 = 60;
+    if timestamp > now.saturating_add(ALLOWED_FUTURE_SKEW_SECS) {
+        tracing::debug!(timestamp, now, "CSRF token has future timestamp beyond skew tolerance");
+        return false;
+    }
 
     if now.saturating_sub(timestamp) > config.token_ttl_secs {
         tracing::debug!(timestamp, now, "CSRF token expired");

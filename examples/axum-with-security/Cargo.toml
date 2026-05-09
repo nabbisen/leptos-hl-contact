@@ -1,6 +1,6 @@
 [package]
 name = "axum-with-security"
-description = "Example: leptos-hl-contact with rate limiting (tower_governor) and CSRF protection."
+description = "Example: leptos-hl-contact with rate limiting, CSRF, and Origin validation."
 edition.workspace = true
 version.workspace = true
 authors.workspace = true
@@ -19,7 +19,9 @@ leptos-hl-contact = { path = "../../crates/leptos-hl-contact", features = ["ssr"
 axum = { version = "0.8" }
 tower_governor = { version = "0.8" }
 tower = { version = "0.5" }
+tower-http = { version = "0.6", features = ["limit"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dotenvy = "0.15"
+url = "2"

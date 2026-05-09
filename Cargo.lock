@@ -138,7 +138,7 @@ dependencies = [
 
 [[package]]
 name = "axum-basic"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "axum",
  "dotenvy",
@@ -148,6 +148,7 @@ dependencies = [
  "leptos_router",
  "tokio",
  "tower",
+ "tower-http",
  "tracing",
  "tracing-subscriber",
 ]
@@ -173,7 +174,7 @@ dependencies = [
 
 [[package]]
 name = "axum-with-security"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "axum",
  "dotenvy",
@@ -183,9 +184,11 @@ dependencies = [
  "leptos_router",
  "tokio",
  "tower",
+ "tower-http",
  "tower_governor",
  "tracing",
  "tracing-subscriber",
+ "url",
 ]
 
 [[package]]
@@ -1366,7 +1369,7 @@ dependencies = [
 
 [[package]]
 name = "leptos-hl-contact"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "axum",
  "hex",

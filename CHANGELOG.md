@@ -1,3 +1,60 @@
+# Changelog
+
+## [0.3.1] — Unreleased
+
+### Security (Critical)
+
+- `SmtpConfig` and `CsrfConfig` no longer derive `Debug`; manual `Debug` impls
+  redact `password` and `secret_key` as `"<redacted>"`.
+  `LettreSmtpDelivery` manual `Debug` delegates to the redacted `SmtpConfig`.
+  Prevents accidental credential exposure in logs, panics, and observability
+  middleware.
+- `csrf` feature is now **fail-closed**: when `CsrfConfigContext` is not
+  provided in Leptos context, `submit_contact` returns a `ServerError` instead
+  of silently skipping verification. Prevents the silent-CSRF-bypass footgun.
+- Origin / Referer validation in `examples/axum-with-security` now uses
+  `url::Url::parse` + strict scheme/host/port comparison instead of
+  `starts_with`, closing the prefix-spoofing bypass
+  (`https://example.com.evil.test`).
+- `RequestBodyLimitLayer` (32 KiB) added to both examples, preventing
+  large-POST abuse before any handler or validation runs.
+- `examples/axum-basic` now emits a loud `tracing::warn!` at startup and is
+  clearly labelled **local development only** in comments and README.
+
+### Security (Medium)
+
+- `sanitize_header_value` now applied to both `subject_prefix` and the
+  effective subject in `LettreSmtpDelivery::build_message` (defence-in-depth
+  on top of the existing newline-rejection validator).
+- `Reply-To` header now built with `Mailbox::new(Some(display_name), address)`
+  instead of `"{name} <{email}>".parse()`, handling special characters in
+  display names safely.
+- `verify_csrf_token` now rejects tokens with timestamps more than 60 s in
+  the future (clock-skew tolerance), preventing clock-drift abuse.
+- `SmtpTlsMode::None` renamed to `SmtpTlsMode::DangerousPlaintext` to make
+  insecure configuration conspicuous in code reviews.
+- PII (name, email) removed from `NoopDelivery` debug log and
+  `LettreSmtpDelivery` info log.
+
+### Added
+
+- `ContactServerPolicy` — server-side enforcement of `require_subject` and
+  `max_message_len`, independent of the client-side `ContactFormOptions`.
+  Provide via Leptos context; enforced in `submit_contact` before delivery.
+- `csrf_token` parameter in `submit_contact` changed from `String` to
+  `Option<String>` for graceful deserialization when the hidden field is
+  absent in older form deployments.
+- `server function endpoint = "submit_contact"` annotation for stable routing.
+
+### Changed
+
+- README Quick Start now links to `examples/axum-with-security` as the
+  primary production reference; `examples/axum-basic` demoted to local-dev
+  skeleton.
+- `docs/src/quick-start.md` updated to v0.3 versions and `csrf` feature.
+- `docs/src/security.md` Origin validation example updated to URL-parsed
+  strict comparison.
+
 ## [0.3.0] — Unreleased
 
 ### Added
@@ -27,8 +84,6 @@
 ### Changed
 
 - Near-term roadmap items fully completed (v0.2.x + v0.3.0).
-
-# Changelog
 
 ## [0.2.2] — Unreleased
 

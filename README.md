@@ -43,6 +43,10 @@ The **delivery backend** is an abstract trait. The crate ships SMTP
 
 ---
 
+> **Production checklist:** rate limiting, CSRF (`csrf` feature), HTTPS, and Origin
+> validation are required before going public.  See [Security](./docs/src/security.md)
+> and [`examples/axum-with-security`](./examples/axum-with-security).
+
 ## Quick Start
 
 **1. Add the dependency**
@@ -80,7 +84,9 @@ let ctx = delivery_context_fn(delivery);
 // provide ctx to both handle_server_fns_with_context and leptos_routes_with_context
 ```
 
-See [`examples/axum-basic`](./examples/axum-basic) for the complete wiring.
+See [`examples/axum-with-security`](./examples/axum-with-security) for production-ready
+wiring (rate limiting + CSRF + Origin validation).  For a minimal local-dev skeleton,
+see [`examples/axum-basic`](./examples/axum-basic) (**not production safe**).
 
 **3. Place the component**
 
@@ -127,6 +133,7 @@ For guides, API reference, and architecture notes, see the
 
 Key chapters:
 - [Quick Start](./docs/src/quick-start.md) — step-by-step tutorial
+- [CSRF Protection](./docs/src/csrf.md) — stateless HMAC token setup
 - [Security](./docs/src/security.md) — CSRF, rate limiting, deployment checklist
 - [Delivery Backends](./docs/src/delivery-backends.md) — custom backends
 - [Axum Integration](./docs/src/axum-integration.md) — context injection patterns

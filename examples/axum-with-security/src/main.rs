@@ -1,20 +1,20 @@
 // examples/axum-with-security/src/main.rs
 //
-// Demonstrates a production-ready integration of leptos-hl-contact with:
-//   - Rate limiting via `tower_governor` (IP-based leaky-bucket, HTTP 429)
-//   - CSRF protection via leptos-hl-contact's built-in HMAC-SHA256 token helper
-//   - Origin header validation middleware
+// Production-ready integration of leptos-hl-contact with:
+//   - Request body size limit (32 KiB) — prevents large-POST abuse
+//   - Rate limiting via tower_governor (IP-based, 2 req/s, burst 5, HTTP 429)
+//   - CSRF token verification via HMAC-SHA256 (stateless, no session needed)
+//   - Strict Origin / Referer validation (URL-parsed, scheme+host+port compared)
+//
+// Environment variables:
+//   CSRF_SECRET=<openssl rand -hex 32>    # required; 32+ random bytes
+//   ALLOWED_ORIGIN=https://example.com   # required in production
+//   SMTP_HOST / SMTP_USER / SMTP_PASS / SMTP_FROM / CONTACT_TO  (for real SMTP)
 //
 // SECURITY NOTICE:
-//   - Load all secrets from environment variables; never hard-code them.
-//   - Enable HTTPS (TLS termination) in production; update ALLOWED_ORIGIN.
-//   - The CSRF_SECRET must be at least 32 random bytes, server-side only.
-//     Generate one: openssl rand -hex 32
-//
-// Run (local dev, NoopDelivery):
-//   CSRF_SECRET=change-me-use-32-random-bytes-in-prod \
-//   ALLOWED_ORIGIN=http://localhost:3000 \
-//   cargo run -p axum-with-security
+//   - Always run behind HTTPS in production; update ALLOWED_ORIGIN accordingly.
+//   - Set CSRF_SECRET to a unique, random value per deployment.
+//   - Ensure your reverse proxy validates X-Forwarded-For before reaching Axum.
 
 use std::sync::Arc;
 
@@ -30,56 +30,62 @@ use axum::{
 use leptos::config::get_configuration;
 use leptos::context::provide_context;
 use leptos_axum::{LeptosRoutes, generate_route_list, handle_server_fns_with_context};
+use tower_http::limit::RequestBodyLimitLayer;
 use tower_governor::{
     GovernorLayer,
     governor::GovernorConfigBuilder,
     key_extractor::SmartIpKeyExtractor,
 };
+use url::Url;
 use leptos_hl_contact::{
     axum_helpers::delivery_context_fn,
     csrf::{CsrfConfig, CsrfConfigContext, generate_csrf_token},
     delivery::{ContactDeliveryContext, noop::NoopDelivery},
 };
 
-// Uncomment for real SMTP:
+// Uncomment for real SMTP delivery:
 // use leptos_hl_contact::delivery::smtp::{LettreSmtpDelivery, SmtpConfig, SmtpTlsMode};
 
 mod app;
 
 // ---------------------------------------------------------------------------
-// Application state shared across middleware
+// Strict Origin / Referer validation
 // ---------------------------------------------------------------------------
+
 #[derive(Clone)]
 struct SecurityState {
-    allowed_origin: String,
+    allowed_origin: Arc<Url>,
 }
 
-// ---------------------------------------------------------------------------
-// Origin / Referer check middleware
-//
-// Rejects POST requests whose Origin or Referer header does not start with
-// `allowed_origin`.  This is a first line of defence against CSRF; the
-// HMAC token provides a second, independent layer.
-//
-// In production, set ALLOWED_ORIGIN to your actual domain, e.g.:
-//   https://example.com
-// ---------------------------------------------------------------------------
+/// Compare the Origin (or Referer) header against the configured allowed origin.
+///
+/// Parses both values as URLs and compares scheme, host, and port — preventing
+/// prefix-spoofing attacks such as `https://example.com.evil.test`.
+fn origin_matches(header_value: &str, allowed: &Url) -> bool {
+    let Ok(parsed) = Url::parse(header_value) else {
+        return false;
+    };
+    parsed.scheme() == allowed.scheme()
+        && parsed.host_str() == allowed.host_str()
+        && parsed.port_or_known_default() == allowed.port_or_known_default()
+}
+
 async fn check_origin(
     axum::extract::State(state): axum::extract::State<SecurityState>,
     req: Request<Body>,
     next: Next,
 ) -> Result<Response, StatusCode> {
     if req.method() == axum::http::Method::POST {
-        let origin = req
+        let value = req
             .headers()
             .get(header::ORIGIN)
             .or_else(|| req.headers().get(header::REFERER))
             .and_then(|v| v.to_str().ok())
             .unwrap_or("");
 
-        if !origin.starts_with(&state.allowed_origin) {
+        if !origin_matches(value, &state.allowed_origin) {
             tracing::warn!(
-                origin,
+                header_value = value,
                 allowed = %state.allowed_origin,
                 "rejected POST: origin mismatch"
             );
@@ -104,17 +110,13 @@ async fn main() {
     let _ = dotenvy::dotenv();
 
     // ------------------------------------------------------------------
-    // CSRF configuration
-    //
-    // The secret key signs every CSRF token.  It must stay server-side.
-    // Minimum recommended length: 32 bytes.
-    //   openssl rand -hex 32
+    // CSRF configuration — fail-closed if CSRF_SECRET is missing
     // ------------------------------------------------------------------
     let csrf_secret = std::env::var("CSRF_SECRET")
         .unwrap_or_else(|_| {
             tracing::warn!(
                 "CSRF_SECRET not set — using an insecure default. \
-                 Set a 32+ byte random secret in production!"
+                 Set a 32+ byte random secret in production! (openssl rand -hex 32)"
             );
             "insecure-placeholder-change-before-deploying-this-app".into()
         })
@@ -122,27 +124,17 @@ async fn main() {
 
     let csrf_config: CsrfConfigContext = Arc::new(CsrfConfig {
         secret_key:     csrf_secret,
-        token_ttl_secs: 3600, // tokens valid for 1 hour
+        token_ttl_secs: 3600,
     });
 
     // ------------------------------------------------------------------
     // Delivery backend
-    //
-    // NoopDelivery discards submissions — suitable for local development.
-    // Replace with LettreSmtpDelivery for production.
     // ------------------------------------------------------------------
     let delivery: ContactDeliveryContext = Arc::new(NoopDelivery);
     let ctx = delivery_context_fn(delivery);
 
     // ------------------------------------------------------------------
-    // Rate limiting — tower_governor
-    //
-    // SmartIpKeyExtractor reads the real IP from X-Forwarded-For or the
-    // peer address.  In production, ensure your reverse proxy sets and
-    // validates X-Forwarded-For before traffic reaches Axum.
-    //
-    // Settings: 2 requests/second sustained; burst of 5.
-    // Exceeding the limit returns HTTP 429 Too Many Requests automatically.
+    // Rate limiting
     // ------------------------------------------------------------------
     let governor_config = Arc::new(
         GovernorConfigBuilder::default()
@@ -154,11 +146,15 @@ async fn main() {
     );
 
     // ------------------------------------------------------------------
-    // Origin validation
+    // Strict origin validation
     // ------------------------------------------------------------------
-    let allowed_origin = std::env::var("ALLOWED_ORIGIN")
+    let allowed_origin_str = std::env::var("ALLOWED_ORIGIN")
         .unwrap_or_else(|_| "http://localhost:3000".into());
-    let security_state = SecurityState { allowed_origin };
+    let allowed_origin = Url::parse(&allowed_origin_str)
+        .unwrap_or_else(|e| panic!("ALLOWED_ORIGIN is not a valid URL: {e}"));
+    let security_state = SecurityState {
+        allowed_origin: Arc::new(allowed_origin),
+    };
 
     // ------------------------------------------------------------------
     // Leptos configuration
@@ -175,10 +171,7 @@ async fn main() {
     // Axum router
     // ------------------------------------------------------------------
     let app = Router::new()
-        // ── Server function handler ──────────────────────────────────────
-        // Inject: delivery context + CSRF config (for token verification).
-        // Do NOT inject a CsrfToken here — tokens are for page rendering,
-        // not for server-function calls.
+        // Server function handler: delivery context + CSRF config for verification.
         .route(
             "/api/*fn_name",
             post({
@@ -200,36 +193,27 @@ async fn main() {
                 }
             }),
         )
-        // ── SSR renderer ─────────────────────────────────────────────────
-        // Inject: delivery context + CSRF config + a fresh per-request token.
-        // Leptos creates a new context per request, so each page load gets a
-        // unique token automatically embedded in the hidden form field by
-        // ContactForm.
+        // SSR renderer: delivery context + CSRF config + fresh per-request token.
         .leptos_routes_with_context(
             &leptos_options,
             routes,
             move || {
                 ctx.clone()();
                 provide_context::<CsrfConfigContext>(Arc::clone(&csrf_for_ssr));
-                // generate_csrf_token creates a new HMAC-signed token for this
-                // render.  ContactForm reads CsrfToken from context and inserts
-                // it into a hidden <input name="csrf_token"> field.
-                let token = generate_csrf_token(&csrf_for_ssr);
-                provide_context(token);
+                provide_context(generate_csrf_token(&csrf_for_ssr));
             },
             app::App,
         )
         .with_state(leptos_options)
-        // ── Middleware layers (outermost = first to run) ─────────────────
-        // Origin check runs before rate limiting so forged-origin requests
-        // are rejected cheaply without consuming a rate-limit slot.
+        // Security layers (outermost runs first):
         .layer(from_fn_with_state(security_state, check_origin))
-        .layer(GovernorLayer::new(governor_config));
+        .layer(GovernorLayer::new(governor_config))
+        // 32 KiB body limit — prevents large-POST abuse before any handler runs.
+        .layer(RequestBodyLimitLayer::new(32 * 1024));
 
     tracing::info!(
         addr = %addr,
-        "leptos-hl-contact secured example ready \
-         (rate-limiting + CSRF + Origin validation)"
+        "leptos-hl-contact (body-limit + rate-limit + CSRF + Origin validation)"
     );
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();

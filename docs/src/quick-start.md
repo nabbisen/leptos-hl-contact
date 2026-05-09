@@ -17,14 +17,14 @@ In your **server binary** `Cargo.toml`:
 
 ```toml
 [dependencies]
-leptos-hl-contact = { version = "0.2", features = ["ssr", "smtp-lettre", "axum-helpers"] }
+leptos-hl-contact = { version = "0.3", features = ["ssr", "smtp-lettre", "axum-helpers", "csrf"] }
 ```
 
 In your **WASM binary** `Cargo.toml`:
 
 ```toml
 [dependencies]
-leptos-hl-contact = { version = "0.2", features = ["hydrate"] }
+leptos-hl-contact = { version = "0.3", features = ["hydrate"] }
 ```
 
 ---
@@ -33,6 +33,7 @@ leptos-hl-contact = { version = "0.2", features = ["hydrate"] }
 
 ```bash
 # Never commit these values to source control.
+CSRF_SECRET=$(openssl rand -hex 32)   # CSRF signing key
 SMTP_HOST=smtp.example.com
 SMTP_USER=you@example.com
 SMTP_PASS=your-smtp-password
@@ -149,5 +150,6 @@ The form renders with English labels, no extra classes, and the default options
 - [Configuration](./configuration.md) — customise classes, labels, and options
 - [Styling](./styling.md) — Tailwind / CSS class injection
 - [Security](./security.md) — rate limiting, CSRF, deployment checklist
+- [CSRF Protection](./csrf.md) — enable CSRF token verification
 - [Delivery Backends](./delivery-backends.md) — implement a custom backend
 - [Full Axum example](https://github.com/nabbisen/leptos-hl-contact/tree/main/examples/axum-basic)
