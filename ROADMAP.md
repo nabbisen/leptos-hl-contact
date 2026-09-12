@@ -41,6 +41,15 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 - [x] Credential redaction in `Debug`, fail-closed `csrf`, PII-free logs
 - [x] RFC lifecycle policy (RFC-000, 5-folder variant)
 
+### 0.3.4 — Milestone M1 "green baseline" (2026-09-12)
+
+- [x] CI gates green with a matched 1.91 toolchain; first green run in the project's history
+- [x] Examples start on Axum 0.8 and are compiled in CI; security example serves with connection info
+- [x] Per-field validation errors render beside their field
+- [x] Character-based limits; `MESSAGE_MAX_LEN` ceiling enforced
+- [x] Release records and crate rustdoc corrected
+- [x] RFC 001 → `rfcs/done/`
+
 ---
 
 ## Planned — proposed milestones (awaiting owner approval)
@@ -54,9 +63,9 @@ confirmed during implementation.
 Documents produced from this review: [Requirements](./docs/src/development/requirements.md)
 and [External Design](./docs/src/development/external-design.md).
 
-### M1 — Green baseline (proposed release: 0.3.4, patch) — **authorized 2026-09-12; all items implemented and approved 2026-09-12; release decision pending**
+### M1 — Green baseline — **released as 0.3.4 on 2026-09-12** (tag `0.3.4`, crates.io)
 
-Tracked by [RFC 001](./rfcs/accepted/001-m1-green-baseline.md); handoffs in
+Tracked by [RFC 001](./rfcs/done/001-m1-green-baseline.md); handoffs in
 [`rfcs/handoffs/001-m1-green-baseline/`](./rfcs/handoffs/001-m1-green-baseline/README.md).
 
 No public API change.  Goal: CI gates green, documentation truthful,

@@ -23,10 +23,14 @@ Tags are `X.Y.Z` with **no** `v` prefix.
    implemented and reviewed; move RFCs to `rfcs/done/` with the version in
    their Status field; update `rfcs/README.md`.
 2. **Version.**  Bump `version` in the workspace `Cargo.toml` and in both
-   example manifests.
+   example manifests, then run `cargo check` in each example directory so
+   their lock files pick up the new path-crate version.
 3. **Changelog.**  Move entries from *Unreleased* to the new version with
    the release date.  Add migration notes for any breaking change.
-4. **Gates.**  All four [gates](./testing.md#the-gates) green on `main`.
+4. **Gates.**  All [gates](./testing.md#the-gates) green on `main`,
+   including the feature-combination clippy step and the examples job.
+   `cargo package` must not report a yanked crate in the lock file; if it
+   does, `cargo update -p <crate>` and re-run the gates.
 5. **Package.**  `cargo package -p leptos-hl-contact` succeeds without
    warnings.
 6. **Security audit.**  If the release adds a data flow, an external
@@ -34,10 +38,17 @@ Tags are `X.Y.Z` with **no** `v` prefix.
    [External Design](./external-design.md#5-security-external-design);
    otherwise confirm the existing controls still hold.
 7. **Documentation check.**  Every page in this book describes the
-   behaviour being released; `mdbook build` succeeds; the README matches.
+   behaviour being released; `mdbook build` succeeds (its output
+   `docs/book/` is ignored by git); no page outside `development/` names
+   a past version; the known-issues table lists only what still holds;
+   the README matches.
 8. **Readiness report.**  Version, commit, included and excluded changes,
    test and build evidence, known issues, rollback note, recommendation.
 9. **Owner approval.**
-10. **Tag and publish.**  `git tag X.Y.Z && git push --tags`, then
-    `cargo publish -p leptos-hl-contact`.
-11. **Roadmap.**  Mark released items, update milestone status.
+10. **Tag and publish.**  Tags are annotated (the repository forces
+    signed-annotated tags): `git tag -a X.Y.Z -m "Release X.Y.Z"`, then
+    `git push origin X.Y.Z` and `cargo publish -p leptos-hl-contact`.
+    Publishing is irreversible; a version can only be yanked.
+11. **Records.**  Move the milestone's RFCs to `rfcs/done/` with
+    "Implemented (X.Y.Z)", fix inbound links, update `rfcs/README.md` and
+    the roadmap, close the review folder for the milestone.

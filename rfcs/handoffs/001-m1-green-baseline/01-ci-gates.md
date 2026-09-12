@@ -1,6 +1,6 @@
 # Handoff 01 — CI gates green
 
-**RFC.** [001](../../accepted/001-m1-green-baseline.md), decision D4.
+**RFC.** [001](../../done/001-m1-green-baseline.md), decision D4.
 **Roadmap.** P-01.  **Requirements.** NFR-TEST-01, NFR-DOC-02.
 
 ## Purpose

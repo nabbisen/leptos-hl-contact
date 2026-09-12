@@ -1,6 +1,6 @@
 # Handoff 04 — Length units and the message ceiling
 
-**RFC.** [001](../../accepted/001-m1-green-baseline.md), decisions D2, D3.
+**RFC.** [001](../../done/001-m1-green-baseline.md), decisions D2, D3.
 **Roadmap.** P-04, P-07.  **Requirements.** FR-VAL-04, FR-VAL-07, FR-VAL-08, FR-SUB-07.
 **External Design.** §4.3 (policy can only tighten); §6 (characters everywhere).
 **Depends on.** Handoff 01; do after handoff 03 (both touch `server.rs`).

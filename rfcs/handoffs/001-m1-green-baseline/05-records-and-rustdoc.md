@@ -1,6 +1,6 @@
 # Handoff 05 — Records and rustdoc
 
-**RFC.** [001](../../accepted/001-m1-green-baseline.md).
+**RFC.** [001](../../done/001-m1-green-baseline.md).
 **Roadmap.** P-05, P-03 (code remainder).  **Requirements.** NFR-REL-02, FR-CFG-01, NFR-DOC-01.
 **Depends on.** Handoffs 01–04 (this one closes the changelog for them).
 

@@ -1,6 +1,6 @@
 # Handoff 03 — Per-field errors render in the browser
 
-**RFC.** [001](../../accepted/001-m1-green-baseline.md), decision D1.
+**RFC.** [001](../../done/001-m1-green-baseline.md), decision D1.
 **Roadmap.** P-02.  **Requirements.** FR-UI-08, FR-SUB-06, FR-A11Y-03.
 **External Design.** §4.2.3 Field-error payload protocol; §4.1.3 State model.
 **Depends on.** Handoffs 01 and 02.

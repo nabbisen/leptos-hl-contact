@@ -1,7 +1,8 @@
 # RFC 001 — Milestone M1: green baseline
 
-**Status.** Accepted — roadmap milestone M1 authorized by the owner on
-2026-09-12; handoffs requested the same day.
+**Status.** Implemented (0.3.4) — released 2026-09-12, tag `0.3.4` on
+commit `4c3575a`, published to crates.io.  Accepted 2026-09-12; all five
+handoffs approved the same day.
 **Tracks.** Roadmap items P-01, P-02, P-03 (code remainder), P-04, P-05,
 P-07, P-09.
 **Touches.** `crates/leptos-hl-contact/src/{components,error,config,model,

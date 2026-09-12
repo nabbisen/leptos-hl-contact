@@ -1,6 +1,6 @@
 # Handoff 02 — Examples start; CI checks them
 
-**RFC.** [001](../../accepted/001-m1-green-baseline.md), decision D5.
+**RFC.** [001](../../done/001-m1-green-baseline.md), decision D5.
 **Roadmap.** P-09; P-05 (example version numbers).  **Requirements.** NFR-DOC-01, NFR-TEST-01.
 **Depends on.** Handoff 01.
 

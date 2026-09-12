@@ -1,6 +1,6 @@
 # Handoffs — RFC 001, Milestone M1 "green baseline"
 
-Companion execution documents for [RFC 001](../../accepted/001-m1-green-baseline.md).
+Companion execution documents for [RFC 001](../../done/001-m1-green-baseline.md).
 Their state is that of the RFC.  Governing documents, in order of
 authority: the [Requirements Specification](../../../docs/src/development/requirements.md),
 the [External Design](../../../docs/src/development/external-design.md),

@@ -21,7 +21,6 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Handoff |
 |----|-------|---------|
-| 001 | [Milestone M1: green baseline](./accepted/001-m1-green-baseline.md) | [handoffs/001-m1-green-baseline/](./handoffs/001-m1-green-baseline/README.md) |
 | 002 | [Form state model](./accepted/002-form-state-model.md) | [handoffs/002-form-state-model/](./handoffs/002-form-state-model/README.md) |
 | 003 | [Error codes and localisable server messages](./accepted/003-error-codes.md) | [handoffs/003-error-codes/](./handoffs/003-error-codes/README.md) |
 | 004 | [Form token: rename, minimum age, cookie binding, client acquisition](./accepted/004-form-token.md) | [handoffs/004-form-token/](./handoffs/004-form-token/README.md) |
@@ -33,6 +32,7 @@ Planned topics that do not yet have a file are listed in
 | ID | Title | Shipped in |
 |----|-------|------------|
 | 000 | [RFC lifecycle policy](./done/000-rfc-lifecycle-policy.md) | 0.3.3 (commit `8d29d5a`) |
+| 001 | [Milestone M1: green baseline](./done/001-m1-green-baseline.md) | 0.3.4 (2026-09-12) — [handoffs](./handoffs/001-m1-green-baseline/README.md) |
 
 ## Archive
 
