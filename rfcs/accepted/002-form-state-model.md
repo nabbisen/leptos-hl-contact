@@ -1,8 +1,7 @@
 # RFC 002 — Form state model
 
-**Status.** Proposed — 2026-09-12.  Architect design review pending owner
-acknowledgement; no security boundary or public-API removal is involved,
-so acceptance is expected to be routine.
+**Status.** Accepted — proposed and accepted by the owner on 2026-09-12.
+**Handoffs.** [`../handoffs/002-form-state-model/README.md`](../handoffs/002-form-state-model/README.md)
 **Tracks.** Roadmap M2 items P-10 (input preserved on error), P-11 (token
 survives re-render), P-13 (no-JS success signal), P-16 (focus after
 error).  Requirements FR-UI-04, FR-UI-06, FR-UI-07, FR-UI-12, FR-UI-13,

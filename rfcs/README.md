@@ -15,13 +15,15 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 002 | [Form state model](./proposed/002-form-state-model.md) | High (M2) |
+| — | *(none yet)* | |
+
 
 ## Accepted
 
 | ID | Title | Handoff |
 |----|-------|---------|
 | 001 | [Milestone M1: green baseline](./accepted/001-m1-green-baseline.md) | [handoffs/001-m1-green-baseline/](./handoffs/001-m1-green-baseline/README.md) |
+| 002 | [Form state model](./accepted/002-form-state-model.md) | [handoffs/002-form-state-model/](./handoffs/002-form-state-model/README.md) |
 
 ## Implemented
 
@@ -42,8 +44,6 @@ Derived from the roadmap milestones; each becomes a numbered RFC in
 
 | Roadmap item | Topic |
 |--------------|-------|
-| P-14 | Error codes and localisable server-originated messages (RFC 003) |
-| P-12 | Anti-forgery token design plus minimum age and client-side token acquisition (RFC 004) |
 | P-15 | Test strategy |
 | P-20 | Multi-language label presets |
 | P-21 | Challenge providers: Turnstile, hCaptcha, reCAPTCHA v2/v3 (RFC 005) |

@@ -81,11 +81,11 @@ handoff is written.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
-| P-10 | Form state preservation: the entire form subtree is rebuilt whenever the action value changes, so on a validation error in WASM mode the visitor's typed input is discarded | **High** | [RFC 002](./rfcs/proposed/002-form-state-model.md) | inferred from `components.rs` closure dependencies |
+| P-10 | Form state preservation: the entire form subtree is rebuilt whenever the action value changes, so on a validation error in WASM mode the visitor's typed input is discarded | **High** | [RFC 002](./rfcs/accepted/002-form-state-model.md) | inferred from `components.rs` closure dependencies |
 | P-11 | Hidden `csrf_token` field becomes empty after that client-side rebuild because `CsrfToken` context exists only during SSR; the second submit then fails with "reload the page" | **High** | RFC (with P-10) | inferred; tachys confirmed to keep SSR attribute on first hydration only |
 | P-12 | Anti-forgery token redesign: the token is not bound to the visitor and is replayable within its TTL, so it does not prevent cross-site forgery on its own; decide between cookie binding, session binding, or repositioning it as an anti-automation "form token" with the Origin check as the documented CSRF control | **High** | RFC | verified by design reading |
 | P-13 | Progressive-enhancement contract: without JavaScript the framework redirects back to the Referer, errors are surfaced via `__err`, but a successful submit shows no confirmation | Medium | RFC (with P-10) | inferred from `server_fn` / `leptos_server` source |
-| P-14 | Localisable server-originated messages: validation, policy, token and configuration messages are English strings composed on the server and cannot be overridden through `ContactFormLabels`; move to error codes mapped to text on the client | Medium | RFC | verified |
+| P-14 | Localisable server-originated messages: validation, policy, token and configuration messages are English strings composed on the server and cannot be overridden through `ContactFormLabels`; move to error codes mapped to text on the client | Medium | [RFC 003](./rfcs/proposed/003-error-codes.md) | verified |
 | P-15 | Test strategy: integration tests for `submit_contact` (CSRF fail-closed, policy, honeypot, delivery error), component render tests, no-JS flow; current server tests only check string sentinels | Medium | RFC / handoff | verified |
 | P-16 | Focus management after a failed submission (move focus to first invalid field or error summary) | Low | RFC (with P-10) | design gap |
 
@@ -103,7 +103,7 @@ RFCs are written in this order; each needs acceptance before its handoff.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
-| P-12 | Anti-forgery token redesign **plus token minimum age**: decide binding (cookie / session) or reposition as anti-automation "form token" and rename; reject submissions younger than a configurable number of seconds since the page render (JS-free bot signal); resolve the client-side-navigation case where a form created in the browser has no SSR token (new finding 2026-09-12) | **High** | RFC 004 | verified by design reading |
+| P-12 | Anti-forgery token redesign **plus token minimum age**: decide binding (cookie / session) or reposition as anti-automation "form token" and rename; reject submissions younger than a configurable number of seconds since the page render (JS-free bot signal); resolve the client-side-navigation case where a form created in the browser has no SSR token (new finding 2026-09-12) | **High** | [RFC 004](./rfcs/proposed/004-form-token.md) | verified by design reading |
 | P-21 | Challenge providers: `challenge` prop renders the widget and a hidden token field inside the form; `ChallengeVerifier` trait; built-in Turnstile, hCaptcha, reCAPTCHA v2/v3 behind `challenge-http`; fail-closed; no-JS policy per owner decision; vendor test keys in CI; verify-endpoint timeout and outage behaviour defined | **High** | RFC 005 | decided |
 | P-25 | Pre-delivery filter hook: `ContactFilter` trait returning accept / reject / silent-drop for a validated submission, for content heuristics or third-party spam services | Medium | RFC 006 | new 2026-09-12 |
 
