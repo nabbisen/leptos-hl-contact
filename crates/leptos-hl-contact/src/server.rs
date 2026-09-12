@@ -4,11 +4,7 @@ use leptos::prelude::*;
 use leptos::server_fn::error::ServerFnError;
 
 #[cfg(feature = "ssr")]
-use crate::{
-    delivery::ContactDeliveryContext,
-    error::ContactValidationError,
-    model::ContactInput,
-};
+use crate::{delivery::ContactDeliveryContext, error::ContactValidationError, model::ContactInput};
 
 /// Submit a contact form enquiry.
 ///
@@ -106,15 +102,13 @@ pub async fn submit_contact(
         let field_errors = input.validate_fields();
         if !field_errors.is_empty() {
             tracing::debug!(
-                name_err    = field_errors.name.is_some(),
-                email_err   = field_errors.email.is_some(),
+                name_err = field_errors.name.is_some(),
+                email_err = field_errors.email.is_some(),
                 subject_err = field_errors.subject.is_some(),
                 message_err = field_errors.message.is_some(),
                 "contact form validation failed"
             );
-            return Err(ServerFnError::Args(
-                field_errors.into_server_fn_message(),
-            ));
+            return Err(ServerFnError::Args(field_errors.into_server_fn_message()));
         }
 
         // 5. Server-side policy (require_subject, max_message_len).

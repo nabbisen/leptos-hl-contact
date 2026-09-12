@@ -42,8 +42,7 @@ fn csrf_missing_context_error_is_not_field_error() {
     // The error returned when CsrfConfigContext is missing must be a
     // ServerError (not field_errors: prefix), so the component shows
     // the generic error banner, not a field-level message.
-    let missing_context_msg =
-        "Contact form security is not configured. \
+    let missing_context_msg = "Contact form security is not configured. \
          Please contact the site administrator.";
     assert!(!missing_context_msg.starts_with(crate::error::FIELD_ERROR_PREFIX));
 }
