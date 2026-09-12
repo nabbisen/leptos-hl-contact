@@ -48,6 +48,11 @@ pub enum Binding {
     None,
     /// The token's nonce must also arrive in a cookie, which makes a
     /// cross-site submission fail.
+    ///
+    /// Requires the cookie helpers in `axum_helpers`, which arrive with this
+    /// feature's second handoff.  Until then nothing supplies the bound value
+    /// and every submission fails with `BindingMissing`; leave the default
+    /// until the helpers exist.
     Cookie,
 }
 
