@@ -21,7 +21,7 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Handoff |
 |----|-------|---------|
-| — | *(none yet)* | |
+| 001 | [Milestone M1: green baseline](./accepted/001-m1-green-baseline.md) | [handoffs/001-m1-green-baseline/](./handoffs/001-m1-green-baseline/README.md) |
 
 ## Implemented
 

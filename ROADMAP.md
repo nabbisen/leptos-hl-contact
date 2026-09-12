@@ -54,7 +54,10 @@ confirmed during implementation.
 Documents produced from this review: [Requirements](./docs/src/development/requirements.md)
 and [External Design](./docs/src/development/external-design.md).
 
-### M1 — Green baseline (proposed release: 0.3.4, patch)
+### M1 — Green baseline (proposed release: 0.3.4, patch) — **authorized 2026-09-12**
+
+Tracked by [RFC 001](./rfcs/accepted/001-m1-green-baseline.md); handoffs in
+[`rfcs/handoffs/001-m1-green-baseline/`](./rfcs/handoffs/001-m1-green-baseline/README.md).
 
 No public API change.  Goal: CI gates green, documentation truthful,
 per-field errors visible.
