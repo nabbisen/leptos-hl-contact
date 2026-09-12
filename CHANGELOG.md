@@ -169,22 +169,6 @@ No version assigned; the owner decides the release number.
 
 ### Changed
 
-- Dependency freshness check (`cargo outdated`); no version bumps required.
-- Documentation rewrite: `README.md`, `docs/book.toml`, `docs/src/SUMMARY.md`,
-  `introduction.md`, `quick-start.md`, `api-reference.md`, `architecture.md`,
-  `troubleshooting.md`, and a new `faq.md`.
-
-> **Record note (2026-09-12):** the items listed under `[0.2.2]` below describe
-> this documentation work and the dependency check as well.  They shipped in
-> `0.2.3`; only the `crates/core` → `crates/leptos-hl-contact` directory rename
-> shipped in `0.2.2`.  The earlier entry is left unedited as a historical record.
-
-## [0.2.2] — 2026-05-05
-
-### Changed
-
-- Renamed crate directory from `crates/core` to `crates/leptos-hl-contact`
-  for clarity. The published crate name (`leptos-hl-contact`) is unchanged.
 - `cargo outdated` check: all 14 dependencies confirmed up to date
   (`leptos` 0.8.19, `axum` 0.8.9, `lettre` 0.11.21, `tokio` 1.52.3, etc.).
 - README.md rewritten to match the project specification: six-section structure,
@@ -199,6 +183,16 @@ No version assigned; the owner decides the release number.
 - `docs/src/architecture.md` expanded with design philosophy, principles,
   and release process.
 - `docs/book.toml` updated with full mdBook HTML output configuration.
+
+## [0.2.2] — 2026-05-05
+
+### Changed
+
+- Renamed crate directory from `crates/core` to `crates/leptos-hl-contact`
+  for clarity. The published crate name (`leptos-hl-contact`) is unchanged.
+
+*Corrected 2026-09-12: earlier revisions of this file listed the 0.2.3
+documentation work here.*
 
 ## [0.2.1] — 2026-05-05
 
@@ -248,7 +242,7 @@ No version assigned; the owner decides the release number.
 - `components.rs`: error display split into generic delivery-failure banner and
   per-field inline errors.
 
-## [0.1.0] — 2026-05-04
+## [0.1.0] — 2026-05-05
 
 ### Added
 
