@@ -1,0 +1,182 @@
+# API
+
+Every public item, grouped by module.  Rustdoc on
+[docs.rs](https://docs.rs/leptos-hl-contact) has the same information with
+examples.
+
+## Re-exports at the crate root
+
+`ContactForm`, `ContactFormClasses`, `ContactFormLabels`,
+`ContactFormOptions`, `ContactServerPolicy`, `ContactDelivery`,
+`ContactDeliveryContext`, `ContactDeliveryError`, `ContactFieldErrors`,
+`ContactValidationError`, `ContactInput`, `submit_contact`, and with the
+`csrf` feature `CsrfConfig`, `CsrfConfigContext`, `CsrfToken`,
+`generate_csrf_token`, `verify_csrf_token`.
+
+## `components`
+
+### `ContactForm`
+
+```rust,ignore
+#[component]
+pub fn ContactForm(
+    #[prop(optional, into)] classes: ContactFormClasses,
+    #[prop(optional, into)] labels:  ContactFormLabels,
+    #[prop(optional, into)] options: ContactFormOptions,
+) -> impl IntoView
+```
+
+Renders the form as an `<ActionForm/>` bound to `submit_contact`.  Reads
+`CsrfToken` from context when the `csrf` feature is on.  Element ids and
+attributes are listed in the
+[DOM contract](../development/external-design.md#412-dom-contract).
+
+## `server`
+
+### `submit_contact`
+
+```rust,ignore
+#[server(endpoint = "submit_contact")]
+pub async fn submit_contact(
+    name:       String,
+    email:      String,
+    subject:    Option<String>,
+    message:    String,
+    website:    String,          // honeypot — must be empty
+    csrf_token: Option<String>,  // verified when the `csrf` feature is on
+) -> Result<(), ServerFnError>
+```
+
+`POST /api/submit_contact`, form-encoded.  Order of work: token check
+(`csrf`) → `ContactInput::from_raw` → `check_honeypot` → `validate_fields`
+→ `ContactServerPolicy` → `ContactDelivery::deliver`.
+
+| Outcome | Returned as |
+|---------|-------------|
+| Validation or policy failure | `ServerFnError::Args("field_errors:{…json…}")` |
+| Token invalid or expired | `ServerFnError::Args(generic text)` |
+| Token config missing, delivery context missing, delivery failed | `ServerFnError::ServerError(generic text)` |
+| Honeypot filled | `Ok(())` without delivery |
+
+**Feature:** `ssr` for the body; the client stub exists under any feature.
+
+## `config`
+
+```rust,ignore
+pub struct ContactFormClasses { pub root, field, label, input, textarea, button, error, success: String }
+pub struct ContactFormLabels  { pub name, email, subject, message, submit, sending, success, error, honeypot_label: String }
+pub struct ContactFormOptions { pub show_subject: bool, pub require_subject: bool, pub max_message_len: usize }
+pub struct ContactServerPolicy { pub require_subject: bool, pub max_message_len: usize }
+```
+
+Defaults: classes empty; labels English; options `true / false / 4000`;
+policy `false / 4000`.  Meaning of each field: [Customization](../guides/customization.md).
+
+## `model`
+
+### `ContactInput`
+
+```rust,ignore
+pub struct ContactInput {
+    pub name: String, pub email: String, pub subject: Option<String>,
+    pub message: String, pub website: String,
+}
+
+impl ContactInput {
+    pub fn from_raw(name, email, subject, message, website) -> Self;      // trims, blank subject → None
+    pub fn check_honeypot(&self) -> Result<(), ContactValidationError>;
+    pub fn validate_input(&self) -> Result<(), ContactValidationError>;  // opaque, for logs
+    pub fn validate_fields(&self) -> ContactFieldErrors;                 // per field, for clients
+    pub fn effective_subject(&self, fallback: &str) -> String;
+}
+```
+
+| Field | Rule |
+|-------|------|
+| `name` | 1–80 characters, no `\r` `\n` |
+| `email` | valid address |
+| `subject` | absent, or 1–120 characters, no `\r` `\n` |
+| `message` | 1–4 000 characters |
+| `website` | empty |
+
+## `error`
+
+```rust,ignore
+pub const FIELD_ERROR_PREFIX: &str = "field_errors:";
+
+pub struct ContactFieldErrors { pub name, email, subject, message: Option<String> }
+impl ContactFieldErrors {
+    pub fn is_empty(&self) -> bool;
+    pub fn to_json(&self) -> String;
+    pub fn from_error_str(s: &str) -> Option<Self>;    // expects the sentinel at the start
+    pub fn into_server_fn_message(self) -> String;
+}
+
+pub enum ContactDeliveryError { Configuration(String), Transport(String), MessageBuild(String), Internal(String) }
+pub enum ContactValidationError { InvalidInput(String), HoneypotTriggered }
+```
+
+`ContactFieldErrors` is safe to show; the two enums are server-side only.
+
+## `delivery`
+
+```rust,ignore
+pub trait ContactDelivery: Send + Sync + 'static {
+    fn deliver(&self, input: ContactInput)
+        -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>>;
+}
+pub type ContactDeliveryContext = Arc<dyn ContactDelivery>;
+```
+
+### `delivery::noop::NoopDelivery`
+
+Unit struct; discards and logs at `debug`.  No feature flag.
+
+### `delivery::smtp` (feature `smtp-lettre`)
+
+```rust,ignore
+pub struct LettreSmtpDelivery { pub config: SmtpConfig }
+impl LettreSmtpDelivery {
+    pub fn build_message(&self, input: &ContactInput) -> Result<Message, ContactDeliveryError>;
+}
+
+pub struct SmtpConfig {
+    pub host: String, pub port: u16, pub username: String, pub password: String,
+    pub from_address: String, pub to_address: String, pub subject_prefix: String,
+    pub tls_mode: SmtpTlsMode,
+}
+pub enum SmtpTlsMode { StartTls /* default */, Tls, DangerousPlaintext }
+```
+
+`SmtpConfig` and `LettreSmtpDelivery` implement `Debug` with the password
+redacted.
+
+## `security`
+
+```rust,ignore
+pub fn sanitize_header_value(value: &str) -> String   // replaces each \r and \n with a space
+```
+
+## `axum_helpers` (feature `axum-helpers`)
+
+```rust,ignore
+pub fn provide_contact_delivery(delivery: ContactDeliveryContext);
+pub fn delivery_context_fn(delivery: ContactDeliveryContext) -> impl Fn() + Clone + Send + Sync + 'static;
+```
+
+## `csrf` module
+
+Feature `csrf`.
+
+```rust,ignore
+pub struct CsrfConfig { pub secret_key: Vec<u8>, pub token_ttl_secs: u64 }
+impl CsrfConfig { pub fn new(secret_key: Vec<u8>) -> Self }   // ttl 3600
+pub struct CsrfToken(pub String);
+pub type CsrfConfigContext = Arc<CsrfConfig>;
+
+pub fn generate_csrf_token(config: &CsrfConfig) -> CsrfToken;
+pub fn verify_csrf_token(token: &str, config: &CsrfConfig) -> bool;
+```
+
+`CsrfConfig` implements `Debug` with the key redacted.  Behaviour and
+guarantees: [Anti-automation Token](../security/csrf.md).

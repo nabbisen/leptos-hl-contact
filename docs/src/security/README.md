@@ -1,0 +1,56 @@
+# Security
+
+This section explains what the crate protects against, what your
+application must add, and why.  The condensed action list is the
+[Production Checklist](../getting-started/production-checklist.md); the
+full threat model is in [External Design](../development/external-design.md#5-security-external-design).
+
+## Who does what
+
+| Concern | Crate | Your application |
+|---------|-------|------------------|
+| Server-side validation on every submission | ✅ | — |
+| Honeypot bot filter | ✅ | — |
+| Email header injection prevention | ✅ | — |
+| Credentials and recipient kept out of WASM | ✅ | load them from the environment |
+| Generic error messages, details only in logs | ✅ | — |
+| PII-free log events | ✅ | log retention |
+| Anti-automation token (`csrf` feature) | ✅ | provide secret and contexts |
+| **Origin / Referer validation** — the CSRF control | example | ✅ middleware |
+| Rate limiting | example | ✅ middleware |
+| Request body limit | example | ✅ layer |
+| TLS | — | ✅ proxy |
+| CAPTCHA | pattern | ✅ if needed |
+
+## Layers, from the edge inward
+
+Cheap checks first, so expensive ones rarely run:
+
+1. TLS termination and WAF at the proxy
+2. [Request body limit](./hardening.md#request-body-limit)
+3. [Rate limit](./hardening.md#rate-limiting) keyed by real client IP
+4. [Origin / Referer validation](./hardening.md#origin--referer-validation) on POST
+5. [Anti-automation token](./csrf.md): proves the sender fetched a page from this server within the last hour
+6. Honeypot
+7. Field validation and [server policy](../guides/customization.md#contactserverpolicy)
+8. Optional [CAPTCHA](./turnstile.md)
+
+## About the token
+
+The `csrf` feature issues a stateless HMAC-SHA256 token per page render and
+verifies it on submit.  It is **not bound to the visitor's browser** (no
+cookie or session), so on its own it does not stop a cross-site request:
+an attacker can fetch a token and place it in a form on another site.  For
+an unauthenticated contact form the practical harm of that is small, and
+what the token does well is force bots to fetch a page first.  The control
+that actually rejects cross-site POSTs is the Origin / Referer check.
+
+Whether to bind the token to a cookie or rename the feature is a roadmap
+decision (P-12).  Nothing about the current behaviour is hidden: read
+[Anti-automation Token](./csrf.md) for the exact guarantees.
+
+## Pages in this section
+
+- [Anti-automation Token](./csrf.md) — the `csrf` feature
+- [Hardening](./hardening.md) — rate limiting, origin validation, body limit, secrets
+- [Turnstile](./turnstile.md) — adding a CAPTCHA

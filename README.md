@@ -6,60 +6,50 @@
 [![CI](https://github.com/nabbisen/leptos-hl-contact/actions/workflows/ci.yml/badge.svg)](https://github.com/nabbisen/leptos-hl-contact/actions)
 [![License](https://img.shields.io/github/license/nabbisen/leptos-hl-contact)](https://github.com/nabbisen/leptos-hl-contact/blob/main/LICENSE)
 
-**A reusable, secure contact form plugin for [Leptos](https://leptos.dev) v0.8.**
+**A reusable, secure contact form for [Leptos](https://leptos.dev) v0.8.**
 
-Drop a single component into your Leptos app, wire up SMTP, and your visitors
-have a working contact form — with server-side validation, honeypot bot
-protection, progressive enhancement, and full accessibility out of the box.
+One component, one server function, one delivery trait.  Server-side
+validation, honeypot, header-injection protection, progressive
+enhancement, and accessibility come built in.
 
 ---
 
 ## Overview
 
-`leptos-hl-contact` is three layers working together:
-
 ```
 ContactForm  →  submit_contact (server fn)  →  ContactDelivery (trait)
 ```
 
-The **UI component** renders an accessible HTML form using `<ActionForm/>`,
-which degrades gracefully to a plain POST without JavaScript.
-
-The **server function** runs on the server only: it normalises input, checks
-the honeypot, validates every field, then hands off to the delivery backend.
-
-The **delivery backend** is an abstract trait. The crate ships SMTP
-(`LettreSmtpDelivery`) and a no-op stub (`NoopDelivery`) for local development.
+- **`ContactForm`** renders an accessible `<ActionForm/>` that still works
+  as a plain POST without JavaScript.
+- **`submit_contact`** runs on the server only: token check, normalise,
+  honeypot, validate, policy, deliver.
+- **`ContactDelivery`** is a trait.  SMTP (`LettreSmtpDelivery`) and a
+  no-op backend ship with the crate; anything else is one `impl` away.
 
 ---
 
-## When to use this
+## When to use it
 
-- You have a Leptos SSR or Islands app and need a contact form.
-- You want SMTP delivery with minimal boilerplate.
-- Security matters: no credentials in WASM, server-side validation, honeypot,
-  header-injection protection.
-- You may need to swap the delivery backend later (SendGrid, SES, Resend, DB…).
+- A Leptos SSR or Islands app needs a contact form.
+- You want SMTP delivery with minimal wiring and no credentials in WASM.
+- You may swap the backend later (SendGrid, SES, Resend, a database).
 
 ---
-
-> **Production checklist:** rate limiting, CSRF (`csrf` feature), HTTPS, and Origin
-> validation are required before going public.  See [Security](./docs/src/security.md)
-> and [`examples/axum-with-security`](./examples/axum-with-security).
 
 ## Quick Start
 
-**1. Add the dependency**
+**1. Dependencies**
 
 ```toml
 # server binary
-leptos-hl-contact = { version = "0.3", features = ["ssr", "smtp-lettre", "axum-helpers", "csrf"] }
+leptos-hl-contact = { version = "0.3", features = ["ssr", "smtp-lettre", "axum-helpers"] }
 
 # WASM binary
 leptos-hl-contact = { version = "0.3", features = ["hydrate"] }
 ```
 
-**2. Wire up the delivery backend (Axum)**
+**2. Delivery backend and Axum wiring**
 
 ```rust,ignore
 use std::sync::Arc;
@@ -81,14 +71,10 @@ let delivery: ContactDeliveryContext = Arc::new(LettreSmtpDelivery {
     },
 });
 let ctx = delivery_context_fn(delivery);
-// provide ctx to both handle_server_fns_with_context and leptos_routes_with_context
+// pass `ctx` to both handle_server_fns_with_context and leptos_routes_with_context
 ```
 
-See [`examples/axum-with-security`](./examples/axum-with-security) for production-ready
-wiring (rate limiting + CSRF + Origin validation).  For a minimal local-dev skeleton,
-see [`examples/axum-basic`](./examples/axum-basic) (**not production safe**).
-
-**3. Place the component**
+**3. Component**
 
 ```rust,ignore
 use leptos_hl_contact::ContactForm;
@@ -96,46 +82,37 @@ use leptos_hl_contact::ContactForm;
 view! { <ContactForm /> }
 ```
 
----
-
-## Feature flags
-
-| Flag | What it enables |
-|------|----------------|
-| `hydrate` | Client-side hydration |
-| `ssr` | Server-side rendering + server functions |
-| `islands` | Leptos Islands architecture |
-| `smtp-lettre` | SMTP delivery via `lettre` (implies `ssr`) |
-| `axum-helpers` | `delivery_context_fn` helper (implies `ssr`) |
-| `csrf`         | HMAC-SHA256 CSRF token generation + verification (implies `ssr`) |
+Full walkthrough: [Quick Start](./docs/src/getting-started/quick-start.md).
+Before going public, work through the
+[Production Checklist](./docs/src/getting-started/production-checklist.md);
+[`examples/axum-with-security`](./examples/axum-with-security) implements it.
 
 ---
 
 ## Design notes
 
-- **Secure by default** — SMTP credentials never reach the client or WASM.
-- **Progressive enhancement** — `<ActionForm/>` works without JavaScript.
-- **Pluggable delivery** — implement `ContactDelivery` for any backend.
-- **Accessible by default** — labels, ARIA, per-field errors, keyboard nav.
-- **CSRF protection built-in** — stateless HMAC-SHA256 tokens, no session required (`csrf` feature).
-- **Framework-neutral core** — Axum helpers are opt-in; the delivery trait is
-  not tied to any HTTP framework.
-
-> **Security notice:** Rate limiting and CSRF protection must be configured in
-> your application layer. See the [Security guide](./docs/src/security.md).
+- **Secure by default.**  Credentials, recipient, and token secret exist
+  only in server-side types.
+- **Progressive enhancement.**  Plain POST without JavaScript.
+- **Accessible by default.**  Labels, ARIA, live regions, keyboard.
+- **Pluggable delivery.**  Framework-neutral trait; Axum helpers are opt-in.
+- **Honest security model.**  The `csrf` feature's token is an
+  anti-automation measure; Origin validation in your middleware is the
+  CSRF control.  Both are documented, with examples.
 
 ---
 
-## Full documentation
+## Documentation
 
-For guides, API reference, and architecture notes, see the
-[**full documentation**](https://docs.rs/leptos-hl-contact).
+The full book lives in [`docs/src`](./docs/src/SUMMARY.md) (mdBook):
 
-Key chapters:
-- [Quick Start](./docs/src/quick-start.md) — step-by-step tutorial
-- [CSRF Protection](./docs/src/csrf.md) — stateless HMAC token setup
-- [Security](./docs/src/security.md) — CSRF, rate limiting, deployment checklist
-- [Delivery Backends](./docs/src/delivery-backends.md) — custom backends
-- [Axum Integration](./docs/src/axum-integration.md) — context injection patterns
-- [Styling](./docs/src/styling.md) — class injection and i18n
-- [API Reference](./docs/src/api-reference.md) — complete type reference
+| Section | Start here |
+|---------|------------|
+| Getting Started | [Quick Start](./docs/src/getting-started/quick-start.md), [Production Checklist](./docs/src/getting-started/production-checklist.md) |
+| Guides | [Customization](./docs/src/guides/customization.md), [Delivery Backends](./docs/src/guides/delivery-backends.md), [Axum Integration](./docs/src/guides/axum-integration.md) |
+| Security | [Overview](./docs/src/security/README.md), [Hardening](./docs/src/security/hardening.md) |
+| Reference | [API](./docs/src/reference/api.md), [Feature Flags](./docs/src/reference/feature-flags.md) |
+| Development | [Requirements](./docs/src/development/requirements.md), [External Design](./docs/src/development/external-design.md), [Architecture](./docs/src/development/architecture.md) |
+
+Rustdoc: [docs.rs/leptos-hl-contact](https://docs.rs/leptos-hl-contact).
+Plans: [`ROADMAP.md`](./ROADMAP.md) and [`rfcs/`](./rfcs/README.md).

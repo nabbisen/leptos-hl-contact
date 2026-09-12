@@ -1,33 +1,46 @@
 # Summary
 
----
-
-# For New Users
-
-- [Introduction](./introduction.md)
-- [Quick Start](./quick-start.md)
-- [Installation](./installation.md)
-- [Configuration](./configuration.md)
-- [Styling](./styling.md)
-- [Accessibility](./accessibility.md)
-- [FAQ](./faq.md)
+[Introduction](./introduction.md)
 
 ---
 
-# For Experienced Users
+# Getting Started
 
-- [Security](./security.md)
-  - [CSRF Protection](./csrf.md)
-  - [Turnstile Integration](./turnstile.md)
-- [Delivery Backends](./delivery-backends.md)
-- [Axum Integration](./axum-integration.md)
-- [API Reference](./api-reference.md)
-- [Feature Flags](./feature-flags.md)
+- [Quick Start](./getting-started/quick-start.md)
+- [Production Checklist](./getting-started/production-checklist.md)
+
+# Guides
+
+- [Customization](./guides/customization.md)
+- [Styling](./guides/styling.md)
+- [Localization](./guides/localization.md)
+- [Accessibility](./guides/accessibility.md)
+- [Delivery Backends](./guides/delivery-backends.md)
+- [Axum Integration](./guides/axum-integration.md)
+
+# Security
+
+- [Overview](./security/README.md)
+  - [Anti-automation Token](./security/csrf.md)
+  - [Hardening](./security/hardening.md)
+  - [Turnstile](./security/turnstile.md)
+
+# Reference
+
+- [API](./reference/api.md)
+- [Feature Flags](./reference/feature-flags.md)
+
+# Help
+
+- [FAQ](./help/faq.md)
+- [Troubleshooting](./help/troubleshooting.md)
 
 ---
 
-# For Maintainers
+# Development
 
-- [Architecture](./architecture.md)
-- [Testing & Local Development](./testing.md)
-- [Troubleshooting](./troubleshooting.md)
+- [Requirements](./development/requirements.md)
+- [External Design](./development/external-design.md)
+- [Architecture](./development/architecture.md)
+- [Testing](./development/testing.md)
+- [Release Process](./development/release-process.md)
