@@ -85,6 +85,14 @@ pub struct ContactErrorLabels {
     pub not_configured: String,
     /// The delivery backend refused or failed.
     pub delivery_failed: String,
+    /// A challenge is configured but the submission carried no token.
+    pub challenge_required: String,
+    /// The challenge did not pass.
+    pub challenge_failed: String,
+    /// The challenge vendor could not be reached.
+    pub challenge_unavailable: String,
+    /// Shown inside `<noscript>` when the challenge needs JavaScript.
+    pub challenge_requires_js: String,
 }
 
 impl Default for ContactErrorLabels {
@@ -100,6 +108,11 @@ impl Default for ContactErrorLabels {
             too_fast: "Please wait a moment and try again.".into(),
             not_configured: "This form is not available right now.".into(),
             delivery_failed: "Failed to send message. Please try again later.".into(),
+            challenge_required: "Please complete the security check.".into(),
+            challenge_failed: "The security check did not pass. Please try again.".into(),
+            challenge_unavailable:
+                "The security check is unavailable right now. Please try again later.".into(),
+            challenge_requires_js: "This form needs JavaScript to verify you are human.".into(),
         }
     }
 }
@@ -142,6 +155,9 @@ impl ContactErrorLabels {
             C::TooFast => self.too_fast.clone(),
             C::NotConfigured => self.not_configured.clone(),
             C::DeliveryFailed | C::Unexpected => self.delivery_failed.clone(),
+            C::ChallengeRequired => self.challenge_required.clone(),
+            C::ChallengeFailed => self.challenge_failed.clone(),
+            C::ChallengeUnavailable => self.challenge_unavailable.clone(),
         }
     }
 }
@@ -208,6 +224,27 @@ impl Default for ContactFormLabels {
             errors: ContactErrorLabels::default(),
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// NoJsPolicy
+// ---------------------------------------------------------------------------
+
+/// What the server does with a submission that carries no challenge token.
+///
+/// Shared by the component, which renders a `<noscript>` explanation under
+/// [`Reject`](Self::Reject), and by the server's challenge policy.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum NoJsPolicy {
+    /// Reject with `challenge_required`.  Recommended.
+    #[default]
+    Reject,
+    /// Accept, relying on the honeypot alone.
+    ///
+    /// A server cannot distinguish a no-JS browser from a bot that omits the
+    /// token, so this policy makes the challenge advisory.  Use [`Reject`](Self::Reject)
+    /// unless no-JS visitors matter more than bots.
+    AcceptWithHoneypotOnly,
 }
 
 // ---------------------------------------------------------------------------

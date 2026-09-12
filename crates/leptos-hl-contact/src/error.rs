@@ -103,6 +103,13 @@ pub enum ContactErrorCode {
     DeliveryFailed,
     /// Something unforeseen went wrong.
     Unexpected,
+    /// A challenge is configured but the submission carried no token.
+    ChallengeRequired,
+    /// The challenge vendor rejected the token, or its score or action did
+    /// not satisfy the policy.
+    ChallengeFailed,
+    /// The challenge vendor could not be asked.  Fail-closed.
+    ChallengeUnavailable,
 }
 
 impl ContactErrorCode {
@@ -114,6 +121,9 @@ impl ContactErrorCode {
             Self::NotConfigured => "not_configured",
             Self::DeliveryFailed => "delivery_failed",
             Self::Unexpected => "unexpected",
+            Self::ChallengeRequired => "challenge_required",
+            Self::ChallengeFailed => "challenge_failed",
+            Self::ChallengeUnavailable => "challenge_unavailable",
         }
     }
 
@@ -127,6 +137,9 @@ impl ContactErrorCode {
             "not_configured" => Some(Self::NotConfigured),
             "delivery_failed" => Some(Self::DeliveryFailed),
             "unexpected" => Some(Self::Unexpected),
+            "challenge_required" => Some(Self::ChallengeRequired),
+            "challenge_failed" => Some(Self::ChallengeFailed),
+            "challenge_unavailable" => Some(Self::ChallengeUnavailable),
             _ => None,
         }
     }

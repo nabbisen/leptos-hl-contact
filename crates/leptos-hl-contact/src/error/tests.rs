@@ -181,6 +181,9 @@ fn contact_error_code_round_trips_through_the_wire_string() {
         ContactErrorCode::NotConfigured,
         ContactErrorCode::DeliveryFailed,
         ContactErrorCode::Unexpected,
+        ContactErrorCode::ChallengeRequired,
+        ContactErrorCode::ChallengeFailed,
+        ContactErrorCode::ChallengeUnavailable,
     ] {
         let msg = code.into_server_fn_message();
         assert!(msg.starts_with(CONTACT_ERROR_PREFIX));

@@ -65,6 +65,18 @@ No version assigned; the owner decides the release number.
   browser's nonce, and `axum_helpers::provide_form_token_issuer` re-sends
   the cookie through the new `FormTokenIssuer` context.
 - `FormTokenConfig` builders `with_ttl`, `with_min_age`, `with_binding`.
+- **Challenge verification (server side).**  `submit_contact` accepts the
+  vendor token fields `cf-turnstile-response`, `h-captcha-response` and
+  `g-recaptcha-response`, and verifies the first non-blank one through a
+  `ChallengeVerifier` provided in `ChallengeContext`, after every local check
+  and before delivery.  Fail-closed: a token with no verifier is
+  `not_configured`, a verifier error is `challenge_unavailable`.
+  `NoJsPolicy` decides whether a submission without a token is rejected
+  (`challenge_required`, the default) or accepted on the honeypot alone.
+  New codes `challenge_required`, `challenge_failed`,
+  `challenge_unavailable`, with matching labels and `challenge_requires_js`.
+  No HTTP client and no new dependency yet; the built-in vendor verifiers
+  come separately.
 
 ### Migration
 
@@ -90,11 +102,12 @@ Two things do not move by themselves:
 - **`min_age_secs` defaults to 2**, which is new behaviour.  A test that
   submits instantly will now see `too_fast`; call `.with_min_age(0)` for the
   old behaviour.
-- **Two structs gain a field.**  `ContactFormOptions` gains
-  `token_refresh_secs` and `ContactErrorLabels` gains `too_fast`.  An
-  exhaustive struct literal of either must add the field;
-  `..Default::default()` is unaffected.  `token_refresh_secs` defaults to
-  `None`, which is off.
+- **Two structs gain fields.**  `ContactFormOptions` gains
+  `token_refresh_secs`; `ContactErrorLabels` gains `too_fast`,
+  `challenge_required`, `challenge_failed`, `challenge_unavailable` and
+  `challenge_requires_js`.  An exhaustive struct literal of either must add
+  them; `..Default::default()` is unaffected.  `token_refresh_secs` defaults
+  to `None`, which is off.
 
 ### Documentation
 

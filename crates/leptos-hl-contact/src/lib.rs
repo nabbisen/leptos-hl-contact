@@ -60,6 +60,10 @@ pub mod form_token;
 #[cfg(feature = "form-token")]
 pub mod csrf;
 
+// Challenge verification — trait, policy and decision table; no HTTP.
+#[cfg(feature = "ssr")]
+pub mod challenge;
+
 // Axum integration helpers — compiled only when `axum-helpers` is active.
 #[cfg(feature = "axum-helpers")]
 pub mod axum_helpers;
@@ -72,7 +76,7 @@ pub use components::ContactForm;
 pub use config::ContactErrorLabels;
 pub use config::{
     ContactFormClasses, ContactFormLabels, ContactFormOptions, ContactServerPolicy,
-    ContactSuccessRedirect, InvalidRedirectPath,
+    ContactSuccessRedirect, InvalidRedirectPath, NoJsPolicy,
 };
 pub use delivery::{ContactDelivery, ContactDeliveryContext};
 pub use error::{
@@ -81,6 +85,11 @@ pub use error::{
 };
 pub use model::{ContactInput, MESSAGE_MAX_LEN};
 pub use server::submit_contact;
+
+#[cfg(feature = "ssr")]
+pub use challenge::{
+    ChallengeContext, ChallengeError, ChallengeOutcome, ChallengePolicy, ChallengeVerifier,
+};
 
 #[cfg(feature = "form-token")]
 pub use form_token::{

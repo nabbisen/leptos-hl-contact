@@ -50,12 +50,21 @@ pub async fn submit_contact(
     website:    String,          // honeypot — must be empty
     form_token: Option<String>,  // verified when the `form-token` feature is on
     csrf_token: Option<String>,  // deprecated 0.4 name; used only if form_token is absent
+    #[server(rename = "cf-turnstile-response")] #[server(default)]
+    cf_turnstile_response: Option<String>,
+    #[server(rename = "h-captcha-response")] #[server(default)]
+    h_captcha_response: Option<String>,
+    #[server(rename = "g-recaptcha-response")] #[server(default)]
+    g_recaptcha_response: Option<String>,
 ) -> Result<(), ServerFnError>
 ```
 
+The three challenge arguments use the field names the vendor widgets inject;
+the first non-blank one is the challenge token.
+
 `POST /api/submit_contact`, form-encoded.  Order of work: token check
 (`form-token`) → `ContactInput::from_raw` → `check_honeypot` → `validate_fields`
-→ `ContactServerPolicy` → `ContactDelivery::deliver` →
+→ `ContactServerPolicy` → challenge (`ChallengeContext`) → `ContactDelivery::deliver` →
 `ContactSuccessRedirect` when one is in context.
 
 | Outcome | Returned as |
@@ -64,6 +73,10 @@ pub async fn submit_contact(
 | Token invalid, expired or missing | `ServerFnError::Args("contact_error:token_invalid")` |
 | Token younger than `min_age_secs` | `ServerFnError::Args("contact_error:too_fast")` — retryable |
 | Token config or delivery context missing | `ServerFnError::ServerError("contact_error:not_configured")` |
+| Challenge token with no `ChallengeContext` | `ServerFnError::ServerError("contact_error:not_configured")` |
+| No challenge token under `NoJsPolicy::Reject` | `ServerFnError::Args("contact_error:challenge_required")` |
+| Challenge failed (not passed, score, action) | `ServerFnError::Args("contact_error:challenge_failed")` |
+| Challenge verifier error | `ServerFnError::ServerError("contact_error:challenge_unavailable")` |
 | Delivery failed | `ServerFnError::ServerError("contact_error:delivery_failed")` |
 | Unexpected | `ServerFnError::ServerError("contact_error:unexpected")` |
 | Honeypot filled | `Ok(())` without delivery |
@@ -75,7 +88,12 @@ pub async fn submit_contact(
 ```rust,ignore
 pub struct ContactFormClasses { pub root, field, label, input, textarea, button, error, success: String }
 pub struct ContactFormLabels  { pub name, email, subject, message, submit, sending, success, error, honeypot_label: String, pub errors: ContactErrorLabels }
-pub struct ContactErrorLabels { pub required, length, format_email, format, line_breaks, token_invalid, not_configured, delivery_failed: String }
+pub struct ContactErrorLabels {
+    pub required, length, format_email, format, line_breaks, token_invalid, too_fast,
+        not_configured, delivery_failed,
+        challenge_required, challenge_failed, challenge_unavailable, challenge_requires_js: String,
+}
+pub enum NoJsPolicy { Reject /* default */, AcceptWithHoneypotOnly }
 
 impl ContactErrorLabels {
     pub fn field_text(&self, field: ContactField, err: &FieldError) -> String;
@@ -328,6 +346,44 @@ pub fn verify_form_token(token: &str, bound_value: Option<&str>, config: &FormTo
 this order: format, timestamp, future skew, expiry, minimum age, signature,
 binding.  Behaviour and guarantees:
 [Form Token](../security/form-token.md).
+
+## `challenge` module
+
+Feature `ssr`; no feature flag of its own.  No HTTP: the built-in vendor
+verifiers are separate.
+
+```rust,ignore
+pub struct ChallengeOutcome { pub passed: bool, pub score: Option<f32>, pub action: Option<String>, pub error_codes: Vec<String> }
+pub enum ChallengeError { Timeout, Unavailable(String), Misconfigured(String) }   // thiserror
+
+pub trait ChallengeVerifier: Send + Sync + 'static {
+    fn verify(&self, token: &str)
+        -> Pin<Box<dyn Future<Output = Result<ChallengeOutcome, ChallengeError>> + Send + '_>>;
+}
+
+pub struct ChallengePolicy {
+    pub no_js: NoJsPolicy,               // default Reject
+    pub min_score: f32,                  // default 0.5; ignored without a score
+    pub expected_action: Option<String>, // default None: any action
+}
+pub struct ChallengeContext { pub verifier: Arc<dyn ChallengeVerifier>, pub policy: ChallengePolicy }
+```
+
+Provide `ChallengeContext` in the context closure.  `submit_contact` follows
+this table:
+
+| Context | Token | Result |
+|---------|-------|--------|
+| absent | absent | proceed |
+| absent | present | `not_configured`, logged at `error` |
+| present | absent, `Reject` | `challenge_required` |
+| present | absent, `AcceptWithHoneypotOnly` | proceed, logged at `info` |
+| present | present, passed and policy satisfied | proceed |
+| present | present, not passed, score below `min_score` (or NaN), or action mismatch | `challenge_failed`, logged at `warn` with the vendor's error codes |
+| present | present, verifier error | `challenge_unavailable`, logged at `error` — fail-closed |
+
+An empty or whitespace-only token counts as absent.  The token itself is
+never logged.
 
 ## `csrf` module — deprecated
 

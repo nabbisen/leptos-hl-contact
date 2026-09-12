@@ -299,6 +299,12 @@ fn code_text_maps_unexpected_to_delivery_failed() {
     assert_eq!(l.code_text(C::NotConfigured), l.not_configured);
     assert_eq!(l.code_text(C::DeliveryFailed), l.delivery_failed);
     assert_eq!(l.code_text(C::Unexpected), l.delivery_failed);
+    assert_eq!(l.code_text(C::ChallengeRequired), l.challenge_required);
+    assert_eq!(l.code_text(C::ChallengeFailed), l.challenge_failed);
+    assert_eq!(
+        l.code_text(C::ChallengeUnavailable),
+        l.challenge_unavailable
+    );
 }
 
 #[test]
@@ -326,4 +332,28 @@ fn field_text_substitutes_in_a_translated_label() {
 #[test]
 fn options_default_never_calls_the_token_endpoint() {
     assert_eq!(ContactFormOptions::default().token_refresh_secs, None);
+}
+
+/// RFC 005 D3's English defaults.
+#[test]
+fn challenge_labels_have_the_rfc_defaults() {
+    let l = ContactErrorLabels::default();
+    assert_eq!(l.challenge_required, "Please complete the security check.");
+    assert_eq!(
+        l.challenge_failed,
+        "The security check did not pass. Please try again."
+    );
+    assert_eq!(
+        l.challenge_unavailable,
+        "The security check is unavailable right now. Please try again later."
+    );
+    assert_eq!(
+        l.challenge_requires_js,
+        "This form needs JavaScript to verify you are human."
+    );
+}
+
+#[test]
+fn no_js_policy_defaults_to_reject() {
+    assert_eq!(NoJsPolicy::default(), NoJsPolicy::Reject);
 }

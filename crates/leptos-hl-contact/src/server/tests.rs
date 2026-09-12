@@ -147,3 +147,87 @@ fn a_slow_browser_clock_is_capped_at_the_interval() {
         70
     );
 }
+
+// ---------------------------------------------------------------------------
+// Challenge codes — prefix and variant class (RFC 005 handoff 01)
+// ---------------------------------------------------------------------------
+
+/// Server-side problems go out as `ServerError`; a missing or failed
+/// challenge is the submission's, so it is `Args`.  All carry the prefix.
+#[cfg(feature = "ssr")]
+#[test]
+fn challenge_rejections_carry_the_prefix_and_the_right_variant() {
+    use crate::error::{CONTACT_ERROR_PREFIX, ContactErrorCode as C};
+    use leptos::server_fn::error::ServerFnError;
+
+    for (code, wire, server_side) in [
+        (
+            C::ChallengeRequired,
+            "contact_error:challenge_required",
+            false,
+        ),
+        (C::ChallengeFailed, "contact_error:challenge_failed", false),
+        (
+            C::ChallengeUnavailable,
+            "contact_error:challenge_unavailable",
+            true,
+        ),
+        (C::NotConfigured, "contact_error:not_configured", true),
+    ] {
+        match crate::challenge::rejection(code) {
+            ServerFnError::ServerError(m) => {
+                assert!(server_side, "{code:?} must be Args");
+                assert_eq!(m, wire);
+            }
+            ServerFnError::Args(m) => {
+                assert!(!server_side, "{code:?} must be ServerError");
+                assert_eq!(m, wire);
+            }
+            other => panic!("unexpected variant {other:?}"),
+        }
+        assert!(wire.starts_with(CONTACT_ERROR_PREFIX));
+    }
+}
+
+/// RFC 005 handoff 01, known risk: the vendors' field names are hyphenated.
+/// Decode a real form body through the generated `SubmitContact` type, with
+/// the same `PostUrl` codec a POST uses, to prove the renames reach serde.
+#[cfg(feature = "axum-helpers")]
+#[tokio::test]
+async fn hyphenated_challenge_fields_decode_through_the_generated_type() {
+    use leptos::server_fn::codec::{FromReq, PostUrl};
+    use leptos::server_fn::error::ServerFnError;
+
+    async fn decode(body: &'static str) -> crate::server::SubmitContact {
+        let req = axum::http::Request::post("/api/submit_contact")
+            .header("content-type", "application/x-www-form-urlencoded")
+            .body(axum::body::Body::from(body))
+            .unwrap();
+        <crate::server::SubmitContact as FromReq<PostUrl, _, ServerFnError>>::from_req(req)
+            .await
+            .expect("the body decodes")
+    }
+
+    let args = decode(
+        "name=Ada&email=ada%40example.com&message=Hello&website=\
+         &cf-turnstile-response=abc&h-captcha-response=&g-recaptcha-response=xyz",
+    )
+    .await;
+    assert_eq!(args.cf_turnstile_response.as_deref(), Some("abc"));
+    // `serde_qs` decodes an empty value into `None`, not `Some("")`.  Either
+    // way the gate treats a blank token as absent.
+    assert_eq!(args.h_captcha_response, None);
+    assert_eq!(args.g_recaptcha_response.as_deref(), Some("xyz"));
+
+    // A form without a widget still decodes: the fields default to `None`.
+    let args = decode("name=Ada&email=ada%40example.com&message=Hello&website=").await;
+    assert_eq!(args.cf_turnstile_response, None);
+    assert_eq!(args.h_captcha_response, None);
+    assert_eq!(args.g_recaptcha_response, None);
+
+    // The Rust spelling is not the wire name.
+    let args =
+        decode("name=Ada&email=ada%40example.com&message=Hello&website=&cf_turnstile_response=abc")
+            .await;
+    assert_eq!(args.cf_turnstile_response, None);
+}

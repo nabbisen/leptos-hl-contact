@@ -1,5 +1,13 @@
 // server.rs — Leptos server function for contact form submission.
 
+// `submit_contact` takes one argument per form field — the wire contract, not
+// a design choice.  `#[server]` does not copy item attributes onto the client
+// stub it generates for the browser build, so the allow has to be here.
+#![allow(
+    clippy::too_many_arguments,
+    reason = "submit_contact's arguments are its form fields"
+)]
+
 use leptos::prelude::*;
 use leptos::server_fn::error::ServerFnError;
 
@@ -25,6 +33,18 @@ use crate::{
 /// | `website`    | —   | Honeypot; must be empty |
 /// | `form_token` | —   | `Option<String>`; verified when `FormTokenContext` is in context |
 /// | `csrf_token` | —   | **Deprecated** 0.4 name; used only when `form_token` is absent |
+/// | `cf-turnstile-response` | — | Turnstile's token field |
+/// | `h-captcha-response` | — | hCaptcha's token field |
+/// | `g-recaptcha-response` | — | reCAPTCHA's token field |
+///
+/// # Challenge
+///
+/// The first non-blank challenge field is the token.  With
+/// [`ChallengeContext`](crate::challenge::ChallengeContext) in context it is
+/// verified after the server policy and before delivery, following the
+/// decision table in RFC 005: a token with no context is `not_configured`;
+/// no token under `NoJsPolicy::Reject` is `challenge_required`; a failed
+/// check is `challenge_failed`; a verifier error is `challenge_unavailable`.
 ///
 /// # Form token
 ///
@@ -76,6 +96,18 @@ pub async fn submit_contact(
     /// so a page rendered by 0.4 still submits successfully to 0.5.  Used
     /// only when `form_token` is absent.
     csrf_token: Option<String>,
+    /// Cloudflare Turnstile's token, under the field name its widget injects.
+    #[server(rename = "cf-turnstile-response")]
+    #[server(default)]
+    cf_turnstile_response: Option<String>,
+    /// hCaptcha's token, under the field name its widget injects.
+    #[server(rename = "h-captcha-response")]
+    #[server(default)]
+    h_captcha_response: Option<String>,
+    /// reCAPTCHA's token, under the field name its widget injects.
+    #[server(rename = "g-recaptcha-response")]
+    #[server(default)]
+    g_recaptcha_response: Option<String>,
 ) -> Result<(), ServerFnError> {
     #[cfg(feature = "ssr")]
     {
@@ -164,17 +196,67 @@ pub async fn submit_contact(
             }
         }
 
-        // 6. Delivery backend.
+        // 6. Every context value, read now: Leptos context is not reachable
+        // after an await point here, and the challenge below awaits.
         let Some(delivery) = use_context::<ContactDeliveryContext>() else {
             tracing::error!("ContactDeliveryContext not provided — check server setup");
             return Err(ServerFnError::ServerError(
                 ContactErrorCode::NotConfigured.into_server_fn_message(),
             ));
         };
-
-        // 7. Read the optional success redirect *before* awaiting delivery:
-        // Leptos context is not reachable after an await point here.
         let success_redirect = use_context::<crate::config::ContactSuccessRedirect>();
+        let challenge_ctx = use_context::<crate::challenge::ChallengeContext>();
+
+        // 7. Challenge — after every local check, so invalid input never costs
+        // a vendor call.  Never log the token.
+        {
+            use crate::challenge::{self, Gate};
+
+            let challenge_token = [
+                cf_turnstile_response,
+                h_captcha_response,
+                g_recaptcha_response,
+            ]
+            .into_iter()
+            .flatten()
+            .find(|t| !t.trim().is_empty());
+
+            match challenge::gate(challenge_ctx.as_ref(), challenge_token.as_deref()) {
+                Gate::Proceed => {
+                    if challenge_ctx.is_some() {
+                        tracing::info!(
+                            "challenge skipped: no token, policy AcceptWithHoneypotOnly"
+                        );
+                    }
+                }
+                Gate::Reject(code) => {
+                    if code == ContactErrorCode::NotConfigured {
+                        tracing::error!(
+                            "challenge token received but no ChallengeContext is provided"
+                        );
+                    }
+                    return Err(challenge::rejection(code));
+                }
+                Gate::Verify => {
+                    let (Some(ctx), Some(token)) = (challenge_ctx, challenge_token) else {
+                        unreachable!("gate returns Verify only with a context and a token");
+                    };
+                    let result = ctx.verifier.verify(&token).await;
+                    let error_codes = result.as_ref().ok().map(|o| o.error_codes.clone());
+                    let error = result.as_ref().err().map(ToString::to_string);
+                    if let Err(code) = challenge::judge(result, &ctx.policy) {
+                        match code {
+                            ContactErrorCode::ChallengeUnavailable => tracing::error!(
+                                error = error.as_deref().unwrap_or_default(),
+                                "challenge verifier unavailable"
+                            ),
+                            _ => tracing::warn!(error_codes = ?error_codes, "challenge failed"),
+                        }
+                        return Err(challenge::rejection(code));
+                    }
+                }
+            }
+        }
 
         // 8. Deliver.
         if let Err(e) = delivery.deliver(input).await {
