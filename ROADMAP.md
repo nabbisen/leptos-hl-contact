@@ -83,7 +83,7 @@ per-field errors visible.
 | P-08 | `docs/book.toml` `git-repository-icon` rejected by mdbook 0.5 in every tried form — **done 2026-09-12**: key removed, default icon used; book builds | Low | docs | verified |
 | P-09 | Examples panicked at startup on the Axum 0.7 wildcard syntax — **done** in handoff 001-02, approved 2026-09-12 (`16a32a9`, `e15ede3`); examples now compiled by a CI matrix job; `axum-with-security` additionally served with connection info so the rate limiter's peer-address fallback works (it had answered 500 to every header-less request) | **High** | fix + CI | verified |
 
-### M2 — Form robustness and anti-abuse redesign (proposed release: 0.4.0, minor) — RFC 002, RFC 003 and RFC 007 implemented on `main` 2026-09-13; RFC 003 handoff 02 (P-29) remains before the 0.4.0 candidate
+### M2 — Form robustness and anti-abuse redesign (proposed release: 0.4.0, minor) — **complete**: RFC 002, RFC 003 and RFC 007 implemented and approved on `main` 2026-09-13 (RFC 003 handoff 02 pending one correction).  Ready for a 0.4.0 release-readiness pass on the owner's word
 
 Behavioural or API changes.  Each item needs an accepted RFC before a
 handoff is written.
@@ -102,7 +102,7 @@ handoff is written.
 
 ### M3 — Anti-abuse (proposed release: 0.5.0, minor) — **theme authorized 2026-09-12**
 
-Owner decisions of 2026-09-12: theme approved and positioned | P-29 | An empty required field renders the length message ("between 1 and 80 characters") rather than the required message, because `validator` reports a blank string as a `length` violation.  Correct per RFC 003 D2 as written; D2 amended | Medium | [RFC 003](./rfcs/accepted/003-error-codes.md) handoff 02 | verified in the browser 2026-09-13 |
+Owner decisions of 2026-09-12: theme approved and positioned | P-29 | Blank required field rendered the length message — **done** in RFC 003 handoff 02 (`5c61968`), conditionally approved 2026-09-13 on one correction (match `ContactField` exhaustively rather than field-name strings) | Medium | [RFC 003](./rfcs/accepted/003-error-codes.md) handoff 02 | verified by the architect |
 directly
 after M2; first-release providers are Cloudflare Turnstile, hCaptcha,
 reCAPTCHA v2 and v3 (not Enterprise); when a challenge is enabled,
