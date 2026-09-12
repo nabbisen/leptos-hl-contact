@@ -422,6 +422,12 @@ reputation); visitor PII in transit; the application's availability.
 | T13 | Stored XSS through the form | echoing input in HTML | input never echoed; Leptos escapes | crate | Met |
 | T14 | Relay abuse as open relay | attacker-controlled `To` | `To` fixed by config | crate | Met |
 | T15 | Slow relay holding connections | delivery without timeout | none today | crate | Gap [FR-DEL-08] |
+| T16 | Open redirect or header injection through the success page | a configured redirect path that leaves the site, or carries CR/LF into the `Location` header | `ContactSuccessRedirect::new` accepts only site-relative paths: it requires a leading `/`, rejects `//`, `\`, `://`, and every control or whitespace character, so neither an off-site target nor a header break survives construction.  The path is fixed at startup and never read from form input or a query parameter | crate | Met (0.4.0) |
+
+New in 0.4.0: the success redirect (T16) is the crate's first outward
+response header, so it is the first place a configuration value reaches a
+protocol boundary.  Validation happens once, at construction, rather than
+at each use.
 
 ### 5.3 Anti-abuse layering
 
@@ -590,5 +596,6 @@ The project rule is "less is more".  Applied here:
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial external design from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 4 | 0.4.0 security audit: T16 added for the success redirect, the release's only new outward data flow |
 | 2026-09-12 | Draft 3 | M1 outcomes marked current (§4.1.3, §4.1.4, §4.2.3, §4.3, §6) |
 | 2026-09-12 | Draft 2 | Anti-abuse theme decisions folded in (§1.2, §5.3, §10); no-JS success target revised to a configured success page |
