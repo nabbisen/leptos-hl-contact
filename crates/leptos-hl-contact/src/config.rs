@@ -248,6 +248,233 @@ pub enum NoJsPolicy {
 }
 
 // ---------------------------------------------------------------------------
+// Challenge widget
+// ---------------------------------------------------------------------------
+
+/// Which challenge vendor renders the widget.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ChallengeProvider {
+    /// Cloudflare Turnstile.
+    Turnstile,
+    /// hCaptcha.
+    HCaptcha,
+    /// Google reCAPTCHA v2, checkbox or invisible.
+    RecaptchaV2,
+    /// Google reCAPTCHA v3, which has no visible widget.  A token is fetched
+    /// on every submit, because v3 tokens are single-use.
+    RecaptchaV3 {
+        /// The action name sent with each token, `[A-Za-z0-9_-]+`.  The server
+        /// can require it through `ChallengePolicy::expected_action`.
+        action: String,
+    },
+}
+
+/// The widget's colour scheme.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ChallengeTheme {
+    /// Follow the visitor's preference where the vendor supports it.
+    #[default]
+    Auto,
+    /// Light.
+    Light,
+    /// Dark.
+    Dark,
+}
+
+impl ChallengeTheme {
+    /// Turnstile's `data-theme`, which has an `auto` value.
+    pub(crate) fn turnstile_value(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::Light => "light",
+            Self::Dark => "dark",
+        }
+    }
+
+    /// hCaptcha's and reCAPTCHA's `data-theme`.  They have no `auto`, so it
+    /// is omitted and the vendor default applies.
+    pub(crate) fn explicit_value(self) -> Option<&'static str> {
+        match self {
+            Self::Auto => None,
+            Self::Light => Some("light"),
+            Self::Dark => Some("dark"),
+        }
+    }
+}
+
+/// A [`ChallengeWidget`] value that would not be safe to put in the page.
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
+#[error("invalid challenge configuration: {0}")]
+pub struct InvalidChallengeConfig(pub &'static str);
+
+/// A CAPTCHA widget rendered inside [`ContactForm`](crate::components::ContactForm).
+///
+/// Build it with [`new`](Self::new) and the `with_*` methods.  Every value
+/// that reaches the page is validated there, which is why the fields are not
+/// public: the site key and the reCAPTCHA v3 action are embedded in an inline
+/// script, and only a validated value is safe to embed.
+///
+/// The widget only collects a token.  The server verifies it through
+/// `ChallengeContext`; without one, a submission carrying a token is rejected
+/// with `not_configured`.
+///
+/// # Example
+///
+/// ```rust
+/// use leptos_hl_contact::config::{ChallengeProvider, ChallengeTheme, ChallengeWidget};
+///
+/// let widget = ChallengeWidget::new(ChallengeProvider::Turnstile, "1x00000000000000000000AA")
+///     .unwrap()
+///     .with_theme(ChallengeTheme::Dark);
+/// ```
+#[derive(Clone, Debug, PartialEq)]
+pub struct ChallengeWidget {
+    pub(crate) provider: ChallengeProvider,
+    pub(crate) site_key: String,
+    pub(crate) theme: ChallengeTheme,
+    pub(crate) language: Option<String>,
+    pub(crate) load_script: bool,
+    pub(crate) script_nonce: Option<String>,
+    pub(crate) no_js: NoJsPolicy,
+}
+
+impl ChallengeWidget {
+    /// A widget with the vendor's script loaded by the component, the `Auto`
+    /// theme, the vendor's own language detection, and `NoJsPolicy::Reject`.
+    ///
+    /// Validates `site_key`, and the reCAPTCHA v3 `action`, against
+    /// `[A-Za-z0-9_-]+`.
+    pub fn new(
+        provider: ChallengeProvider,
+        site_key: impl Into<String>,
+    ) -> Result<Self, InvalidChallengeConfig> {
+        let site_key = site_key.into();
+        if !is_key_charset(&site_key) {
+            return Err(InvalidChallengeConfig(
+                "site_key must be non-empty and use only [A-Za-z0-9_-]",
+            ));
+        }
+        if let ChallengeProvider::RecaptchaV3 { action } = &provider
+            && !is_key_charset(action)
+        {
+            return Err(InvalidChallengeConfig(
+                "the reCAPTCHA v3 action must be non-empty and use only [A-Za-z0-9_-]",
+            ));
+        }
+        Ok(Self {
+            provider,
+            site_key,
+            theme: ChallengeTheme::Auto,
+            language: None,
+            load_script: true,
+            script_nonce: None,
+            no_js: NoJsPolicy::Reject,
+        })
+    }
+
+    /// Set the colour scheme.
+    pub fn with_theme(mut self, theme: ChallengeTheme) -> Self {
+        self.theme = theme;
+        self
+    }
+
+    /// Set the widget language, a BCP 47 tag such as `en` or `pt-BR`.
+    pub fn with_language(
+        mut self,
+        language: impl Into<String>,
+    ) -> Result<Self, InvalidChallengeConfig> {
+        let language = language.into();
+        if !is_language_tag(&language) {
+            return Err(InvalidChallengeConfig(
+                "language must look like a BCP 47 tag, such as en or pt-BR",
+            ));
+        }
+        self.language = Some(language);
+        Ok(self)
+    }
+
+    /// Do not emit the vendor's `<script>`: the page loads it itself.
+    ///
+    /// reCAPTCHA v3 still gets its inline submit script, which it cannot work
+    /// without.
+    pub fn without_script(mut self) -> Self {
+        self.load_script = false;
+        self
+    }
+
+    /// Put a Content-Security-Policy nonce on the script tags.
+    pub fn with_script_nonce(
+        mut self,
+        nonce: impl Into<String>,
+    ) -> Result<Self, InvalidChallengeConfig> {
+        let nonce = nonce.into();
+        if !is_base64(&nonce) {
+            return Err(InvalidChallengeConfig(
+                "script_nonce must be non-empty base64 ([A-Za-z0-9+/=])",
+            ));
+        }
+        self.script_nonce = Some(nonce);
+        Ok(self)
+    }
+
+    /// Set what the component shows without JavaScript.  Use the same value
+    /// as the server's `ChallengePolicy::no_js`.
+    pub fn with_no_js(mut self, no_js: NoJsPolicy) -> Self {
+        self.no_js = no_js;
+        self
+    }
+
+    /// The vendor script URL, with the language where the vendor takes it
+    /// from the URL.
+    pub(crate) fn script_src(&self) -> String {
+        let hl = |sep: char| {
+            self.language
+                .as_ref()
+                .map(|l| format!("{sep}hl={l}"))
+                .unwrap_or_default()
+        };
+        match &self.provider {
+            ChallengeProvider::Turnstile => {
+                "https://challenges.cloudflare.com/turnstile/v0/api.js".to_owned()
+            }
+            ChallengeProvider::HCaptcha => format!("https://js.hcaptcha.com/1/api.js{}", hl('?')),
+            ChallengeProvider::RecaptchaV2 => {
+                format!("https://www.google.com/recaptcha/api.js{}", hl('?'))
+            }
+            ChallengeProvider::RecaptchaV3 { .. } => format!(
+                "https://www.google.com/recaptcha/api.js?render={}{}",
+                self.site_key,
+                hl('&')
+            ),
+        }
+    }
+}
+
+/// `[A-Za-z0-9_-]+`
+fn is_key_charset(s: &str) -> bool {
+    !s.is_empty()
+        && s.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+}
+
+/// `[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*`
+fn is_language_tag(s: &str) -> bool {
+    let mut parts = s.split('-');
+    let primary_ok = parts
+        .next()
+        .is_some_and(|p| (2..=3).contains(&p.len()) && p.bytes().all(|b| b.is_ascii_alphabetic()));
+    primary_ok
+        && parts.all(|p| (2..=8).contains(&p.len()) && p.bytes().all(|b| b.is_ascii_alphanumeric()))
+}
+
+/// `[A-Za-z0-9+/=]+`
+fn is_base64(s: &str) -> bool {
+    !s.is_empty()
+        && s.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'+' || b == b'/' || b == b'=')
+}
+
+// ---------------------------------------------------------------------------
 // ContactFormOptions
 // ---------------------------------------------------------------------------
 

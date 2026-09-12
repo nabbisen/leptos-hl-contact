@@ -77,6 +77,15 @@ No version assigned; the owner decides the release number.
   `challenge_unavailable`, with matching labels and `challenge_requires_js`.
   No HTTP client and no new dependency yet; the built-in vendor verifiers
   come separately.
+- **Challenge widget.**  `ContactForm` takes an optional `challenge` prop, a
+  `ChallengeWidget` for Turnstile, hCaptcha, reCAPTCHA v2 or v3, and renders
+  the vendor widget and script after the message field.  Every value that
+  reaches the page is validated when the widget is built.  reCAPTCHA v3 gets
+  an inline script that fetches a fresh token on every submit.  Without
+  JavaScript, `NoJsPolicy::Reject` shows `challenge_requires_js`.  A widget
+  reached by client-side navigation is rendered explicitly, and the vendor
+  script is never loaded twice.  Without the prop, nothing is loaded from any
+  vendor.
 
 ### Migration
 

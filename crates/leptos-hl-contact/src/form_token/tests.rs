@@ -102,7 +102,10 @@ fn a_tampered_signature_is_a_bad_signature() {
     let config = test_config();
     let token = issue_form_token(&config);
     let mut parts: Vec<&str> = token.0.splitn(3, '|').collect();
-    let flipped = format!("{}0", &parts[2][..parts[2].len() - 1]);
+    // Replace the last hex digit with a *different* one.  Always writing `0`
+    // left one signature in sixteen unchanged, and the test failed at random.
+    let (head, last) = parts[2].split_at(parts[2].len() - 1);
+    let flipped = format!("{head}{}", if last == "0" { "1" } else { "0" });
     parts[2] = &flipped;
     assert_eq!(
         verify_form_token(&parts.join("|"), None, &config),

@@ -3,7 +3,10 @@
 use leptos::prelude::*;
 
 use crate::{
-    config::{ContactFormClasses, ContactFormLabels, ContactFormOptions},
+    config::{
+        ChallengeProvider, ChallengeWidget, ContactFormClasses, ContactFormLabels,
+        ContactFormOptions, NoJsPolicy,
+    },
     error::{ContactErrorCode, ContactField, ContactFieldErrors},
     server::SubmitContact,
 };
@@ -49,6 +52,345 @@ fn FieldError(
 }
 
 // ---------------------------------------------------------------------------
+// Challenge widget markup
+// ---------------------------------------------------------------------------
+
+/// Escape text for an HTML attribute value or element content.
+///
+/// Used only where the component writes raw HTML — the `<noscript>` message —
+/// because Leptos escapes everything else itself.
+pub(crate) fn escape_html(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+/// reCAPTCHA v3's submit hook: cancel the first submit, fetch a token, write
+/// it, and submit again.  v3 tokens are single-use, so this runs every time.
+///
+/// `site_key` and `action` are validated to `[A-Za-z0-9_-]+` by
+/// [`ChallengeWidget::new`], which is what makes embedding them safe.
+pub(crate) fn recaptcha_v3_script(site_key: &str, action: &str) -> String {
+    debug_assert!([site_key, action].iter().all(|s| {
+        s.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+    }));
+    format!(
+        "(function(){{\
+var s=document.currentScript,f=s.closest('form'),\
+i=f.querySelector('input[name=\"g-recaptcha-response\"]');\
+f.addEventListener('submit',function(e){{\
+if(i.dataset.fresh==='1'){{i.dataset.fresh='';return;}}\
+e.preventDefault();\
+grecaptcha.ready(function(){{\
+grecaptcha.execute('{site_key}',{{action:'{action}'}}).then(function(t){{\
+i.value=t;i.dataset.fresh='1';f.requestSubmit();}});}});\
+}},true);}})();"
+    )
+}
+
+// ---------------------------------------------------------------------------
+// Challenge widget in the browser
+// ---------------------------------------------------------------------------
+
+/// What the browser has to do so the vendor renders the widget.
+///
+/// Every vendor scans the page for its widget class once, when its script
+/// loads.  An element that arrives later — client-side navigation — is never
+/// scanned, so it needs the vendor's explicit `render`.  And a second copy of
+/// the script loads the vendor twice, which Turnstile warns about.
+#[cfg(all(feature = "hydrate", not(feature = "ssr")))]
+mod challenge_client {
+    use leptos::prelude::document;
+    use leptos::wasm_bindgen::{JsCast, JsValue, closure::Closure};
+    use leptos::web_sys::{
+        self,
+        js_sys::{Function, Object, Reflect},
+    };
+
+    use crate::config::{ChallengeProvider, ChallengeWidget};
+
+    fn global_name(provider: &ChallengeProvider) -> &'static str {
+        match provider {
+            ChallengeProvider::Turnstile => "turnstile",
+            ChallengeProvider::HCaptcha => "hcaptcha",
+            ChallengeProvider::RecaptchaV2 | ChallengeProvider::RecaptchaV3 { .. } => "grecaptcha",
+        }
+    }
+
+    fn vendor_global(widget: &ChallengeWidget) -> Option<JsValue> {
+        let window = web_sys::window()?;
+        Reflect::get(&window, &global_name(&widget.provider).into())
+            .ok()
+            .filter(JsValue::is_object)
+    }
+
+    /// Whether this render is hydrating server markup.
+    pub(super) fn hydrating() -> bool {
+        leptos::reactive::owner::Owner::current_shared_context()
+            .is_some_and(|context| context.during_hydration())
+    }
+
+    /// Whether the vendor script has already run.
+    pub(super) fn vendor_loaded(widget: &ChallengeWidget) -> bool {
+        vendor_global(widget).is_some()
+    }
+
+    /// Whether a `<script>` with this exact `src` is in the document.
+    ///
+    /// `src` comes from [`ChallengeWidget::script_src`]: fixed URLs plus
+    /// validated `[A-Za-z0-9_-]` values, so it holds no `"` or `\` and is safe
+    /// inside a quoted attribute selector.
+    pub(super) fn script_present(src: &str) -> bool {
+        document()
+            .query_selector(&format!("script[src=\"{src}\"]"))
+            .ok()
+            .flatten()
+            .is_some()
+    }
+
+    /// Add the vendor script to `<head>`, where navigation does not remove it.
+    pub(super) fn append_script(src: &str, nonce: Option<&str>) {
+        let doc = document();
+        let Ok(script) = doc.create_element("script") else {
+            return;
+        };
+        let _ = script.set_attribute("src", src);
+        let _ = script.set_attribute("async", "");
+        let _ = script.set_attribute("defer", "");
+        if let Some(nonce) = nonce {
+            let _ = script.set_attribute("nonce", nonce);
+        }
+        if let Some(head) = doc.head() {
+            let _ = head.append_child(&script);
+        }
+    }
+
+    /// Ask an already-loaded vendor to render into `el`.
+    ///
+    /// Returns the widget id where the vendor can later remove the widget by
+    /// it (Turnstile, hCaptcha).
+    pub(super) fn render_explicitly(
+        widget: &ChallengeWidget,
+        el: &web_sys::HtmlElement,
+    ) -> Option<String> {
+        let global = vendor_global(widget)?;
+        let params = Object::new();
+        let set = |k: &str, v: &str| {
+            let _ = Reflect::set(&params, &k.into(), &v.into());
+        };
+        set("sitekey", &widget.site_key);
+        match &widget.provider {
+            ChallengeProvider::Turnstile => {
+                set("theme", widget.theme.turnstile_value());
+                if let Some(language) = &widget.language {
+                    set("language", language);
+                }
+            }
+            ChallengeProvider::HCaptcha | ChallengeProvider::RecaptchaV2 => {
+                if let Some(theme) = widget.theme.explicit_value() {
+                    set("theme", theme);
+                }
+            }
+            // No element to render: v3 only fetches tokens on submit.
+            ChallengeProvider::RecaptchaV3 { .. } => return None,
+        }
+        let render = Reflect::get(&global, &"render".into())
+            .ok()?
+            .dyn_into::<Function>()
+            .ok()?;
+        let el: JsValue = el.clone().into();
+
+        match &widget.provider {
+            // reCAPTCHA's `render` is usable only inside `ready`, which runs
+            // the callback at once when the script has already loaded.
+            ChallengeProvider::RecaptchaV2 => {
+                let ready = Reflect::get(&global, &"ready".into())
+                    .ok()
+                    .and_then(|f| f.dyn_into::<Function>().ok());
+                match ready {
+                    Some(ready) => {
+                        let target = global.clone();
+                        let callback = Closure::once_into_js(move || {
+                            let _ = render.call2(&target, &el, &params);
+                        });
+                        let _ = ready.call1(&global, &callback);
+                    }
+                    None => {
+                        let _ = render.call2(&global, &el, &params);
+                    }
+                }
+                None
+            }
+            // Turnstile does not run a `ready` callback registered after it
+            // has loaded, and warns that such a call "would break".  This path
+            // runs only once the vendor is loaded, so render directly.
+            _ => render
+                .call2(&global, &el, &params)
+                .ok()
+                .and_then(|id| id.as_string()),
+        }
+    }
+
+    /// Remove a widget the component rendered, so the vendor stops tracking
+    /// an element that navigation has taken out of the page.
+    pub(super) fn remove_widget(provider: &ChallengeProvider, id: &str) {
+        let Some(window) = web_sys::window() else {
+            return;
+        };
+        let Some(global) = Reflect::get(&window, &global_name(provider).into())
+            .ok()
+            .filter(JsValue::is_object)
+        else {
+            return;
+        };
+        if let Some(remove) = Reflect::get(&global, &"remove".into())
+            .ok()
+            .and_then(|f| f.dyn_into::<Function>().ok())
+        {
+            let _ = remove.call1(&global, &id.into());
+        }
+    }
+}
+
+/// The widget, its scripts, and the no-JavaScript explanation, in one field
+/// wrapper.
+fn challenge_markup(
+    widget: &ChallengeWidget,
+    field_class: String,
+    error_class: String,
+    requires_js: String,
+) -> AnyView {
+    let key = widget.site_key.clone();
+    let widget_ref = NodeRef::<leptos::html::Div>::new();
+    let element = match &widget.provider {
+        ChallengeProvider::Turnstile => view! {
+            <div
+                node_ref=widget_ref
+                class="cf-turnstile"
+                data-sitekey=key.clone()
+                data-theme=widget.theme.turnstile_value()
+                data-language=widget.language.clone()
+            ></div>
+        }
+        .into_any(),
+        ChallengeProvider::HCaptcha => view! {
+            <div
+                node_ref=widget_ref
+                class="h-captcha"
+                data-sitekey=key.clone()
+                data-theme=widget.theme.explicit_value()
+            ></div>
+        }
+        .into_any(),
+        ChallengeProvider::RecaptchaV2 => view! {
+            <div
+                node_ref=widget_ref
+                class="g-recaptcha"
+                data-sitekey=key.clone()
+                data-theme=widget.theme.explicit_value()
+            ></div>
+        }
+        .into_any(),
+        ChallengeProvider::RecaptchaV3 { .. } => view! {
+            <input type="hidden" name="g-recaptcha-response" />
+        }
+        .into_any(),
+    };
+
+    // The server always renders the vendor script, and hydration has to find
+    // it.  A client-side render leaves it to the effect below, which adds it
+    // to `<head>` once instead of once per visit to the form.
+    #[cfg(all(feature = "hydrate", not(feature = "ssr")))]
+    let script_in_view = widget.load_script && challenge_client::hydrating();
+    #[cfg(not(all(feature = "hydrate", not(feature = "ssr"))))]
+    let script_in_view = widget.load_script;
+
+    #[cfg(all(feature = "hydrate", not(feature = "ssr")))]
+    {
+        // Both facts are taken now, in the same task that mounts the element,
+        // so no script `onload` can run in between.
+        let hydrating = challenge_client::hydrating();
+        let loaded = challenge_client::vendor_loaded(widget);
+        let rendered_id = StoredValue::new(None::<String>);
+        let provider = widget.provider.clone();
+        let widget = widget.clone();
+        Effect::new(move |_| {
+            if hydrating {
+                // The server-rendered script scans this element when it loads,
+                // or already has.
+                return;
+            }
+            if loaded {
+                // The vendor scanned the page before this element existed.
+                if let Some(el) = widget_ref.get() {
+                    rendered_id.set_value(challenge_client::render_explicitly(&widget, &el));
+                }
+                return;
+            }
+            let src = widget.script_src();
+            if widget.load_script && !challenge_client::script_present(&src) {
+                challenge_client::append_script(&src, widget.script_nonce.as_deref());
+            }
+        });
+        on_cleanup(move || {
+            if let Some(id) = rendered_id.get_value() {
+                challenge_client::remove_widget(&provider, &id);
+            }
+        });
+    }
+    #[cfg(not(all(feature = "hydrate", not(feature = "ssr"))))]
+    let _ = widget_ref;
+
+    let vendor_script = script_in_view.then(|| {
+        view! {
+            <script src=widget.script_src() async defer nonce=widget.script_nonce.clone()></script>
+        }
+    });
+
+    // The only raw script: its two inserted values are validated.
+    let v3_script = match &widget.provider {
+        ChallengeProvider::RecaptchaV3 { action } => Some(view! {
+            <script
+                nonce=widget.script_nonce.clone()
+                inner_html=recaptcha_v3_script(&key, action)
+            ></script>
+        }),
+        _ => None,
+    };
+
+    // `inner_html`, not child views: with scripting on, the HTML parser keeps
+    // `<noscript>` content as one text node, so hydrating a `<p>` child would
+    // fail.  tachys leaves `inner_html` content alone when hydrating.
+    let no_js = (widget.no_js == NoJsPolicy::Reject).then(|| {
+        let html = format!(
+            "<p class=\"{}\" role=\"alert\">{}</p>",
+            escape_html(&error_class),
+            escape_html(&requires_js)
+        );
+        view! { <noscript inner_html=html></noscript> }
+    });
+
+    view! {
+        <div class=field_class>
+            {element}
+            {vendor_script}
+            {v3_script}
+            {no_js}
+        </div>
+    }
+    .into_any()
+}
+
+// ---------------------------------------------------------------------------
 // ContactForm
 // ---------------------------------------------------------------------------
 
@@ -64,6 +406,7 @@ fn FieldError(
 /// | `classes` | [`ContactFormClasses`]  | No       | all empty    |
 /// | `labels`  | [`ContactFormLabels`]   | No       | English text |
 /// | `options` | [`ContactFormOptions`]  | No       | show subject |
+/// | `challenge` | [`ChallengeWidget`]   | No       | none         |
 ///
 /// # State model
 ///
@@ -126,6 +469,10 @@ pub fn ContactForm(
     /// Behavioural options.
     #[prop(optional, into)]
     options: ContactFormOptions,
+    /// A CAPTCHA widget, rendered after the message field.  Without it the
+    /// form renders and loads nothing from any vendor.
+    #[prop(optional)]
+    challenge: Option<ChallengeWidget>,
 ) -> impl IntoView {
     let submit_action = ServerAction::<SubmitContact>::new();
     let pending = submit_action.pending();
@@ -146,6 +493,7 @@ pub fn ContactForm(
     let classes = StoredValue::new(classes);
     let labels = StoredValue::new(labels);
     let options = StoredValue::new(options);
+    let challenge = StoredValue::new(challenge);
 
     // ---- derived state -----------------------------------------------------
 
@@ -321,6 +669,16 @@ pub fn ContactForm(
                 let show_subject = options.with_value(|o| o.show_subject);
                 let require_subject = options.with_value(|o| o.require_subject);
                 let max_msg_len = options.with_value(|o| o.effective_max_message_len());
+                let challenge_view = challenge.with_value(|c| {
+                    c.as_ref().map(|w| {
+                        challenge_markup(
+                            w,
+                            fc.clone(),
+                            ec.clone(),
+                            labels.with_value(|l| l.errors.challenge_requires_js.clone()),
+                        )
+                    })
+                });
 
                 view! {
                     <ActionForm action=submit_action>
@@ -412,6 +770,9 @@ pub fn ContactForm(
                                 message=Signal::derive(move || field_errors.with(|f| f.message.as_ref().map(|e| labels.with_value(|l| l.errors.field_text(ContactField::Message, e)))))
                             />
                         </div>
+
+                        // Challenge widget — only when the prop is set.
+                        {challenge_view}
 
                         // Form token — hidden field.  Rendered by SSR, or
                         // fetched by the browser when it arrives empty.  Empty

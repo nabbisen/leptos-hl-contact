@@ -357,3 +357,129 @@ fn challenge_labels_have_the_rfc_defaults() {
 fn no_js_policy_defaults_to_reject() {
     assert_eq!(NoJsPolicy::default(), NoJsPolicy::Reject);
 }
+
+// ---------------------------------------------------------------------------
+// ChallengeWidget validation (RFC 005 handoff 02)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn widget_new_rejects_unsafe_or_empty_site_keys() {
+    for bad in ["abc$", "", "a b", "key\"", "<script>", "k'ey"] {
+        assert!(
+            ChallengeWidget::new(ChallengeProvider::Turnstile, bad).is_err(),
+            "{bad:?} must be rejected"
+        );
+    }
+}
+
+#[test]
+fn widget_new_accepts_vendor_test_keys() {
+    for key in [
+        "1x00000000000000000000AA",
+        "10000000-ffff-ffff-ffff-000000000001",
+        "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI",
+    ] {
+        let w = ChallengeWidget::new(ChallengeProvider::Turnstile, key).expect(key);
+        assert_eq!(w.site_key, key);
+        assert!(w.load_script);
+        assert_eq!(w.theme, ChallengeTheme::Auto);
+        assert_eq!(w.no_js, NoJsPolicy::Reject);
+    }
+}
+
+/// The action is embedded in the inline script too.
+#[test]
+fn widget_new_validates_the_recaptcha_v3_action() {
+    let ok = ChallengeProvider::RecaptchaV3 {
+        action: "contact_form".into(),
+    };
+    assert!(ChallengeWidget::new(ok, "SITE").is_ok());
+    for bad in ["", "contact'});alert(1);//", "a b"] {
+        let p = ChallengeProvider::RecaptchaV3 { action: bad.into() };
+        assert!(ChallengeWidget::new(p, "SITE").is_err(), "{bad:?}");
+    }
+}
+
+#[test]
+fn widget_language_must_look_like_bcp47() {
+    let w = || ChallengeWidget::new(ChallengeProvider::HCaptcha, "SITE").unwrap();
+    for good in ["en", "fra", "pt-BR", "zh-Hant-TW", "es-419"] {
+        assert!(w().with_language(good).is_ok(), "{good:?}");
+    }
+    for bad in [
+        "",
+        "e",
+        "english",
+        "en_US",
+        "en-",
+        "-en",
+        "en-B",
+        "en-toolongsub",
+        "en\"",
+        "en&x=1",
+    ] {
+        assert!(w().with_language(bad).is_err(), "{bad:?}");
+    }
+}
+
+#[test]
+fn widget_script_nonce_must_be_base64() {
+    let w = || ChallengeWidget::new(ChallengeProvider::Turnstile, "SITE").unwrap();
+    for good in ["abc123", "rAnd0m+/nonce==", "ZXhhbXBsZQ"] {
+        assert!(w().with_script_nonce(good).is_ok(), "{good:?}");
+    }
+    for bad in ["", "abc\"", "a b", "abc-def", "<x>"] {
+        assert!(w().with_script_nonce(bad).is_err(), "{bad:?}");
+    }
+}
+
+#[test]
+fn widget_builders_set_their_fields() {
+    let w = ChallengeWidget::new(ChallengeProvider::Turnstile, "SITE")
+        .unwrap()
+        .with_theme(ChallengeTheme::Dark)
+        .with_language("de")
+        .unwrap()
+        .without_script()
+        .with_script_nonce("bm9uY2U=")
+        .unwrap()
+        .with_no_js(NoJsPolicy::AcceptWithHoneypotOnly);
+    assert_eq!(w.theme, ChallengeTheme::Dark);
+    assert_eq!(w.language.as_deref(), Some("de"));
+    assert!(!w.load_script);
+    assert_eq!(w.script_nonce.as_deref(), Some("bm9uY2U="));
+    assert_eq!(w.no_js, NoJsPolicy::AcceptWithHoneypotOnly);
+}
+
+#[test]
+fn widget_script_urls_carry_the_language_where_the_vendor_reads_it() {
+    let src = |p: ChallengeProvider, lang: Option<&str>| {
+        let w = ChallengeWidget::new(p, "SITE").unwrap();
+        match lang {
+            Some(l) => w.with_language(l).unwrap(),
+            None => w,
+        }
+        .script_src()
+    };
+    assert_eq!(
+        src(ChallengeProvider::Turnstile, Some("fr")),
+        "https://challenges.cloudflare.com/turnstile/v0/api.js"
+    );
+    assert_eq!(
+        src(ChallengeProvider::HCaptcha, Some("fr")),
+        "https://js.hcaptcha.com/1/api.js?hl=fr"
+    );
+    assert_eq!(
+        src(ChallengeProvider::RecaptchaV2, None),
+        "https://www.google.com/recaptcha/api.js"
+    );
+    assert_eq!(
+        src(
+            ChallengeProvider::RecaptchaV3 {
+                action: "contact".into()
+            },
+            Some("fr")
+        ),
+        "https://www.google.com/recaptcha/api.js?render=SITE&hl=fr"
+    );
+}

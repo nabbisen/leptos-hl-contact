@@ -28,11 +28,14 @@ pub fn ContactForm(
     #[prop(optional, into)] classes: ContactFormClasses,
     #[prop(optional, into)] labels:  ContactFormLabels,
     #[prop(optional, into)] options: ContactFormOptions,
+    #[prop(optional)]       challenge: Option<ChallengeWidget>,
 ) -> impl IntoView
 ```
 
 Renders the form as an `<ActionForm/>` bound to `submit_contact`.  Reads
-`FormToken` from context when the `form-token` feature is on.  Element ids and
+`FormToken` from context when the `form-token` feature is on.  With
+`challenge`, renders the vendor widget after the message field; without it,
+nothing is loaded from any vendor.  Element ids and
 attributes are listed in the
 [DOM contract](../development/external-design.md#412-dom-contract).
 
@@ -94,6 +97,45 @@ pub struct ContactErrorLabels {
         challenge_required, challenge_failed, challenge_unavailable, challenge_requires_js: String,
 }
 pub enum NoJsPolicy { Reject /* default */, AcceptWithHoneypotOnly }
+
+pub enum ChallengeProvider { Turnstile, HCaptcha, RecaptchaV2, RecaptchaV3 { action: String } }
+pub enum ChallengeTheme { Auto /* default */, Light, Dark }
+pub struct InvalidChallengeConfig(pub &'static str);   // thiserror
+
+pub struct ChallengeWidget { /* private: every value is validated */ }
+impl ChallengeWidget {
+    pub fn new(provider: ChallengeProvider, site_key: impl Into<String>) -> Result<Self, InvalidChallengeConfig>;
+    pub fn with_theme(self, theme: ChallengeTheme) -> Self;
+    pub fn with_language(self, language: impl Into<String>) -> Result<Self, InvalidChallengeConfig>;
+    pub fn without_script(self) -> Self;
+    pub fn with_script_nonce(self, nonce: impl Into<String>) -> Result<Self, InvalidChallengeConfig>;
+    pub fn with_no_js(self, no_js: NoJsPolicy) -> Self;
+}
+```
+
+`ChallengeWidget` validation: `site_key` and the v3 `action` match
+`[A-Za-z0-9_-]+`; `language` matches `[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*`;
+`script_nonce` is base64 (`[A-Za-z0-9+/=]+`).  Defaults from `new`: theme
+`Auto`, vendor script loaded by the component, no language, no nonce,
+`NoJsPolicy::Reject`.
+
+| Provider | Element | Vendor script |
+|----------|---------|---------------|
+| `Turnstile` | `<div class="cf-turnstile" data-sitekey data-theme="auto\|light\|dark" data-language?>` | `https://challenges.cloudflare.com/turnstile/v0/api.js` |
+| `HCaptcha` | `<div class="h-captcha" data-sitekey data-theme?>` (omitted for `Auto`) | `https://js.hcaptcha.com/1/api.js` + `?hl=` |
+| `RecaptchaV2` | `<div class="g-recaptcha" data-sitekey data-theme?>` (omitted for `Auto`) | `https://www.google.com/recaptcha/api.js` + `?hl=` |
+| `RecaptchaV3` | `<input type="hidden" name="g-recaptcha-response">` and an inline submit script | `https://www.google.com/recaptcha/api.js?render=<site_key>` + `&hl=` |
+
+Scripts are `async defer`, with `nonce` when set.  `without_script` drops the
+vendor script; reCAPTCHA v3 keeps its inline submit script.  Under
+`NoJsPolicy::Reject` a `<noscript>` follows with
+`labels.errors.challenge_requires_js` in a `role="alert"` paragraph.
+
+In the browser, a widget reached by client-side navigation is rendered with
+the vendor's explicit `render` when the vendor script has already loaded, and
+the script is added to `<head>` at most once otherwise.
+
+```rust,ignore
 
 impl ContactErrorLabels {
     pub fn field_text(&self, field: ContactField, err: &FieldError) -> String;
