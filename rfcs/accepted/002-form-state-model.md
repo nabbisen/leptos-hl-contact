@@ -169,6 +169,32 @@ bundle, so nothing in the repository can demonstrate them or their fix.
 `cargo leptos build` in CI is optional and left to the handoff to decide
 based on build time.
 
+## Amendment 2026-09-12 — observations from the first hydrated build (handoff 01)
+
+The hydrated example (handoff 01) corrected two assumptions in
+§Motivation and added one defect:
+
+1. **Typed input survives** a failed submission.  tachys rebuilds the
+   re-run closure's output *in place*, keeping the existing input elements
+   and their DOM values.  P-10 as originally stated ("input discarded") is
+   withdrawn.  D1 stands: the same in-place rebuild rewrites *attributes*,
+   which is exactly how the hidden token is emptied (P-11, confirmed:
+   `tokenAfter: ""`).
+2. **A report that per-field errors do not render under hydration** was
+   investigated by the architect and **not reproduced** on a clean client
+   build: the decode path was verified natively, and both an instrumented
+   and a clean hydrated run rendered the field error with no banner.
+   Attributed to a stale WASM bundle (roadmap P-27, withdrawn).  Handoff 02
+   starts with a clean rebuild and keeps "field errors render under
+   hydration" as a regression guard.
+3. Browser tests of server-side validation must set `form.noValidate`
+   or use inputs the browser accepts, otherwise native validation blocks
+   the submit and the server is never reached.
+
+Goals and acceptance criteria are unchanged except that "inputs
+preserved" and "field errors render under hydration" are regression guards
+rather than fixes.
+
 ## Alternatives considered
 
 | Alternative | Why not |

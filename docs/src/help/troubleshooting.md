@@ -29,7 +29,7 @@ One of:
   field is empty.  Add `provide_context(generate_csrf_token(&csrf))` there.
 - The token is older than `token_ttl_secs` (default one hour).
 - The secret differs between instances behind a load balancer.
-- The known re-render issue below.
+- The known re-render issue below (P-11).
 
 ## The form submits but no email arrives
 
@@ -78,8 +78,7 @@ Confirmed by the maintainers; scheduled in `ROADMAP.md`.
 
 | Symptom | Cause | Item |
 |---------|-------|------|
-| After a validation error in the browser the typed input is cleared | The form subtree is rebuilt when the result changes | P-10 |
-| After that rebuild the next submit fails with "reload the page" (`csrf` feature) | The hidden token field is empty on the client | P-11 |
+| After a validation error in the browser, the next submit fails with "reload the page" (`csrf` feature) | The form is rebuilt in place and the hidden token attribute is rewritten empty on the client | P-11 |
 | Without JavaScript, a successful submit shows no confirmation | The redirect back to the page carries no success signal | P-13 |
 
 ## Still stuck?

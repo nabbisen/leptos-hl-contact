@@ -7,8 +7,19 @@
 
 ## Purpose
 
-Stop recreating the form when the action value changes; make only the
+Stop rebuilding the form when the action value changes; make only the
 error and success regions reactive; focus the first invalid field.
+
+## Step 0 — clean baseline (added by review of handoff 01)
+
+Before changing anything: in `examples/axum-with-security` run
+`rm -rf target/front target/site && cargo leptos build`, serve it, and
+confirm in the hydrated browser that an invalid submit renders the field
+error, sets `aria-invalid`, shows no banner, keeps the typed values, and
+**empties the hidden token**.  That is the true 0.3.4 baseline (verified by
+the architect three times).  A stale bundle once made it look as if field
+errors did not render; never trust a bundle you did not just build.
+Browser tests of server-side validation must set `form.noValidate` first.
 
 ## Change scope
 
@@ -124,16 +135,25 @@ described above.  Paste it.
   merged (it will already be gone if that handoff removed it).
 - `external-design.md` §4.1.3 table: field-error row status to "Met (JS);
   no-JS reload loses input by design".
-- `CHANGELOG.md` Unreleased: Fixed (input preserved, token preserved),
-  Added (`focus_first_error`).
+- `CHANGELOG.md` Unreleased: Fixed (token preserved across a failed
+  submission), Added (`focus_first_error`).  Do not claim "input
+  preserved" as a fix; it already was.
+- `development/testing.md`: add the two browser-testing notes — rebuild
+  the client bundle (`rm -rf target/front target/site`) before any
+  hydrated evidence, and set `form.noValidate` when testing server-side
+  validation.
+- `help/troubleshooting.md` known issues: remove the P-11 row when this
+  lands (the P-10 row was removed by the architect on 2026-09-12 because
+  it was false).
 
 ## Acceptance criteria
 
 - Tests above pass; gates green.
-- Browser evidence on the hydrated example (handoff 01), as a numbered
-  screenshot series or GIF:
-  1. fill all fields with a bad email → error under email, **other values
-     still present**, focus ring on the email input;
+- Browser evidence on the hydrated example (handoff 01); recorded CDP
+  events as in handoff 01's request are the preferred format:
+  1. fill all fields with a bad email → error under email, other values
+     still present (regression guard), focus on the email input, **hidden
+     token still non-empty** (the actual fix);
   2. fix the email, submit → success message, no "reload the page" error
      (`csrf` on);
   3. submit twice with errors → still no token error.
