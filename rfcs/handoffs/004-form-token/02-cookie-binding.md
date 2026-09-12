@@ -59,6 +59,15 @@ Core stays free of cookie parsing; no session concept; token format.
    `guides/axum-integration.md` "All context values together" updated;
    Production Checklist row for the token now says "binding on".
 
+## Correction required by review (2026-09-13)
+
+`provide_form_token_with_cookie` must reuse the nonce the browser already
+has: read the request cookie first, and when it is present and well formed
+(32 hex characters) issue the token bound to that nonce, re-sending
+`Set-Cookie` so `Max-Age` refreshes.  Only a request without a usable cookie
+mints a new one.  Rationale, required tests and required evidence are in
+`.git-exclude/reviewed/004-form-token/02-cookie-binding.md`.
+
 ## Required tests
 
 `axum_helpers/tests.rs`: `cookie_value` finds the value among several

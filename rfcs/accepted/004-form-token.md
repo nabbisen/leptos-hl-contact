@@ -173,6 +173,25 @@ D3 and D4 therefore change shape, not substance:
   not apply to it — it sets the cookie explicitly through the issuer.
 - Handoffs 02 and 03 are amended accordingly.
 
+## Amendment 2026-09-13 — the nonce is per browser, not per render
+
+D3 said the cookie value is the token's nonce, which made the nonce a
+per-render value: every page render overwrote the cookie, so only the most
+recently rendered page could submit and any other route's render — the
+success page included — killed an open form.  Found in review of handoff 02
+and reproduced with a shared cookie jar.
+
+In a double-submit cookie the shared value is **per browser**; freshness is
+the token's job and its timestamp already carries it.  Corrected: a request
+arriving with a well-formed cookie is issued a token bound to *that* nonce,
+and the `Set-Cookie` is re-sent so `Max-Age` refreshes.  Only a request
+without a usable cookie mints a new nonce.  Every tab and route then share
+one nonce and every open form can submit.
+
+The property is unchanged: the nonce binds the token to the browser, an
+attacker can neither read it (`HttpOnly`, cross-origin) nor have it sent
+(`SameSite=Lax`), and replay within the TTL was already accepted as T6.
+
 ## Alternatives considered
 
 | Alternative | Why not |
