@@ -43,7 +43,7 @@ more than 60 seconds in the future.
 1. Enable the feature on the server binary:
 
    ```toml
-   leptos-hl-contact = { version = "0.3", features = ["ssr", "smtp-lettre", "axum-helpers", "csrf"] }
+   leptos-hl-contact = { version = "0.4", features = ["ssr", "smtp-lettre", "axum-helpers", "csrf"] }
    ```
 
 2. Generate a secret and keep it server-side:
@@ -91,13 +91,6 @@ closed.)
 
 If `CsrfToken` is missing, the hidden field is empty and every submission
 fails verification with the "reload the page" message.
-
-## Known limitation
-
-After a validation error in WASM mode the form is re-rendered on the
-client, where no token context exists, so the hidden field becomes empty
-and the next submit fails verification.  Tracked as roadmap item P-11; see
-[Known issues](../help/troubleshooting.md#known-issues).
 
 ## API
 

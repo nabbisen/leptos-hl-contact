@@ -7,7 +7,7 @@
 [package]
 name        = "axum-basic"
 description = "Local-dev example: leptos-hl-contact with NoopDelivery (no CSRF, no rate limiting)."
-version     = "0.3.4"
+version     = "0.4.0"
 edition     = "2024"
 authors     = ["nabbisen"]
 license     = "Apache-2.0"

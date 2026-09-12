@@ -10,7 +10,7 @@ that explains it.
 | ☐ | Request body limited (32 KiB is plenty) | [Hardening](../security/hardening.md#request-body-limit) |
 | ☐ | Rate limiting on POST, keyed by real client IP | [Hardening](../security/hardening.md#rate-limiting) |
 | ☐ | Origin / Referer strictly validated on POST — **this is the CSRF control** | [Hardening](../security/hardening.md#origin--referer-validation) |
-| ☐ | `csrf` feature enabled with a 32-byte random `CSRF_SECRET`; context provided at both sites | [Anti-automation Token](../security/csrf.md) |
+| ☐ | `csrf` feature enabled with a 32-byte random `CSRF_SECRET`; config and token provided in the context closure | [Anti-automation Token](../security/csrf.md) |
 | ☐ | Reverse proxy sets and validates `X-Forwarded-For` | [Hardening](../security/hardening.md#rate-limiting) |
 | ☐ | SMTP credentials loaded from environment or a secret store, never source | [Hardening](../security/hardening.md#secrets) |
 | ☐ | `SmtpTlsMode::StartTls` or `Tls`, never `DangerousPlaintext` | [Delivery Backends](../guides/delivery-backends.md) |

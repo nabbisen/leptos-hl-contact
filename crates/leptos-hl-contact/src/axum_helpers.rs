@@ -26,8 +26,7 @@ use crate::{config::ContactSuccessRedirect, delivery::ContactDeliveryContext};
 ///
 /// ```rust,ignore
 /// use std::sync::Arc;
-/// use axum::routing::post;
-/// use leptos_axum::{handle_server_fns_with_context, LeptosRoutes};
+/// use leptos_axum::LeptosRoutes;
 /// use leptos_hl_contact::{
 ///     axum_helpers::provide_contact_delivery,
 ///     delivery::{ContactDeliveryContext, noop::NoopDelivery},

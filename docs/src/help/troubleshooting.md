@@ -80,14 +80,6 @@ Rust 1.85 or later is required.  `rustup update`.
 with a native TLS library available, or open an issue if you need a rustls
 option in `LettreSmtpDelivery`.
 
-## Known issues
-
-Confirmed by the maintainers; scheduled in `ROADMAP.md`.
-
-| Symptom | Cause | Item |
-|---------|-------|------|
-| Without JavaScript, a successful submit shows no confirmation | The redirect back to the page carries no success signal | P-13 |
-
 ## Still stuck?
 
 1. `RUST_LOG=leptos_hl_contact=trace,leptos=debug`

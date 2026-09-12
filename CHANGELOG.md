@@ -1,8 +1,6 @@
 # Changelog
 
-## [Unreleased]
-
-No version assigned; the owner decides the release number.
+## [0.4.0] — 2026-09-13
 
 ### Fixed
 
@@ -13,6 +11,11 @@ No version assigned; the owner decides the release number.
   security token. Please reload the page."  The `<form>` and its inputs are
   now created once: only the success region, the generic-error region, and
   each field's error paragraph and ARIA attributes react.
+
+- A required field left empty now renders the `required` label instead of the
+  length label.  `validator` reports a blank value and a too-short one
+  identically, as `length` with `min: 1`, so a visitor who simply left the
+  box empty was told it "must be between 1 and 4000 characters".
 
 ### Added
 
@@ -28,12 +31,13 @@ No version assigned; the owner decides the release number.
   Without the context nothing changes: JavaScript clients show the inline
   message and no-JavaScript clients reload the form page.
 
-### Fixed
-
-- A required field left empty now renders the `required` label instead of the
-  length label.  `validator` reports a blank value and a too-short one
-  identically, as `length` with `min: 1`, so a visitor who simply left the
-  box empty was told it "must be between 1 and 4000 characters".
+- `FieldErrorCode`, `FieldError`, `ContactErrorCode`, `ContactField` and
+  `ContactErrorLabels`, all re-exported at the crate root, plus
+  `ContactFieldErrors::get`, `ContactErrorCode::from_server_fn_error` and
+  the `CONTACT_ERROR_PREFIX` sentinel.
+- `ContactErrorLabels::field_text` and `code_text` render a code into text;
+  `length` may use the `{min}` and `{max}` placeholders, replaced by plain
+  substitution with no format syntax.
 
 ### Changed
 
@@ -66,16 +70,6 @@ No version assigned; the owner decides the release number.
   client still reads a `0.3` server's sentences and shows them unchanged.
   A `0.3` client reading a current server falls back to its generic banner,
   which is what it already showed for every validation error.
-
-### Added
-
-- `FieldErrorCode`, `FieldError`, `ContactErrorCode`, `ContactField` and
-  `ContactErrorLabels`, all re-exported at the crate root, plus
-  `ContactFieldErrors::get`, `ContactErrorCode::from_server_fn_error` and
-  the `CONTACT_ERROR_PREFIX` sentinel.
-- `ContactErrorLabels::field_text` and `code_text` render a code into text;
-  `length` may use the `{min}` and `{max}` placeholders, replaced by plain
-  substitution with no format syntax.
 
 ### Documentation
 

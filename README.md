@@ -43,10 +43,10 @@ ContactForm  →  submit_contact (server fn)  →  ContactDelivery (trait)
 
 ```toml
 # server binary
-leptos-hl-contact = { version = "0.3", features = ["ssr", "smtp-lettre", "axum-helpers"] }
+leptos-hl-contact = { version = "0.4", features = ["ssr", "smtp-lettre", "axum-helpers"] }
 
 # WASM binary
-leptos-hl-contact = { version = "0.3", features = ["hydrate"] }
+leptos-hl-contact = { version = "0.4", features = ["hydrate"] }
 ```
 
 **2. Delivery backend and Axum wiring**
@@ -71,7 +71,8 @@ let delivery: ContactDeliveryContext = Arc::new(LettreSmtpDelivery {
     },
 });
 let ctx = delivery_context_fn(delivery);
-// pass `ctx` to both handle_server_fns_with_context and leptos_routes_with_context
+// pass `ctx` to leptos_routes_with_context; it serves page renders and
+// server functions alike
 ```
 
 **3. Component**
