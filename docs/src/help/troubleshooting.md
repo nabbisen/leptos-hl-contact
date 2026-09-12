@@ -8,9 +8,9 @@ the `.route("/api/…", …)` line and provide your context in the closure you
 pass to `leptos_routes_with_context`.  See
 [Axum Integration](../guides/axum-integration.md).
 
-Releases before 0.3.4 told integrators to write that route, and the
-documentation of the time spelled it with the Axum 0.7 form `"/api/*fn_name"`,
-which is what panics.  A value provided only in that route's closure never
+Releases up to and including 0.3.4 told integrators to write that route;
+before 0.3.4 the documentation spelled it with the Axum 0.7 form
+`"/api/*fn_name"`, which is what panics.  A value provided only in that route's closure never
 reached the server function anyway.
 
 ## "This form is not available right now."

@@ -161,14 +161,15 @@ impl ContactInput {
     /// [`ContactFieldErrors`](crate::error::ContactFieldErrors) value with a
     /// generic human-readable message for each failed field.
     pub fn validate_fields(&self) -> crate::error::ContactFieldErrors {
-        use crate::error::FieldError;
+        use crate::error::{ContactField, FieldError};
         use validator::Validate as _;
 
         let mut out = crate::error::ContactFieldErrors::default();
 
         if let Err(ve) = self.validate() {
-            for (field, errors) in ve.field_errors() {
-                let Some(first) = errors.first() else {
+            for (name, errors) in ve.field_errors() {
+                let (Some(field), Some(first)) = (contact_field(name.as_ref()), errors.first())
+                else {
                     continue;
                 };
 
@@ -176,10 +177,12 @@ impl ContactInput {
                 // `min: 1`, indistinguishable from a value that is merely too
                 // short.  The two need different sentences, so the emptiness
                 // is taken from the input itself.
-                let blank = match field.as_ref() {
-                    "name" => self.name.is_empty(),
-                    "message" => self.message.is_empty(),
-                    _ => false,
+                let blank = match field {
+                    ContactField::Name => self.name.is_empty(),
+                    ContactField::Message => self.message.is_empty(),
+                    // `subject` is `None` when blank, so it never reaches a
+                    // length violation empty; `email` has no minimum.
+                    ContactField::Email | ContactField::Subject => false,
                 };
                 let code = if blank && first.code == "length" {
                     crate::error::FieldErrorCode::Required
@@ -188,12 +191,11 @@ impl ContactInput {
                 };
 
                 let err = Some(FieldError::Code(code));
-                match field.as_ref() {
-                    "name" => out.name = err,
-                    "email" => out.email = err,
-                    "subject" => out.subject = err,
-                    "message" => out.message = err,
-                    _ => {}
+                match field {
+                    ContactField::Name => out.name = err,
+                    ContactField::Email => out.email = err,
+                    ContactField::Subject => out.subject = err,
+                    ContactField::Message => out.message = err,
                 }
             }
         }
@@ -208,6 +210,23 @@ impl ContactInput {
             .filter(|s| !s.is_empty())
             .unwrap_or(fallback)
             .to_owned()
+    }
+}
+
+/// Resolve a `validator` field name to a [`ContactField`](crate::error::ContactField).
+///
+/// Naming the field once is what lets the two matches in
+/// [`validate_fields`](ContactInput::validate_fields) be exhaustive over the
+/// enum, so a field added to [`ContactInput`] is a compile error there rather
+/// than a silently missing error message.
+fn contact_field(name: &str) -> Option<crate::error::ContactField> {
+    use crate::error::ContactField;
+    match name {
+        "name" => Some(ContactField::Name),
+        "email" => Some(ContactField::Email),
+        "subject" => Some(ContactField::Subject),
+        "message" => Some(ContactField::Message),
+        _ => None,
     }
 }
 
