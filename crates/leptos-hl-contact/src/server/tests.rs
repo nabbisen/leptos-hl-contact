@@ -138,12 +138,12 @@ fn a_fast_browser_clock_costs_one_immediate_refresh() {
     );
 }
 
-/// Two hours slow postpones the first refresh instead.  It never loops; the
-/// mounted token may expire first, which the docs state.
+/// Two hours slow would put the first refresh two hours out, past the
+/// mounted token's expiry.  The delay is capped at the interval instead.
 #[test]
-fn a_slow_browser_clock_postpones_the_first_refresh() {
+fn a_slow_browser_clock_is_capped_at_the_interval() {
     assert_eq!(
         crate::server::mounted_refresh_delay(10_000, 10_000 - 7_200, 70),
-        7_270
+        70
     );
 }

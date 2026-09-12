@@ -264,12 +264,20 @@ pub(crate) fn token_issued_at(token: &str) -> Option<u64> {
 /// refreshed `refresh` seconds after it arrives, on the browser clock alone,
 /// so however wrong that clock is, this function costs at most one early
 /// request per mount.
+///
+/// The delay never exceeds `refresh`.  A longer one can only come from a
+/// browser clock running slow, because the token was issued no later than
+/// the form mounted; its real refresh point is at most `refresh` seconds
+/// away, so the cap is always correct.
 #[cfg_attr(
     not(all(feature = "hydrate", not(feature = "ssr"))),
     allow(dead_code, reason = "used by the client refresh and by tests")
 )]
 pub(crate) fn mounted_refresh_delay(issued: u64, now: u64, refresh: u64) -> u64 {
-    issued.saturating_add(refresh).saturating_sub(now)
+    issued
+        .saturating_add(refresh)
+        .saturating_sub(now)
+        .min(refresh)
 }
 
 // ---------------------------------------------------------------------------

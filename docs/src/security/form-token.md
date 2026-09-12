@@ -164,8 +164,7 @@ moment has already passed, as it has for a page restored from the
 back/forward cache.  Every token fetched after that is refreshed
 `token_refresh_secs` after it *arrived*, timed on the browser's clock alone.
 A browser clock that is wrong therefore costs at most one extra request per
-page, never a loop; a clock that is slow can postpone the first refresh past
-the mounted token's expiry.  Values of 60 or less fetch a missing token but
+page, never a loop.  Values of 60 or less fetch a missing token but
 never refresh.
 
 A fetch that fails — a `429` from your rate limiter, say — is not retried.
