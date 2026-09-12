@@ -20,7 +20,8 @@ Observed on 2026-09-12 at commit `8d29d5a` with rustc 1.98.1:
     around lines 126–132 (two occurrences, the policy block).
   - unused import `validator::Validate`, `src/model/tests.rs:4`.
   - unused variable `token`, `src/csrf/tests.rs:58`.
-- `cargo test --all-features` fails one doctest:
+- `cargo test --all-features` fails one doctest (reported at line 20 since
+  handoff 05 shortened the file header; it was line 24):
   `security::sanitize_header_value` expects `"Hello Injected: header"`
   but the function yields `"Hello  Injected: header"` (CR and LF each
   become a space).
@@ -78,7 +79,9 @@ No new test functions.  Existing 40 unit tests and all doctests pass.
 
 ## Required documentation updates
 
-None beyond the rustdoc example.
+The rustdoc example, and one line under `CHANGELOG.md` `[Unreleased]` →
+*Fixed* ("CI gates green: rustfmt, clippy, doctest").  Every handoff adds
+its own changelog lines when it lands.
 
 ## Acceptance criteria
 

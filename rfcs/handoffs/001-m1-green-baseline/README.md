@@ -40,7 +40,13 @@ request instead of guessing.
 - Commit per handoff; do not push until the handoff's own gates pass
   locally.  Commit messages describe the change; no attribution lines.
 
-**Gates** (all must pass before a review request):
+**Changelog.**  Each handoff adds its own lines under `CHANGELOG.md`
+`[Unreleased]` when it lands; the release-readiness pass checks the
+section is complete.
+
+**Gates** (all must pass before a review request; a documentation-only
+unit done out of order by owner direction is accountable for `cargo doc`
+and must show the other three unchanged from the baseline):
 
 ```bash
 cargo fmt --all --check

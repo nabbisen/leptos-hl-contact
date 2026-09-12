@@ -32,7 +32,7 @@ Make the release records and the crate-level rustdoc truthful.
 ## Change scope
 
 `CHANGELOG.md`; comments and rustdoc in `src/lib.rs`, `src/security.rs`,
-`src/delivery.rs`.  No code.
+`src/delivery.rs`, `src/csrf.rs`, `src/axum_helpers.rs`.  No code.
 
 ## Explicit non-change scope
 
@@ -41,8 +41,9 @@ No source code, no tests, no documentation pages in `docs/src`.
 ## Required implementation
 
 1. **CHANGELOG.**
-   - Replace each "— Unreleased" on a tagged version with the tag's date:
-     `git log -1 --format=%ad --date=short <tag>`.
+   - Every tagged version carries its tag date (`git tag --format='%(refname:short) %(creatordate:short)'`);
+     replace "— Unreleased" labels and correct any existing date that
+     disagrees with the tag.
    - Add entries for `0.2.1` and `0.2.3` from their tag diffs
      (`git diff 0.2.0..0.2.1 --stat`, etc.); one or two lines each is
      enough.
@@ -71,8 +72,10 @@ No source code, no tests, no documentation pages in `docs/src`.
    identifiers stay as they are.
 6. **`axum_helpers.rs` rustdoc.**  Both examples: `"/api/*fn_name"` →
    `"/api/{*fn_name}"`.  Then run
-   `grep -rn '\*fn_name' crates/ docs/ examples/ README.md` and fix any
-   other occurrence outside `CHANGELOG.md`; paste the (empty) result.
+   `grep -rn '"/api/\*fn_name"' crates/ docs/ examples/ README.md`; the only
+   permitted matches are the two example `main.rs` files, which handoff 02
+   owns.  Prose that names the old form in order to warn against it is
+   correct and stays.
 
 ## Required tests
 
@@ -84,13 +87,15 @@ None.  `cargo doc --all-features --no-deps` must produce no warnings.
   an entry with a date.
 - `cargo doc` clean; the rendered crate page lists six features.
 - `git grep -n "docs/src/security.md" -- '*.rs'` returns nothing.
-- `git grep -n 'single-use' -- '*.rs'` and `grep -rn '\*fn_name' crates/ docs/ examples/ README.md`
-  return nothing.
+- `git grep -n 'single-use' -- '*.rs'` returns nothing;
+  `grep -rn '"/api/\*fn_name"' crates/ docs/ examples/ README.md` returns
+  at most the two example files (empty once handoff 02 has landed).
 
 ## Prohibited shortcuts
 
 Inventing dates; deleting historical entries; rewriting past entries
-beyond the date label and the two missing versions.
+beyond the date label, the two missing versions, and corrections of
+entries proven wrong by the tag diffs (state the correction in one line).
 
 ## Module boundaries, compatibility, security
 

@@ -69,7 +69,9 @@ None in Rust.  The CI job is the test.
 
 `docs/src/development/testing.md` "Running the examples" if commands
 changed (for instance if a metadata table was added the env vars are no
-longer needed).  Nothing else; the book already uses `{*fn_name}`.
+longer needed).  `CHANGELOG.md` `[Unreleased]` → *Fixed* (examples start;
+route syntax) and *Added* (examples CI job).  Nothing else; the book
+already uses `{*fn_name}`.
 
 ## Acceptance criteria
 
@@ -81,6 +83,8 @@ longer needed).  Nothing else; the book already uses `{*fn_name}`.
   `CSRF_SECRET=$(openssl rand -hex 32) ALLOWED_ORIGIN=http://127.0.0.1:3000`,
   plus `curl -s http://127.0.0.1:3000/ | grep -c 'name="csrf_token" value="[0-9]'`
   prints `1` (a real token, not an empty value).
+- `grep -rn '"/api/\*fn_name"' crates/ docs/ examples/ README.md` returns
+  nothing.
 - The `examples` CI job exists and passes on the pushed commit.
 - Crate gates unchanged and green.
 

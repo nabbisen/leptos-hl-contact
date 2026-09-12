@@ -90,9 +90,10 @@ In `src/error/tests.rs`:
 
 ## Required documentation updates
 
-The `architecture.md` paragraph above.  `help/troubleshooting.md` "Known
-issues in 0.3.3" keeps its P-02 row until release; the architect removes
-it in the release pass.
+The `architecture.md` paragraph above.  `CHANGELOG.md` `[Unreleased]` →
+*Fixed* (per-field errors render) and *Added* (`from_server_fn_error`).
+`help/troubleshooting.md` "Known issues in 0.3.3" keeps its P-02 row until
+release; the architect removes it in the release pass.
 
 ## Acceptance criteria
 
