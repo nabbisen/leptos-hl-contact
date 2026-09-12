@@ -81,7 +81,7 @@ handoff is written.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
-| P-10 | Form state preservation: the entire form subtree is rebuilt whenever the action value changes, so on a validation error in WASM mode the visitor's typed input is discarded | **High** | RFC | inferred from `components.rs` closure dependencies |
+| P-10 | Form state preservation: the entire form subtree is rebuilt whenever the action value changes, so on a validation error in WASM mode the visitor's typed input is discarded | **High** | [RFC 002](./rfcs/proposed/002-form-state-model.md) | inferred from `components.rs` closure dependencies |
 | P-11 | Hidden `csrf_token` field becomes empty after that client-side rebuild because `CsrfToken` context exists only during SSR; the second submit then fails with "reload the page" | **High** | RFC (with P-10) | inferred; tachys confirmed to keep SSR attribute on first hydration only |
 | P-12 | Anti-forgery token redesign: the token is not bound to the visitor and is replayable within its TTL, so it does not prevent cross-site forgery on its own; decide between cookie binding, session binding, or repositioning it as an anti-automation "form token" with the Origin check as the documented CSRF control | **High** | RFC | verified by design reading |
 | P-13 | Progressive-enhancement contract: without JavaScript the framework redirects back to the Referer, errors are surfaced via `__err`, but a successful submit shows no confirmation | Medium | RFC (with P-10) | inferred from `server_fn` / `leptos_server` source |
@@ -89,12 +89,29 @@ handoff is written.
 | P-15 | Test strategy: integration tests for `submit_contact` (CSRF fail-closed, policy, honeypot, delivery error), component render tests, no-JS flow; current server tests only check string sentinels | Medium | RFC / handoff | verified |
 | P-16 | Focus management after a failed submission (move focus to first invalid field or error summary) | Low | RFC (with P-10) | design gap |
 
-### M3 — Reach (proposed release: 0.5.x)
+### M3 — Anti-abuse (proposed release: 0.5.0, minor) — **theme authorized 2026-09-12**
+
+Owner decisions of 2026-09-12: theme approved and positioned directly
+after M2; first-release providers are Cloudflare Turnstile, hCaptcha,
+reCAPTCHA v2 and v3 (not Enterprise); when a challenge is enabled,
+no-JavaScript submissions are rejected with a `<noscript>` message,
+fail-closed, with an explicit opt-in to accept them under honeypot-only
+protection; an HTTP client dependency is accepted behind a
+`challenge-http` feature.
+
+RFCs are written in this order; each needs acceptance before its handoff.
+
+| ID | Item | Priority | Kind | Evidence |
+|----|------|----------|------|----------|
+| P-12 | Anti-forgery token redesign **plus token minimum age**: decide binding (cookie / session) or reposition as anti-automation "form token" and rename; reject submissions younger than a configurable number of seconds since the page render (JS-free bot signal); resolve the client-side-navigation case where a form created in the browser has no SSR token (new finding 2026-09-12) | **High** | RFC 004 | verified by design reading |
+| P-21 | Challenge providers: `challenge` prop renders the widget and a hidden token field inside the form; `ChallengeVerifier` trait; built-in Turnstile, hCaptcha, reCAPTCHA v2/v3 behind `challenge-http`; fail-closed; no-JS policy per owner decision; vendor test keys in CI; verify-endpoint timeout and outage behaviour defined | **High** | RFC 005 | decided |
+| P-25 | Pre-delivery filter hook: `ContactFilter` trait returning accept / reject / silent-drop for a validated submission, for content heuristics or third-party spam services | Medium | RFC 006 | new 2026-09-12 |
+
+### M4 — Reach (proposed release: 0.6.x)
 
 | ID | Item | Priority | Kind |
 |----|------|----------|------|
 | P-20 | Multi-language label presets (GUI rule requires i18n; depends on P-14 for server messages) | Medium | RFC |
-| P-21 | Cloudflare Turnstile adapter (`turnstile` feature).  The previous guide could not work: `ContactForm` has no slot for the widget and cannot target a wrapper server function; the rewritten guide uses a cookie relay plus middleware.  An adapter needs a widget slot or a token prop plus a verification hook | TBD (owner) | RFC |
 | P-22 | HTTP-API delivery adapters: Resend, SendGrid, AWS SES (existing Future items) | TBD | RFC per adapter |
 | P-23 | Cloudflare Workers compatibility: `lettre` with tokio and native TLS cannot run on Workers; requires a fetch-based delivery adapter and a runtime-neutral core; owner decision on target platforms | TBD (owner decision) | RFC |
 | P-24 | Dependency and CI hygiene: `rand` 0.8 → 0.9, consider `subtle` for constant-time comparison, CI matrix on MSRV 1.85 plus stable instead of Debian `rustc-1.91` only | Low | task |
@@ -118,8 +135,9 @@ handoff is written.
 
 1. Approve or amend the M1 / M2 / M3 structure and the proposed priorities.
 2. Direction for P-12 (anti-forgery token): options and a recommendation are in
-   [External Design §5.4](./docs/src/development/external-design.md).
+   [External Design §5.4](./docs/src/development/external-design.md).  Owner
+   note 2026-09-12: to be settled in RFC 004 together with token minimum age.
 3. Target platforms (P-23): is Cloudflare Workers in scope for this crate?
-4. Whether a bundled Turnstile adapter (P-21) is in scope.
+4. ~~Whether a bundled Turnstile adapter (P-21) is in scope.~~ Decided 2026-09-12: in scope, see M3.
 5. Version numbers: the architect proposes 0.3.4 for M1 and 0.4.0 for M2; the
    owner decides release timing and numbering.

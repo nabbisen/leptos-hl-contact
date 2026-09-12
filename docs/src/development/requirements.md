@@ -1,7 +1,8 @@
 # Requirements Specification
 
-> **Document status.** Draft 1, proposed by the architect on 2026-09-12
-> against baseline `0.3.3` (commit `8d29d5a`).  Awaiting owner approval.
+> **Document status.** Draft 2, 2026-09-12, against baseline `0.3.3`
+> (commit `8d29d5a`).  Milestones M1 and the anti-abuse theme are owner-
+> authorized; the document as a whole awaits formal approval.
 > Once approved, this document is the requirements baseline; later changes
 > go through RFCs listed in [`rfcs/README.md`](https://github.com/nabbisen/leptos-hl-contact/blob/main/rfcs/README.md).
 >
@@ -85,8 +86,9 @@ crate's boundaries.  [Architecture](./architecture.md) describes internals.
 
 - Being a general form library.
 - Replacing application-level rate limiting, TLS, or a WAF.
-- Bundling a CAPTCHA by default (an optional adapter is under consideration,
-  see §9).
+- Bundling a CAPTCHA **by default**.  Opt-in challenge providers are in
+  scope since 2026-09-12 (FR-ABUSE-10 to FR-ABUSE-14); the default form
+  still loads no third-party script.
 
 ---
 
@@ -167,8 +169,13 @@ input the browser accepted.
 | FR-ABUSE-05 | Rate limiting is an application responsibility; the crate MUST document it and ship a working example | MUST | Met |
 | FR-ABUSE-06 | Origin / Referer validation is an application responsibility; the crate MUST document a strict scheme+host+port comparison and ship a working example | MUST | Met |
 | FR-ABUSE-07 | A request body size limit is an application responsibility; the crate MUST document it and include it in examples | MUST | Met |
-| FR-ABUSE-08 | The crate MUST document CAPTCHA integration (Cloudflare Turnstile) and MAY ship an adapter | MUST / MAY | Docs Met but example broken (P-03); adapter Planned (P-21) |
+| FR-ABUSE-08 | The crate MUST document CAPTCHA integration; superseded for adapters by FR-ABUSE-10 | MUST | Docs Met (rewritten 2026-09-12) |
 | FR-ABUSE-09 | Bot-detection outcomes MUST NOT be distinguishable from success by the sender | MUST | Met |
+| FR-ABUSE-10 | The crate MUST offer opt-in challenge verification through one abstraction (`ChallengeVerifier`) with built-in providers Cloudflare Turnstile, hCaptcha, reCAPTCHA v2 and v3; the component renders the widget and the token field, the server function verifies before delivery | MUST | Planned (RFC 005) |
+| FR-ABUSE-11 | When a challenge is enabled, a submission without JavaScript MUST be rejected with a `<noscript>` explanation, fail-closed; an explicit opt-in MAY accept such submissions under honeypot-only protection | MUST | Planned (RFC 005); owner decision 2026-09-12 |
+| FR-ABUSE-12 | Challenge verification MUST fail closed on a missing secret, a failed verification, or an unreachable verify endpoint, MUST be time-bounded, and MUST log the reason without the token | MUST | Planned (RFC 005) |
+| FR-ABUSE-13 | The crate SHOULD reject a submission that arrives sooner than a configurable minimum age after the page render, using the issue time already carried by the form token | SHOULD | Planned (RFC 004) |
+| FR-ABUSE-14 | The crate SHOULD offer a pre-delivery filter hook (`ContactFilter`) returning accept, reject, or silent drop for a validated submission | SHOULD | Planned (RFC 006) |
 
 ### 5.5 Delivery (FR-DEL)
 
@@ -255,7 +262,7 @@ input the browser accepted.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | NFR-PRIV-01 | PII MUST be minimised in logs and never persisted by the crate | Met |
-| NFR-PRIV-02 | Any third-party processing added by an optional feature (for example Turnstile sending visitor signals to Cloudflare) MUST be documented as such | Planned (P-21) |
+| NFR-PRIV-02 | Any third-party processing added by an optional feature (challenge providers send visitor signals to the vendor) MUST be documented per provider, and the default form MUST load no third-party script | Planned (RFC 005) |
 
 ### 6.3 Compatibility (NFR-COMPAT)
 
@@ -349,7 +356,9 @@ input the browser accepted.
 | FR-VAL-07, FR-SUB-07 | Partial | P-04 |
 | FR-VAL-08 | Partial | P-07 |
 | FR-ABUSE-02 | Decision | P-12 |
-| FR-ABUSE-08 (adapter) | Planned | P-21 |
+| FR-ABUSE-10..12 | Planned | P-21 / RFC 005 |
+| FR-ABUSE-13 | Planned | P-12 / RFC 004 |
+| FR-ABUSE-14 | Planned | P-25 / RFC 006 |
 | FR-DEL-08, NFR-PERF-03 | Gap | Future (queue adapter) |
 | FR-CFG-01 (docs) | Partial | P-03 |
 | FR-I18N-02 | Gap | P-14 |
@@ -370,8 +379,9 @@ input the browser accepted.
    [External Design §5.4](./external-design.md).
 2. **Target platforms (NFR-PORT-02).** Is Cloudflare Workers a supported
    target?  If yes, a fetch-based delivery adapter becomes a requirement.
-3. **Turnstile adapter (FR-ABUSE-08).** Does a bundled adapter enter scope?
-   This changes the "CAPTCHA not bundled" non-goal.
+3. ~~**Turnstile adapter.**~~ Decided 2026-09-12: challenge providers are in
+   scope (Turnstile, hCaptcha, reCAPTCHA v2/v3), opt-in, no-JS rejected
+   by default, HTTP client behind `challenge-http`.
 4. **Message ceiling (FR-VAL-08).** Does 4 000 characters stay a hard
    constant, or should the ceiling become configurable upward with a
    documented maximum?
@@ -384,3 +394,4 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-12 | Draft 2 | Anti-abuse theme: FR-ABUSE-10 to FR-ABUSE-14 added, non-goal narrowed, NFR-PRIV-02 widened, open question 3 resolved |

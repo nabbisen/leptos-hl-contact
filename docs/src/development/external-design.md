@@ -65,7 +65,7 @@
 | TLS | — | ✅ proxy |
 | Delivery transport | ✅ SMTP, no-op; trait for others | choose and configure |
 | Secrets | typed fields, redacted `Debug` | load from env or secret store |
-| CAPTCHA | guide (adapter under consideration, P-21) | ✅ today |
+| Challenge (Turnstile, hCaptcha, reCAPTCHA) | ✅ opt-in `challenge` feature (RFC 005) | provide keys; disclose the vendor |
 
 ---
 
@@ -192,7 +192,7 @@ survives re-renders (target for P-10/P-11).
 | Event | With WASM | Without WASM (plain POST) |
 |-------|-----------|---------------------------|
 | Submit | `fetch` POST, form-encoded; page stays | Browser POST; server answers `302` to the Referer |
-| Success | state → success | **current**: page reloads showing an empty form, no confirmation.  **target** (P-13): confirmation shown, for example via a success marker the SSR renderer reads |
+| Success | state → success | **current**: page reloads showing an empty form, no confirmation.  **target** (RFC 002): the server function redirects to an integrator-configured success page; without one, current behaviour, documented |
 | Field errors | payload parsed, shown per field (P-02) | framework appends `__err=<encoded>` to the Referer; SSR renders the action value from it and shows field errors [FR-PE-02]; input is lost by the reload |
 | Generic error | banner | same `__err` mechanism → banner |
 | Token | hidden field from SSR; **must survive re-render** (P-11) | fresh token on every render; always valid |
@@ -400,11 +400,15 @@ expensive checks run.
 3. Rate limit keyed by client IP (app layer).
 4. Origin / Referer strict match on POST (app middleware). **This is the
    CSRF control.**
-5. Anti-forgery / anti-automation token (crate, `csrf` feature): proves the
-   sender fetched a page from this server within the TTL.
+5. Form token (crate, `csrf` feature): proves the sender fetched a page
+   from this server within the TTL; **target** also enforces a minimum age
+   since render (RFC 004).
 6. Honeypot (crate).
 7. Field validation and server policy (crate).
-8. Optional CAPTCHA verification (app today; adapter under consideration).
+8. Optional challenge verification (crate, `challenge` feature, RFC 005):
+   the only layer that needs JavaScript; no-JS submissions rejected by
+   default when enabled.
+9. Optional pre-delivery filter hook (crate, RFC 006).
 
 ### 5.4 Anti-forgery token: current design and decision
 
@@ -521,10 +525,10 @@ The project rule is "less is more".  Applied here:
 |----|-------|---------|--------------------------|---------|
 | P-12 | Anti-forgery token | A cookie binding / B session / C reposition + rename / D remove | C, plus A as opt-in in `axum-helpers` | owner |
 | P-10/11/13/16 | Form state model | (i) keep single closure, stash inputs in signals; (ii) build form once, react only in error/success regions; (iii) controlled inputs | (ii): smallest change that satisfies FR-UI-07, FR-UI-12 and keeps no-JS identical | architect via RFC |
-| P-13 | No-JS success signal | (i) redirect with `?sent=1` read by SSR; (ii) render success from a server-set cookie; (iii) accept limitation and document | (i): stateless, no cookie, harmless if JS is on | architect via RFC |
+| P-13 | No-JS success signal | (i) redirect to an integrator-configured success page; (ii) marker query read at SSR; (iii) cookie; (iv) document limitation | (i): framework-neutral contract, no URL parsing in the component, integrator owns the page | architect via RFC 002 |
 | P-14 | Error codes | (i) codes in existing JSON members; (ii) new JSON shape with version key | (i) with dual-accept period | architect via RFC |
 | P-23 | Cloudflare Workers | in scope / out of scope | out of scope for 0.4; revisit with P-22 adapters | owner |
-| P-21 | Turnstile adapter | bundle / keep as guide | bundle behind `turnstile` feature once P-14 lands (needs a localisable "complete the check" message) | owner |
+| P-21 | Challenge providers | — | **Decided 2026-09-12:** in scope; Turnstile, hCaptcha, reCAPTCHA v2/v3; no-JS rejected by default with opt-in; `challenge-http` feature.  Remaining design in RFC 005: verify timeout and outage behaviour, widget theming and localisation, score threshold for v3 | architect via RFC 005 |
 | FR-VAL-08 | Message ceiling | constant 4 000 / configurable with documented max | keep constant; raise only on evidence | owner |
 
 ---
@@ -553,3 +557,4 @@ The project rule is "less is more".  Applied here:
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial external design from architect baseline review of `0.3.3` |
+| 2026-09-12 | Draft 2 | Anti-abuse theme decisions folded in (§1.2, §5.3, §10); no-JS success target revised to a configured success page |

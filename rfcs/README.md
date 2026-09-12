@@ -15,7 +15,7 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Priority |
 |----|-------|----------|
-| — | *(none yet)* | |
+| 002 | [Form state model](./proposed/002-form-state-model.md) | High (M2) |
 
 ## Accepted
 
@@ -42,10 +42,10 @@ Derived from the roadmap milestones; each becomes a numbered RFC in
 
 | Roadmap item | Topic |
 |--------------|-------|
-| P-10 / P-11 / P-13 / P-16 | Form state model: input preservation, token survival across re-render, no-JS success feedback, focus management |
-| P-12 | Anti-forgery token design |
-| P-14 | Error codes and localisable server-originated messages |
+| P-14 | Error codes and localisable server-originated messages (RFC 003) |
+| P-12 | Anti-forgery token design plus minimum age and client-side token acquisition (RFC 004) |
 | P-15 | Test strategy |
 | P-20 | Multi-language label presets |
-| P-21 | Turnstile adapter |
+| P-21 | Challenge providers: Turnstile, hCaptcha, reCAPTCHA v2/v3 (RFC 005) |
+| P-25 | Pre-delivery filter hook (RFC 006) |
 | P-22 / P-23 | HTTP-API delivery adapters and runtime portability |
