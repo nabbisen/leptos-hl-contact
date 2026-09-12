@@ -198,6 +198,22 @@ into handoff 02:
 - A vendor script is inserted only when not already present, so returning to
   the form does not load it twice.
 
+## Amendment 2026-09-13 (2) — as implemented in handoffs 01 and 02
+
+- **D2.**  `server_fn_macro` 0.8.10 parses one meta item per `#[server(…)]`
+  attribute, so each challenge argument carries `#[server(rename = "…")]`
+  and `#[server(default)]` as two attributes.
+- **D3.**  `ChallengePolicy::min_score` is `f32` with a `Default` of `0.5`,
+  not `Option<f32>`; a NaN score fails.
+- **D1.**  `ChallengeWidget` fields are crate-private and the type is not
+  `Deserialize`, so every value reaching markup or the v3 inline script has
+  passed `new` and the builders.  In the browser a widget created after the
+  vendor script loaded is rendered explicitly (all three vendors skip late
+  elements, measured); Turnstile and hCaptcha render directly, reCAPTCHA via
+  `ready`.  A browser-inserted vendor script goes into `<head>`, carries the
+  nonce, and is inserted only if absent; the server render keeps it in the
+  form so hydration matches.
+
 ## Alternatives considered
 
 | Alternative | Why not |

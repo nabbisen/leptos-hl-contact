@@ -62,6 +62,16 @@ CI (`--all-features` already covers the new feature).
    - `development/testing.md`: live test command.
    - `CHANGELOG.md` Unreleased.
 
+## Two small edits carried from the 005-01 and 005-02 reviews
+
+- `server.rs`, step 6 comment: replace "Leptos context is not reachable
+  after an await point here" with the reason that holds — every
+  configuration check is made before any network call.  The await claim was
+  never demonstrated.
+- `security/challenge.md`: one line saying Turnstile and hCaptcha are
+  rendered directly because their `ready` does not fire after the script has
+  loaded, and reCAPTCHA through `ready`.
+
 ## Acceptance criteria
 
 - Tests pass; gates green; `cargo test --features challenge-http -- --ignored`
