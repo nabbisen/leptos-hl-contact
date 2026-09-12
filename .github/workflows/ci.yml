@@ -21,6 +21,11 @@ jobs:
       - name: clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
+      # --all-features always turns `csrf` on, so warnings that only appear in
+      # other feature combinations are invisible to the step above.
+      - name: clippy (ssr without csrf)
+        run: cargo clippy --all-targets --no-default-features --features ssr,smtp-lettre,axum-helpers -- -D warnings
+
       - name: test
         run: cargo test --all-features
 
@@ -32,6 +37,8 @@ jobs:
   # delay the crate gates.
   examples:
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -D warnings
     strategy:
       fail-fast: false
       matrix:

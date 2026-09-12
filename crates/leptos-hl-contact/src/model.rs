@@ -10,6 +10,20 @@ use validator::Validate;
 use crate::error::ContactValidationError;
 
 // ---------------------------------------------------------------------------
+// Limits
+// ---------------------------------------------------------------------------
+
+/// Hard ceiling for `message`, in characters (Unicode scalar values).
+///
+/// UI options and server policy are clamped to it.
+pub const MESSAGE_MAX_LEN: usize = 4000;
+
+/// [`MESSAGE_MAX_LEN`] as the `u64` that `validator_derive` 0.20 requires in
+/// `length(max = …)`.  Derived, never written out, so the ceiling has exactly
+/// one definition.
+const MESSAGE_MAX_LEN_U64: u64 = MESSAGE_MAX_LEN as u64;
+
+// ---------------------------------------------------------------------------
 // Custom validators
 // ---------------------------------------------------------------------------
 
@@ -83,8 +97,12 @@ pub struct ContactInput {
 
     /// Body of the enquiry in plain text.
     ///
-    /// Constraints: 1–4 000 characters.
-    #[validate(length(min = 1, max = 4000, message = "Message must be 1–4 000 characters"))]
+    /// Constraints: 1 to [`MESSAGE_MAX_LEN`] characters.
+    #[validate(length(
+        min = 1,
+        max = MESSAGE_MAX_LEN_U64,
+        message = "Message must be 1–4 000 characters"
+    ))]
     pub message: String,
 
     /// Honeypot field — must be empty.

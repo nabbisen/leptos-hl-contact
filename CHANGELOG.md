@@ -22,6 +22,17 @@ No version assigned; the owner decides the release number.
   with `"error deserializing server function arguments: "`, so the test was
   always false and every validation failure fell through to the generic
   banner.  The component now matches the error variant instead.
+- `ContactServerPolicy` counts the message limit in characters, not bytes.
+  It compared `String::len` while the validator and the textarea count
+  characters, so a policy of 4 000 rejected a roughly 1 300-character Japanese
+  message that both the browser and the validator accepted.
+- The 4 000-character ceiling is enforced rather than only documented.  Both
+  `max_message_len` fields said "must not exceed 4 000" with nothing checking
+  it; values above the ceiling are now clamped to it, in the direction of the
+  stricter limit only.
+- The crate compiles warning-free with `ssr` enabled and `csrf` disabled; the
+  unread `csrf_token` parameter raised `unused_variable` in that combination,
+  which `--all-features` never builds.
 - `axum-with-security` serves with
   `into_make_service_with_connect_info::<SocketAddr>()`, so
   `tower_governor`'s `SmartIpKeyExtractor` can fall back to the peer address.
@@ -33,6 +44,16 @@ No version assigned; the owner decides the release number.
 - CI job `examples`, a matrix over both example directories running
   `cargo check`.  The examples are excluded from the workspace, so the crate
   gates never compiled them.
+- `MESSAGE_MAX_LEN`, the single definition of the 4 000-character message
+  ceiling, re-exported at the crate root.  It drives the validator attribute,
+  both `Default` implementations, and both clamps.
+- `ContactFormOptions::effective_max_message_len`,
+  `ContactServerPolicy::effective_max_message_len` — the limit actually in
+  force after clamping — and `ContactServerPolicy::check`, which applies the
+  whole policy to a normalised input and can report both errors at once.
+- CI step `clippy (ssr without csrf)`, gating the feature combination that
+  `--all-features` cannot reach, and `RUSTFLAGS: -D warnings` on the
+  `examples` job.
 - `ContactFieldErrors::from_server_fn_error`, the intended way for a client
   to detect a field-error payload: it matches the `Args` variant instead of
   inspecting the framework's displayed text.  `from_error_str` stays as the
@@ -59,10 +80,10 @@ No version assigned; the owner decides the release number.
 - Release records: every tagged version `0.2.0`–`0.3.3` now carries its tag
   date instead of an "Unreleased" label, and the previously undocumented
   `0.2.1` and `0.2.3` releases have entries.
-
-> Entries for RFC 001 handoffs 01–04 (CI gates, example route and CI job,
-> field-error rendering, length units and ceiling) are not present yet: that
-> work has not been implemented at the time of writing.
+- `guides/customization.md` no longer warns that the policy counts bytes, and
+  states that limits are characters everywhere and clamped to 4 000;
+  `reference/api.md` documents `MESSAGE_MAX_LEN`, both
+  `effective_max_message_len` methods, and `ContactServerPolicy::check`.
 
 ## [0.3.3] — 2026-05-09
 

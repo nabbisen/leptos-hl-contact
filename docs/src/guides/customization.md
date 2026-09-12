@@ -67,12 +67,16 @@ use leptos_hl_contact::ContactFormOptions;
 let options = ContactFormOptions {
     show_subject:    true,   // render the subject field
     require_subject: false,  // mark it required in the UI (no effect if hidden)
-    max_message_len: 4000,   // textarea maxlength; must not exceed 4000
+    max_message_len: 4000,   // textarea maxlength; clamped to 4 000
 };
 ```
 
 These control the browser only.  Anyone can POST to the server function
 directly, so options are **not** a security boundary.
+
+`max_message_len` is counted in characters, and a value above `MESSAGE_MAX_LEN`
+(4 000) is clamped to it.  `ContactFormOptions::effective_max_message_len()`
+returns the value the component actually renders as `maxlength`.
 
 ## ContactServerPolicy
 
@@ -85,19 +89,26 @@ use leptos_hl_contact::ContactServerPolicy;
 
 leptos::context::provide_context(ContactServerPolicy {
     require_subject: true,   // reject a missing or blank subject
-    max_message_len: 2000,   // reject longer messages; must not exceed 4000
+    max_message_len: 2000,   // reject longer messages; clamped to 4 000
 });
 ```
 
 | Field | Default | Effect |
 |-------|---------|--------|
 | `require_subject` | `false` | Reject submissions without a subject |
-| `max_message_len` | `4000` | Reject messages longer than this |
+| `max_message_len` | `4000` | Reject messages longer than this, in characters; clamped to 4 000 |
 
 Rule of thumb: options for experience, policy for enforcement.  Setting
 `require_subject` in options alone lets a direct POST skip the subject; set
 it in both to get an immediate UI hint **and** a server-side guarantee.
 
-> In 0.3.3 the policy compares message length in bytes while the validator
-> counts characters.  Non-ASCII messages can therefore hit the policy limit
-> earlier than the textarea limit suggests.  Tracked in the roadmap (P-04).
+Lengths are counted in characters (Unicode scalar values) everywhere — the
+textarea's `maxlength`, the validator, and the policy — so a 2 000-character
+Japanese message is accepted by a limit of 2 000 regardless of how many bytes
+it occupies.
+
+The policy can only tighten the validator's limit.  `MESSAGE_MAX_LEN` (4 000)
+is the hard ceiling: a larger `max_message_len` is clamped to it rather than
+raising it.  `ContactServerPolicy::effective_max_message_len()` returns the
+limit in force, and `ContactServerPolicy::check()` applies the whole policy to
+a normalised input.

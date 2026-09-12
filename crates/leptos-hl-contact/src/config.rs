@@ -5,6 +5,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::{error::ContactFieldErrors, model::ContactInput, model::MESSAGE_MAX_LEN};
+
 // ---------------------------------------------------------------------------
 // ContactFormClasses
 // ---------------------------------------------------------------------------
@@ -134,8 +136,9 @@ pub struct ContactFormOptions {
 
     /// Maximum number of characters allowed in the message body.
     ///
-    /// Must not exceed the server-side hard limit of 4 000.  Defaults to
-    /// `4000`.
+    /// Values above [`MESSAGE_MAX_LEN`] are clamped to it; read the effective
+    /// value with [`effective_max_message_len`](Self::effective_max_message_len).
+    /// Defaults to [`MESSAGE_MAX_LEN`].
     pub max_message_len: usize,
 }
 
@@ -144,8 +147,19 @@ impl Default for ContactFormOptions {
         Self {
             show_subject: true,
             require_subject: false,
-            max_message_len: 4000,
+            max_message_len: MESSAGE_MAX_LEN,
         }
+    }
+}
+
+impl ContactFormOptions {
+    /// The `maxlength` the component renders: [`max_message_len`](Self::max_message_len)
+    /// clamped to [`MESSAGE_MAX_LEN`].
+    ///
+    /// This is a UI hint only.  The server enforces its own limits regardless
+    /// of what the client was told.
+    pub fn effective_max_message_len(&self) -> usize {
+        self.max_message_len.min(MESSAGE_MAX_LEN)
     }
 }
 
@@ -183,9 +197,12 @@ pub struct ContactServerPolicy {
     /// Defaults to `false`.
     pub require_subject: bool,
 
-    /// Maximum allowed length of the `message` field in characters.
-    /// Must not exceed the hard validation limit of 4 000.
-    /// Defaults to `4000`.
+    /// Maximum allowed length of the `message` field, in characters (Unicode
+    /// scalar values).
+    ///
+    /// Values above [`MESSAGE_MAX_LEN`] are clamped to it: the policy can only
+    /// tighten the validator's limit, never raise it.  Defaults to
+    /// [`MESSAGE_MAX_LEN`].
     pub max_message_len: usize,
 }
 
@@ -193,8 +210,36 @@ impl Default for ContactServerPolicy {
     fn default() -> Self {
         Self {
             require_subject: false,
-            max_message_len: 4000,
+            max_message_len: MESSAGE_MAX_LEN,
         }
+    }
+}
+
+impl ContactServerPolicy {
+    /// Effective message limit: [`max_message_len`](Self::max_message_len)
+    /// clamped to [`MESSAGE_MAX_LEN`].
+    pub fn effective_max_message_len(&self) -> usize {
+        self.max_message_len.min(MESSAGE_MAX_LEN)
+    }
+
+    /// Apply the policy to a normalised input.
+    ///
+    /// An empty result means the input passes.  Both errors may be set at
+    /// once.  Lengths are counted in characters, matching the validator and
+    /// the component's `maxlength`.
+    pub fn check(&self, input: &ContactInput) -> ContactFieldErrors {
+        let mut errs = ContactFieldErrors::default();
+
+        if self.require_subject && input.subject.is_none() {
+            errs.subject = Some("Subject is required.".into());
+        }
+
+        let limit = self.effective_max_message_len();
+        if input.message.chars().count() > limit {
+            errs.message = Some(format!("Message must be at most {limit} characters."));
+        }
+
+        errs
     }
 }
 

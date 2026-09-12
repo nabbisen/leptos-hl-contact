@@ -189,7 +189,7 @@ pub fn ContactForm(
 
                 let show_subject    = options.with_value(|o| o.show_subject);
                 let require_subject = options.with_value(|o| o.require_subject);
-                let max_msg_len     = options.with_value(|o| o.max_message_len);
+                let max_msg_len     = options.with_value(|o| o.effective_max_message_len());
 
                 let fe = field_errors();
 

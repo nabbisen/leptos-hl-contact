@@ -35,8 +35,38 @@ fn invalid_email_fails() {
 #[test]
 fn too_long_message_fails() {
     let mut input = valid_input();
-    input.message = "x".repeat(4001);
+    input.message = "x".repeat(MESSAGE_MAX_LEN + 1);
     assert!(input.validate_input().is_err());
+}
+
+/// The constant drives the `#[validate]` attribute, so the boundary must sit
+/// exactly at `MESSAGE_MAX_LEN` rather than at a literal that could drift.
+#[test]
+fn message_ceiling_constant_is_enforced_by_validator() {
+    let mut input = valid_input();
+
+    input.message = "x".repeat(MESSAGE_MAX_LEN);
+    assert!(
+        input.validate_input().is_ok(),
+        "the ceiling itself must pass"
+    );
+
+    input.message = "x".repeat(MESSAGE_MAX_LEN + 1);
+    assert!(input.validate_input().is_err(), "one over must fail");
+}
+
+/// `validator`'s `length` counts characters, so a message of multibyte
+/// characters at the ceiling passes even though it is several times that many
+/// bytes.
+#[test]
+fn message_length_counts_characters() {
+    let mut input = valid_input();
+    input.message = "あ".repeat(MESSAGE_MAX_LEN);
+    assert!(
+        input.message.len() > MESSAGE_MAX_LEN,
+        "precondition: multibyte"
+    );
+    assert!(input.validate_input().is_ok());
 }
 
 #[test]

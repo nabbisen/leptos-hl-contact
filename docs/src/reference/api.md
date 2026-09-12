@@ -9,7 +9,8 @@ examples.
 `ContactForm`, `ContactFormClasses`, `ContactFormLabels`,
 `ContactFormOptions`, `ContactServerPolicy`, `ContactDelivery`,
 `ContactDeliveryContext`, `ContactDeliveryError`, `ContactFieldErrors`,
-`ContactValidationError`, `ContactInput`, `submit_contact`, and with the
+`ContactValidationError`, `ContactInput`, `MESSAGE_MAX_LEN`,
+`submit_contact`, and with the
 `csrf` feature `CsrfConfig`, `CsrfConfigContext`, `CsrfToken`,
 `generate_csrf_token`, `verify_csrf_token`.
 
@@ -67,12 +68,37 @@ pub struct ContactFormClasses { pub root, field, label, input, textarea, button,
 pub struct ContactFormLabels  { pub name, email, subject, message, submit, sending, success, error, honeypot_label: String }
 pub struct ContactFormOptions { pub show_subject: bool, pub require_subject: bool, pub max_message_len: usize }
 pub struct ContactServerPolicy { pub require_subject: bool, pub max_message_len: usize }
+
+impl ContactFormOptions {
+    pub fn effective_max_message_len(&self) -> usize;   // clamped to MESSAGE_MAX_LEN
+}
+
+impl ContactServerPolicy {
+    pub fn effective_max_message_len(&self) -> usize;   // clamped to MESSAGE_MAX_LEN
+    pub fn check(&self, input: &ContactInput) -> ContactFieldErrors;   // empty == passes
+}
 ```
 
-Defaults: classes empty; labels English; options `true / false / 4000`;
-policy `false / 4000`.  Meaning of each field: [Customization](../guides/customization.md).
+Defaults: classes empty; labels English; options
+`true / false / MESSAGE_MAX_LEN`; policy `false / MESSAGE_MAX_LEN`.  Meaning
+of each field: [Customization](../guides/customization.md).
+
+Both `max_message_len` fields are counted in characters and clamped to
+`MESSAGE_MAX_LEN`: a policy can tighten the validator's limit, never raise it.
+`ContactServerPolicy::check` applies `require_subject` and the effective
+message limit to a normalised input and may report both errors at once.
 
 ## `model`
+
+### `MESSAGE_MAX_LEN`
+
+```rust,ignore
+pub const MESSAGE_MAX_LEN: usize = 4000;
+```
+
+Hard ceiling for `message`, in characters (Unicode scalar values).  It drives
+the validator attribute, both `Default` implementations, and both clamps, so
+the limit has exactly one definition.
 
 ### `ContactInput`
 
@@ -96,7 +122,7 @@ impl ContactInput {
 | `name` | 1–80 characters, no `\r` `\n` |
 | `email` | valid address |
 | `subject` | absent, or 1–120 characters, no `\r` `\n` |
-| `message` | 1–4 000 characters |
+| `message` | 1 to `MESSAGE_MAX_LEN` characters |
 | `website` | empty |
 
 ## `error`

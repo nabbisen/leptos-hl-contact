@@ -17,7 +17,7 @@ use crate::{delivery::ContactDeliveryContext, error::ContactValidationError, mod
 /// | `name`       | Yes | Enquirer display name |
 /// | `email`      | Yes | Used as `Reply-To`; never as `From` |
 /// | `subject`    | No  | Optional subject line |
-/// | `message`    | Yes | Plain-text body, up to 4 000 chars |
+/// | `message`    | Yes | Plain-text body, up to [`MESSAGE_MAX_LEN`](crate::model::MESSAGE_MAX_LEN) characters |
 /// | `website`    | —   | Honeypot; must be empty |
 /// | `csrf_token` | —   | `Option<String>`; verified when `CsrfConfigContext` is in context |
 ///
@@ -82,6 +82,10 @@ pub async fn submit_contact(
                 ));
             }
         }
+        // Without `csrf` the parameter is still part of the wire contract but
+        // nothing reads it; bind it so the combination compiles warning-free.
+        #[cfg(not(feature = "csrf"))]
+        let _ = &csrf_token;
 
         // 2. Normalise raw input.
         let input = ContactInput::from_raw(name, email, subject, message, website);
@@ -115,21 +119,8 @@ pub async fn submit_contact(
         {
             use crate::config::ContactServerPolicy;
             if let Some(policy) = use_context::<ContactServerPolicy>() {
-                if policy.require_subject && input.subject.is_none() {
-                    let errs = crate::error::ContactFieldErrors {
-                        subject: Some("Subject is required.".into()),
-                        ..Default::default()
-                    };
-                    return Err(ServerFnError::Args(errs.into_server_fn_message()));
-                }
-                if input.message.len() > policy.max_message_len {
-                    let errs = crate::error::ContactFieldErrors {
-                        message: Some(format!(
-                            "Message must be at most {} characters.",
-                            policy.max_message_len
-                        )),
-                        ..Default::default()
-                    };
+                let errs = policy.check(&input);
+                if !errs.is_empty() {
                     return Err(ServerFnError::Args(errs.into_server_fn_message()));
                 }
             }
