@@ -30,8 +30,8 @@ token).
    `pub struct FormTokenIssuer(pub Arc<dyn Fn(&FormToken) + Send + Sync>);`.
 2. **`axum_helpers.rs`.**  `pub fn provide_form_token_issuer(cookie: &FormTokenCookie)`:
    provides a `FormTokenIssuer` that appends the same `Set-Cookie` as
-   handoff 02 (reuse the pure builder).  Call it in the server-function
-   handler closure of the example next to `provide_form_token_binding`.
+   handoff 02 (reuse the pure builder).  Call it in the example's single
+   context closure next to `provide_form_token_binding` (RFC 007).
 3. **Component.**
    - `let token = RwSignal::new(initial_from_context_or_empty)`; hidden
      input `value=move || token.get()` and `node_ref=token_ref`.

@@ -30,12 +30,15 @@ Core stays free of cookie parsing; no session concept; token format.
    - `pub struct FormTokenCookie { pub name: String, pub secure: bool, pub path: String }`
      with `Default` = `("hl_contact_ft", true, "/")`.
    - `pub fn provide_form_token_with_cookie(config: &FormTokenContext, cookie: &FormTokenCookie)`:
-     `issue_form_token`, `provide_context(FormToken)`, and append a
-     `Set-Cookie` header to `leptos_axum::ResponseOptions` with value =
-     the token's nonce (the middle segment) and attributes
+     read `http::request::Parts` from context; **only when the method is
+     `GET`** (a page render): `issue_form_token`, `provide_context(FormToken)`,
+     and append a `Set-Cookie` header to `leptos_axum::ResponseOptions`
+     with value = the token's nonce (the middle segment) and attributes
      `HttpOnly; SameSite=Lax; Path=<path>; Max-Age=<ttl_secs>` plus
      `Secure` when `cookie.secure`.  Use `append_header`, not `insert`,
-     so other cookies survive.
+     so other cookies survive.  On any other method do nothing: one
+     closure serves both page renders and server-function calls (RFC 007),
+     and a POST response must not overwrite the cookie the form carries.
    - `pub fn provide_form_token_binding(cookie: &FormTokenCookie)`: read
      `http::request::Parts` from context, parse the `Cookie` header for
      `cookie.name`, `provide_context(FormTokenBinding(value))`.  Absent
@@ -43,8 +46,8 @@ Core stays free of cookie parsing; no session concept; token format.
    - A private `fn cookie_value(header: &str, name: &str) -> Option<String>`
      for parsing (split on `;`, trim, exact name match, first wins).
 3. **Example.**  `FormTokenConfig::new(secret).with_binding(Binding::Cookie)`;
-   SSR closure calls `provide_form_token_with_cookie`; server-fn closure
-   calls `provide_form_token_binding`; `secure` from env
+   the single context closure calls both `provide_form_token_with_cookie`
+   and `provide_form_token_binding`; `secure` from env
    `FORM_TOKEN_COOKIE_SECURE` defaulting to `true` (set `false` for local
    HTTP).
 4. **Docs.**  `security/form-token.md` binding section becomes current;
@@ -55,7 +58,8 @@ Core stays free of cookie parsing; no session concept; token format.
 
 `axum_helpers/tests.rs`: `cookie_value` finds the value among several
 cookies, ignores prefix matches (`hl_contact_ft2`), handles missing;
-`Set-Cookie` string builder produces exactly
+`provide_form_token_with_cookie` is a no-op for a POST (test with a
+constructed `Parts`); `Set-Cookie` string builder produces exactly
 `hl_contact_ft=<nonce>; HttpOnly; SameSite=Lax; Path=/; Max-Age=3600; Secure`
 (factor the string building into a pure function to test it).
 `form_token/tests.rs`: with `Binding::Cookie`, `None` → `BindingMissing`,

@@ -116,7 +116,7 @@ crate's boundaries.  [Architecture](./architecture.md) describes internals.
 | FR-UI-03 | Every structural element MUST expose a CSS class hook; the crate MUST NOT ship mandatory CSS | MUST | Met |
 | FR-UI-04 | The form MUST expose these states: idle, pending, success, field-error, generic-error | MUST | Met (RFC 002 handoff 02) |
 | FR-UI-05 | While pending, the submit button MUST be disabled, announce busy state, and change its text | MUST | Met |
-| FR-UI-06 | On success the form MUST be replaced by a success message announced politely to assistive technology | MUST | Met with JS; Gap without JS † (P-13) |
+| FR-UI-06 | On success the form MUST be replaced by a success message announced politely to assistive technology | MUST | Met (inline with JS; navigation to a configured success page in both modes) |
 | FR-UI-07 | On a validation failure the visitor's typed input MUST be preserved | MUST | Met (verified in the browser; regression guard) |
 | FR-UI-08 | Each failed field MUST show its error message adjacent to the field | MUST | Met (M1, handoff 001-03) |
 | FR-UI-09 | Delivery and configuration failures MUST show one generic message and MUST NOT reveal internal detail | MUST | Met |
@@ -195,7 +195,7 @@ input the browser accepted.
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
 | FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr`), `axum-helpers` (implies `ssr`), `csrf` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met (M1) |
-| FR-CFG-02 | Required context values MUST be documented per context site, and helpers MUST exist for Axum | MUST | Met |
+| FR-CFG-02 | Required context values MUST be documented for the context closure, and helpers MUST exist for Axum | MUST | Partial: docs still describe two sites; corrected by RFC 007 |
 | FR-CFG-03 | Misconfiguration MUST surface loudly (startup panic in examples, `error` log in the crate) and MUST NOT fall back to an insecure default | MUST | Met |
 | FR-CFG-04 | Types holding secrets MUST redact them in `Debug` output | MUST | Met |
 | FR-CFG-05 | Defaults MUST be the secure choice (STARTTLS; one-hour token TTL; policy off means "validator limits apply", never "no limits") | MUST | Met |
@@ -230,7 +230,7 @@ input the browser accepted.
 |----|-------------|-------|--------|
 | FR-PE-01 | The form MUST submit and be processed as a plain HTML POST when no JavaScript or WASM runs | MUST | Met |
 | FR-PE-02 | Validation errors MUST be shown after a no-JS submission | MUST | Met † (framework redirects to the Referer with the error encoded in the URL, which the server-rendered action reads) |
-| FR-PE-03 | Success MUST be shown after a no-JS submission | MUST | Gap † (P-13) |
+| FR-PE-03 | Success MUST be shown after a no-JS submission | MUST | Met when a success page is configured (RFC 002 handoff 03); unconfigured deployments reload, documented |
 | FR-PE-04 | Validation and delivery behaviour MUST be identical in both modes | MUST | Met |
 
 ### 5.10 Observability and privacy (FR-OBS)
@@ -350,7 +350,7 @@ input the browser accepted.
 |-------------|--------|--------------|
 | NFR-TEST-02, NFR-TEST-03 | Gap | P-15 |
 | FR-UI-12 (client-side navigation) | Planned | RFC 004 |
-| FR-UI-06, FR-PE-03 | Gap † | P-13 |
+| FR-CFG-02 | Partial | RFC 007 |
 | FR-ABUSE-02 | Planned | P-12 / RFC 004 |
 | FR-ABUSE-10..12 | Planned | P-21 / RFC 005 |
 | FR-ABUSE-13 | Planned | P-12 / RFC 004 |
@@ -384,6 +384,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-12 | Draft 5 | RFC 002 handoff 03: FR-UI-06, FR-PE-03 Met; FR-CFG-02 downgraded to Partial pending RFC 007 (one context closure) |
 | 2026-09-12 | Draft 4 | RFC 002 handoff 02: FR-UI-04, FR-UI-07, FR-UI-12 (SSR+hydrate), FR-UI-13 set to Met |
 | 2026-09-12 | Draft 3 | M1 (RFC 001) implemented and approved: statuses for FR-UI-08, FR-SUB-06/07, FR-VAL-07/08, FR-CFG-01, FR-A11Y-03, NFR-DOC-01..03, NFR-TEST-01, NFR-REL-02 set to Met |
 | 2026-09-12 | Draft 2 | Anti-abuse theme: FR-ABUSE-10 to FR-ABUSE-14 added, non-goal narrowed, NFR-PRIV-02 widened, open question 3 resolved |

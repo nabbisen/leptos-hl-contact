@@ -26,6 +26,7 @@ Planned topics that do not yet have a file are listed in
 | 004 | [Form token: rename, minimum age, cookie binding, client acquisition](./accepted/004-form-token.md) | [handoffs/004-form-token/](./handoffs/004-form-token/README.md) |
 | 005 | [Challenge providers: Turnstile, hCaptcha, reCAPTCHA](./accepted/005-challenge-providers.md) | [handoffs/005-challenge-providers/](./handoffs/005-challenge-providers/README.md) |
 | 006 | [Pre-delivery filter hook](./accepted/006-contact-filter.md) | [handoffs/006-contact-filter/](./handoffs/006-contact-filter/README.md) |
+| 007 | [One context closure for Axum](./accepted/007-one-context-closure.md) | [handoffs/007-one-context-closure/](./handoffs/007-one-context-closure/README.md) |
 
 ## Implemented
 

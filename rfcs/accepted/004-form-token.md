@@ -155,6 +155,24 @@ from 0.3 names.  Production Checklist, FAQ, API, Feature Flags updated.
 Examples switched to the new names, `axum-with-security` uses cookie
 binding.
 
+## Amendment 2026-09-12 — one context closure (RFC 007)
+
+RFC 002 handoff 03 showed that `leptos_routes_with_context` serves the
+server functions with the same closure that serves page renders (RFC 007).
+D3 and D4 therefore change shape, not substance:
+
+- There is one closure.  `provide_form_token_with_cookie` issues a token
+  and sets the cookie **only when `Parts.method == GET`** (a page render);
+  on other requests it does nothing, so a POST response never overwrites
+  the cookie the form still carries.  `provide_form_token_binding` reads
+  the request cookie on every request.  Both are called unconditionally
+  from the one closure; both read `Parts` from context, which
+  `leptos_axum` provides first.
+- `FormTokenIssuer` (D4) is provided from the same closure; the issuing
+  server function `issue_form_token_fn` is a POST, so the GET gate does
+  not apply to it — it sets the cookie explicitly through the issuer.
+- Handoffs 02 and 03 are amended accordingly.
+
 ## Alternatives considered
 
 | Alternative | Why not |
