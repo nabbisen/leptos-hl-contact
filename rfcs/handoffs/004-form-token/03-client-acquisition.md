@@ -80,6 +80,12 @@ notes the two new `ContactFormOptions` fields and the off-by-default switch.
 Details, required evidence (including a clock-skew loop guard) in
 `.git-exclude/reviewed/004-form-token/03-client-acquisition.md`.
 
+## Correction C4 required by review (2026-09-13)
+
+Cap `mounted_refresh_delay` at `refresh`; rename the slow-clock test and
+expect the interval; remove the documented slow-clock residual.  Details in
+`.git-exclude/reviewed/004-form-token/03-client-acquisition-c1-c3.md`.
+
 ## Required tests
 
 `components/tests.rs` (SSR): the hidden input still carries the SSR token

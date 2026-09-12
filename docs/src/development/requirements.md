@@ -122,7 +122,7 @@ crate's boundaries.  [Architecture](./architecture.md) describes internals.
 | FR-UI-09 | Delivery and configuration failures MUST show one generic message and MUST NOT reveal internal detail | MUST | Met |
 | FR-UI-10 | The honeypot field MUST be invisible to sighted visitors, hidden from assistive technology, excluded from tab order, and excluded from autofill | MUST | Met |
 | FR-UI-11 | Integrator options MUST include: show subject, require subject (UI), maximum message length (UI) | MUST | Met |
-| FR-UI-12 | When an anti-forgery token is configured the form MUST carry it in a hidden field, and the field MUST remain valid for the lifetime of the rendered form, including after client-side re-renders | MUST | Met for SSR-then-hydrate (RFC 002 handoff 02); client-side navigation case Planned (RFC 004) |
+| FR-UI-12 | When an anti-forgery token is configured the form MUST carry it in a hidden field, and the field MUST remain valid for the lifetime of the rendered form, including after client-side re-renders | MUST | Met: SSR-then-hydrate (0.4.0); client-side navigation and refresh with `token_refresh_secs` (0.5.0) |
 | FR-UI-13 | After a failed submission, focus SHOULD move to the first invalid field or to an error summary | SHOULD | Met (`focus_first_error`) |
 
 ### 5.2 Submission processing (FR-SUB)
@@ -351,7 +351,6 @@ input the browser accepted.
 | Requirement | Status | Roadmap item |
 |-------------|--------|--------------|
 | NFR-TEST-02, NFR-TEST-03 | Gap | P-15 |
-| FR-UI-12 (client-side navigation) | Planned | RFC 004 |
 | FR-ABUSE-10..12 | Planned | P-21 / RFC 005 |
 | FR-ABUSE-14 | Planned | P-25 / RFC 006 |
 | FR-DEL-08, NFR-PERF-03 | Gap | Future (queue adapter) |
@@ -382,6 +381,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 9 | RFC 004 handoff 03: FR-UI-12 Met for client-side navigation |
 | 2026-09-13 | Draft 8 | RFC 004 handoff 02: FR-ABUSE-02 Met |
 | 2026-09-13 | Draft 7 | RFC 004 handoff 01: form-token naming, FR-VAL-06 and FR-ABUSE-13 Met |
 | 2026-09-13 | Draft 6 | RFC 007 and RFC 003 handoff 01: FR-CFG-02 and FR-I18N-02 Met; the "two context sites" constraint corrected |
