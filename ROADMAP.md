@@ -54,7 +54,7 @@ confirmed during implementation.
 Documents produced from this review: [Requirements](./docs/src/development/requirements.md)
 and [External Design](./docs/src/development/external-design.md).
 
-### M1 — Green baseline (proposed release: 0.3.4, patch) — **authorized 2026-09-12**
+### M1 — Green baseline (proposed release: 0.3.4, patch) — **authorized 2026-09-12; all items implemented and approved 2026-09-12; release decision pending**
 
 Tracked by [RFC 001](./rfcs/accepted/001-m1-green-baseline.md); handoffs in
 [`rfcs/handoffs/001-m1-green-baseline/`](./rfcs/handoffs/001-m1-green-baseline/README.md).
@@ -67,10 +67,10 @@ per-field errors visible.
 | P-01 | Make CI gates green — **done** in handoff 001-01, approved 2026-09-12 (`e37e836`, `e8512f2`, `b98980d`, `ee769aa`).  Also found and fixed: the CI workflow had never run a matched clippy (Debian `cargo-1.91` without `clippy-1.91`); CI now installs 1.91 via `dtolnay/rust-toolchain`; run 34688023060 is the first green run in the project's history | **High** | fix | verified |
 | P-02 | Per-field validation errors never rendered on the client (component matched the framework's `Display` text) — **done** in handoff 001-03, approved 2026-09-12 (`eaceab5`): the component matches the `Args` variant via `ContactFieldErrors::from_server_fn_error`; no-JS transcript and both error-routing checks reproduced by the architect | **High** | fix + test | verified |
 | P-03 | Documentation drift sweep — **done**: book and README on 2026-09-12 (docs restructure); crate rustdoc and header comments in handoff 001-05, approved 2026-09-12 (`0c93749`, `34c2bd2`) | **High** | docs | verified |
-| P-04 | `ContactServerPolicy.max_message_len` compares bytes (`String::len`) while the validator counts characters (`chars().count()`); align to characters | Medium | fix + test | verified (validator 0.20 source) |
+| P-04 | `ContactServerPolicy.max_message_len` compared bytes while the validator counts characters — **done** in handoff 001-04, approved 2026-09-12 (`17f2aff`): `ContactServerPolicy::check` counts characters | Medium | fix + test | verified |
 | P-05 | Release-record hygiene — **done** for the CHANGELOG (every tagged version dated, 0.2.1 and 0.2.3 added, 0.2.2 corrected) in handoff 001-05, approved 2026-09-12; example crate versions move to 0.3.3 in handoff 001-02 | Medium | docs | verified |
 | P-06 | RFC directory scaffolding per RFC-000 5-folder variant: `rfcs/README.md` index and state folders | Medium | governance | done 2026-09-12 with this roadmap update |
-| P-07 | `ContactFormOptions.max_message_len` and `ContactServerPolicy.max_message_len` are documented as "must not exceed 4000" but nothing enforces or clamps it | Low | fix | verified |
+| P-07 | 4 000-character ceiling documented but not enforced — **done** in handoff 001-04: `MESSAGE_MAX_LEN` single definition, options and policy clamped; also fixed the `ssr`-without-`csrf` warning and added a feature-combination clippy step plus `-D warnings` on the examples job | Low | fix | verified |
 | P-08 | `docs/book.toml` `git-repository-icon` rejected by mdbook 0.5 in every tried form — **done 2026-09-12**: key removed, default icon used; book builds | Low | docs | verified |
 | P-09 | Examples panicked at startup on the Axum 0.7 wildcard syntax — **done** in handoff 001-02, approved 2026-09-12 (`16a32a9`, `e15ede3`); examples now compiled by a CI matrix job; `axum-with-security` additionally served with connection info so the rate limiter's peer-address fallback works (it had answered 500 to every header-less request) | **High** | fix + CI | verified |
 

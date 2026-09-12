@@ -179,7 +179,7 @@ Supporting several instances would require an id-prefix prop; not planned.
 | idle | form | — | Met |
 | pending | form, button disabled, text = `labels.sending` | `aria-busy` | Met |
 | success | success message only | polite | Met with JS; no-JS Gap (P-13) |
-| field-error | form, message under each failed field | polite alert per field | **Gap**: never rendered (P-02); input wiped on re-render (P-10) |
+| field-error | form, message under each failed field | polite alert per field | Met (M1, handoff 001-03); input still wiped on re-render (P-10, RFC 002) |
 | generic-error | form + banner with `labels.error` | assertive | Met |
 
 Design rule: the form element and its inputs MUST be created once and kept
@@ -193,7 +193,7 @@ survives re-renders (target for P-10/P-11).
 |-------|-----------|---------------------------|
 | Submit | `fetch` POST, form-encoded; page stays | Browser POST; server answers `302` to the Referer |
 | Success | state → success | **current**: page reloads showing an empty form, no confirmation.  **target** (RFC 002): the server function redirects to an integrator-configured success page; without one, current behaviour, documented |
-| Field errors | payload parsed, shown per field (P-02) | framework appends `__err=<encoded>` to the Referer; SSR renders the action value from it and shows field errors [FR-PE-02]; input is lost by the reload |
+| Field errors | payload parsed by variant, shown per field | framework appends `__err=<encoded>` to the Referer; SSR renders the action value from it and shows field errors [FR-PE-02]; input is lost by the reload |
 | Generic error | banner | same `__err` mechanism → banner |
 | Token | hidden field from SSR; **must survive re-render** (P-11) | fresh token on every render; always valid |
 
@@ -234,12 +234,11 @@ Unknown fields are ignored by the deserialiser.  Field order is irrelevant.
 #### 4.2.3 Field-error payload protocol
 
 Current wire form: the `Args` message string is the sentinel `field_errors:`
-followed by compact JSON with four optional string members.  The client
-locates the sentinel inside the framework's `Display` output, which
-prefixes it with `error deserializing server function arguments: ` (this
-prefix is why the current `starts_with` check fails, P-02).  The client
-MUST therefore search for the sentinel as a substring, or match the error
-variant directly.
+followed by compact JSON with four optional string members.  Since M1 the
+client matches the `Args` variant (`ContactFieldErrors::from_server_fn_error`)
+rather than the framework's `Display` output, which prefixes the payload
+with `error deserializing server function arguments: `; the string parser
+remains as a tolerant fallback.
 
 Target form (P-14, to be decided in its RFC): the same sentinel, but each
 member carries a **code** rather than English text, for example
@@ -258,7 +257,7 @@ Covered by §2.2.  Additional guarantees:
   error.
 - Context values are read once per request; no global state.
 - `ContactServerPolicy` can only tighten limits.  Values above the hard
-  ceiling are clamped to it (target, P-07).
+  ceiling `MESSAGE_MAX_LEN` are clamped to it (M1).
 
 ### 4.4 Delivery interface
 
@@ -457,7 +456,7 @@ function.
 | Component strings | `ContactFormLabels`, all overridable | unchanged; add presets (P-20), for example `ContactFormLabels::ja()` |
 | Server-originated messages | English composed on the server | codes on the wire (§4.2.3); component maps code → `labels` entry (P-14).  New label fields: per-field `length`/`format`/`required` texts, `token_invalid`, `not_configured` |
 | Text direction | not set by the component | unchanged; integrator sets `dir` on the host page or wrapper class |
-| Length limits | characters (validator), bytes (policy) | characters everywhere (P-04) |
+| Length limits | characters everywhere (M1) | unchanged |
 | Email header encoding | RFC 2047 via lettre | unchanged |
 | Language attribute | not set | unchanged; belongs to the page |
 
@@ -558,4 +557,5 @@ The project rule is "less is more".  Applied here:
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial external design from architect baseline review of `0.3.3` |
+| 2026-09-12 | Draft 3 | M1 outcomes marked current (§4.1.3, §4.1.4, §4.2.3, §4.3, §6) |
 | 2026-09-12 | Draft 2 | Anti-abuse theme decisions folded in (§1.2, §5.3, §10); no-JS success target revised to a configured success page |

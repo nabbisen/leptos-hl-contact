@@ -114,11 +114,11 @@ crate's boundaries.  [Architecture](./architecture.md) describes internals.
 | FR-UI-01 | The form MUST present `name`, `email`, `message` as required fields and `subject` as an optional field that the integrator can hide or make required | MUST | Met |
 | FR-UI-02 | Every visitor-visible string rendered by the component MUST be overridable by the integrator | MUST | Met (see FR-I18N-02 for server-originated strings) |
 | FR-UI-03 | Every structural element MUST expose a CSS class hook; the crate MUST NOT ship mandatory CSS | MUST | Met |
-| FR-UI-04 | The form MUST expose these states: idle, pending, success, field-error, generic-error | MUST | Partial (P-02, P-10) |
+| FR-UI-04 | The form MUST expose these states: idle, pending, success, field-error, generic-error | MUST | Partial (P-10: inputs cleared on error) |
 | FR-UI-05 | While pending, the submit button MUST be disabled, announce busy state, and change its text | MUST | Met |
 | FR-UI-06 | On success the form MUST be replaced by a success message announced politely to assistive technology | MUST | Met with JS; Gap without JS † (P-13) |
 | FR-UI-07 | On a validation failure the visitor's typed input MUST be preserved | MUST | Gap † (P-10) |
-| FR-UI-08 | Each failed field MUST show its error message adjacent to the field | MUST | Gap (P-02: never rendered on the client) |
+| FR-UI-08 | Each failed field MUST show its error message adjacent to the field | MUST | Met (M1, handoff 001-03) |
 | FR-UI-09 | Delivery and configuration failures MUST show one generic message and MUST NOT reveal internal detail | MUST | Met |
 | FR-UI-10 | The honeypot field MUST be invisible to sighted visitors, hidden from assistive technology, excluded from tab order, and excluded from autofill | MUST | Met |
 | FR-UI-11 | Integrator options MUST include: show subject, require subject (UI), maximum message length (UI) | MUST | Met |
@@ -134,8 +134,8 @@ crate's boundaries.  [Architecture](./architecture.md) describes internals.
 | FR-SUB-03 | Normalisation MUST trim surrounding whitespace from every text field and treat a blank subject as absent | MUST | Met |
 | FR-SUB-04 | A non-empty honeypot MUST produce a response indistinguishable from success, MUST NOT deliver, and MUST log at `warn` without content | MUST | Met |
 | FR-SUB-05 | Field validation MUST run on every submission regardless of what the client enforced | MUST | Met |
-| FR-SUB-06 | Validation failures MUST be reported per field with generic messages that never echo input | MUST | Met server-side; client rendering Gap (P-02) |
-| FR-SUB-07 | A server-side policy (`require_subject`, `max_message_len`) MUST be enforceable independently of UI options | MUST | Met; unit mismatch Partial (P-04) |
+| FR-SUB-06 | Validation failures MUST be reported per field with generic messages that never echo input | MUST | Met (M1) |
+| FR-SUB-07 | A server-side policy (`require_subject`, `max_message_len`) MUST be enforceable independently of UI options | MUST | Met (M1) |
 | FR-SUB-08 | If the delivery backend is not configured the server MUST log at `error` and return the generic configuration message | MUST | Met |
 | FR-SUB-09 | Delivery errors MUST be logged with their category and transport detail and MUST reach the client only as the generic delivery message | MUST | Met |
 | FR-SUB-10 | The crate MUST NOT read environment variables or files itself; all configuration is supplied by the integrator through typed values and Leptos context | MUST | Met |
@@ -150,8 +150,8 @@ crate's boundaries.  [Architecture](./architecture.md) describes internals.
 | FR-VAL-04 | `message` | 1–4 000 characters after trimming | MUST | Met |
 | FR-VAL-05 | `website` (honeypot) | MUST be empty | MUST | Met |
 | FR-VAL-06 | `csrf_token` | When the `csrf` feature is enabled: MUST be present and verify | MUST | Met |
-| FR-VAL-07 | *all* | Length limits MUST be counted in characters consistently by the UI `maxlength`, the validator, and the server policy | MUST | Partial (P-04: policy counts bytes) |
-| FR-VAL-08 | `message` | 4 000 characters is the hard ceiling; UI options and server policy MUST NOT be able to raise it and SHOULD be clamped or rejected if they try | MUST | Partial (P-07: documented, not enforced) |
+| FR-VAL-07 | *all* | Length limits MUST be counted in characters consistently by the UI `maxlength`, the validator, and the server policy | MUST | Met (M1) |
+| FR-VAL-08 | `message` | 4 000 characters is the hard ceiling; UI options and server policy MUST NOT be able to raise it and SHOULD be clamped or rejected if they try | MUST | Met (M1: `MESSAGE_MAX_LEN`, clamped) |
 
 Known tolerance: browsers count `maxlength` in UTF-16 code units, which is
 never fewer than the character count, so the browser limit is equal to or
@@ -194,7 +194,7 @@ input the browser accepted.
 
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
-| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr`), `axum-helpers` (implies `ssr`), `csrf` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met in code; docs Partial (P-03) |
+| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr`), `axum-helpers` (implies `ssr`), `csrf` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met (M1) |
 | FR-CFG-02 | Required context values MUST be documented per context site, and helpers MUST exist for Axum | MUST | Met |
 | FR-CFG-03 | Misconfiguration MUST surface loudly (startup panic in examples, `error` log in the crate) and MUST NOT fall back to an insecure default | MUST | Met |
 | FR-CFG-04 | Types holding secrets MUST redact them in `Debug` output | MUST | Met |
@@ -216,7 +216,7 @@ input the browser accepted.
 |----|-------------|-------|--------|
 | FR-A11Y-01 | Every input MUST have a programmatically associated `<label>`; placeholders MUST NOT substitute for labels | MUST | Met |
 | FR-A11Y-02 | Required inputs MUST carry both `required` and `aria-required="true"` | MUST | Met |
-| FR-A11Y-03 | An invalid input MUST carry `aria-invalid="true"` and reference its error text via `aria-describedby` | MUST | Met in markup; not observable until P-02 |
+| FR-A11Y-03 | An invalid input MUST carry `aria-invalid="true"` and reference its error text via `aria-describedby` | MUST | Met (M1) |
 | FR-A11Y-04 | Success uses a polite live region; generic errors use an assertive alert; field errors use polite alerts | MUST | Met |
 | FR-A11Y-05 | The submit button MUST expose `aria-busy` while pending | MUST | Met |
 | FR-A11Y-06 | The honeypot MUST be `aria-hidden` and outside the tab order | MUST | Met |
@@ -294,22 +294,22 @@ input the browser accepted.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | NFR-DEP-01 | Heavy dependencies (lettre, tokio, axum, crypto) MUST be optional behind features | Met |
-| NFR-DEP-02 | Dependencies SHOULD be kept current and free of known advisories (`deps.rs` badge, periodic `cargo outdated`) | Partial (P-24) |
+| NFR-DEP-02 | Dependencies SHOULD be kept current and free of known advisories (`deps.rs` badge, periodic `cargo outdated`) | Partial (P-24; `rand` bump folded into RFC 004) |
 
 ### 6.7 Documentation (NFR-DOC)
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| NFR-DOC-01 | Documentation MUST describe released behaviour; a release MUST include a docs-vs-code verification pass (project release rule) | Gap (P-03) |
-| NFR-DOC-02 | Every rustdoc example MUST compile and pass, or be marked `ignore` / `no_run` with reason | Gap (P-01 doctest) |
-| NFR-DOC-03 | mdBook examples fenced as `rust` MUST compile against the current API or be fenced `rust,ignore` | Gap (P-03) |
+| NFR-DOC-01 | Documentation MUST describe released behaviour; a release MUST include a docs-vs-code verification pass (project release rule) | Met (M1); re-verified at each release |
+| NFR-DOC-02 | Every rustdoc example MUST compile and pass, or be marked `ignore` / `no_run` with reason | Met (M1) |
+| NFR-DOC-03 | mdBook examples fenced as `rust` MUST compile against the current API or be fenced `rust,ignore` | Met (docs restructure 2026-09-12) |
 | NFR-DOC-04 | `README.md` stays concise per the six-section structure; full docs live in `docs/src` for three personas | Met |
 
 ### 6.8 Testing and quality (NFR-TEST)
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| NFR-TEST-01 | CI gates (fmt, clippy `-D warnings`, tests, doc) MUST be green on `main` at every tag | Gap (P-01) |
+| NFR-TEST-01 | CI gates (fmt, clippy `-D warnings`, tests, doc) MUST be green on `main` at every tag | Met (M1; first green run 2026-09-12, plus a feature-combination clippy step and an examples job) |
 | NFR-TEST-02 | Test cases MUST be derived from this specification and the external design, not from the code | Partial (P-15) |
 | NFR-TEST-03 | `submit_contact` MUST have integration tests covering: happy path, honeypot, each validation rule, policy, token fail-closed, token invalid, missing delivery context, delivery error | Gap (P-15) |
 | NFR-TEST-04 | Tests live in `src/<module>/tests.rs`, never inline (project rule) | Met |
@@ -319,7 +319,7 @@ input the browser accepted.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | NFR-REL-01 | Tags are `X.Y.Z` without prefix | Met (docs drift P-03) |
-| NFR-REL-02 | CHANGELOG MUST record each released version with its date | Partial (P-05) |
+| NFR-REL-02 | CHANGELOG MUST record each released version with its date | Met (M1) |
 | NFR-REL-03 | A release MUST pass the security audit step from the project rules and the docs verification pass | Gap (process not yet exercised) |
 
 ---
@@ -348,26 +348,20 @@ input the browser accepted.
 
 | Requirement | Status | Roadmap item |
 |-------------|--------|--------------|
-| FR-UI-08, FR-SUB-06 | Gap | P-02 |
 | FR-UI-04, FR-UI-07 | Gap † | P-10 |
+| NFR-TEST-02, NFR-TEST-03 | Gap | P-15 |
 | FR-UI-12 | Partial † | P-11 |
 | FR-UI-06, FR-PE-03 | Gap † | P-13 |
 | FR-UI-13 | Gap | P-16 |
-| FR-VAL-07, FR-SUB-07 | Partial | P-04 |
-| FR-VAL-08 | Partial | P-07 |
 | FR-ABUSE-02 | Planned | P-12 / RFC 004 |
 | FR-ABUSE-10..12 | Planned | P-21 / RFC 005 |
 | FR-ABUSE-13 | Planned | P-12 / RFC 004 |
 | FR-ABUSE-14 | Planned | P-25 / RFC 006 |
 | FR-DEL-08, NFR-PERF-03 | Gap | Future (queue adapter) |
-| FR-CFG-01 (docs) | Partial | P-03 |
 | FR-I18N-02 | Gap | P-14 |
 | FR-I18N-03 | Planned | P-20 |
 | NFR-PORT-02 | Decision | P-23 |
 | NFR-DEP-02 | Partial | P-24 |
-| NFR-DOC-01..03 | Gap | P-01, P-03 |
-| NFR-TEST-01..03 | Gap | P-01, P-15 |
-| NFR-REL-02 | Partial | P-05 |
 
 ---
 
@@ -392,4 +386,5 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-12 | Draft 3 | M1 (RFC 001) implemented and approved: statuses for FR-UI-08, FR-SUB-06/07, FR-VAL-07/08, FR-CFG-01, FR-A11Y-03, NFR-DOC-01..03, NFR-TEST-01, NFR-REL-02 set to Met |
 | 2026-09-12 | Draft 2 | Anti-abuse theme: FR-ABUSE-10 to FR-ABUSE-14 added, non-goal narrowed, NFR-PRIV-02 widened, open question 3 resolved |

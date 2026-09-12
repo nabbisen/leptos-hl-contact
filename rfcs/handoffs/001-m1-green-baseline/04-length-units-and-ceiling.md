@@ -133,7 +133,9 @@ ceiling a single constant that nothing can exceed.
 
 - Tests above pass; gates green.
 - `grep -rn "4000\|4 000" crates/leptos-hl-contact/src --include='*.rs'`
-  matches only the constant definition, its rustdoc, and test files.
+  matches only the constant definition, its rustdoc, test files, and the
+  validator's `message = "…"` string (error texts are out of scope here;
+  RFC 003 removes them).
 - Behaviour: a policy of 100 accepts a 100-character multibyte message
   (covered by the unit test; no manual evidence needed).
 
