@@ -64,7 +64,7 @@ per-field errors visible.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
-| P-01 | Make CI gates green: rustfmt diffs in most files, four `clippy -D warnings` errors (`field_reassign_with_default` ×2 in `server.rs`, unused import in `model/tests.rs`, unused variable in `csrf/tests.rs`), failing `sanitize_header_value` doctest (CRLF becomes two spaces) | **High** | fix | verified locally, rustc 1.98.1 |
+| P-01 | Make CI gates green — **done** in handoff 001-01, approved 2026-09-12 (`e37e836`, `e8512f2`, `b98980d`, `ee769aa`).  Also found and fixed: the CI workflow had never run a matched clippy (Debian `cargo-1.91` without `clippy-1.91`); CI now installs 1.91 via `dtolnay/rust-toolchain`; run 34688023060 is the first green run in the project's history | **High** | fix | verified |
 | P-02 | Per-field validation errors never render on the client: `components.rs` tests `starts_with("field_errors:")` on `ServerFnError`'s `Display` output, which the framework prefixes with `"error deserializing server function arguments: "`, so the generic banner is shown instead | **High** | fix + test | verified by reading `server_fn` 0.8 `Display` impl; needs an integration reproduction as evidence |
 | P-03 | Documentation drift sweep — **done**: book and README on 2026-09-12 (docs restructure); crate rustdoc and header comments in handoff 001-05, approved 2026-09-12 (`0c93749`, `34c2bd2`) | **High** | docs | verified |
 | P-04 | `ContactServerPolicy.max_message_len` compares bytes (`String::len`) while the validator counts characters (`chars().count()`); align to characters | Medium | fix + test | verified (validator 0.20 source) |
