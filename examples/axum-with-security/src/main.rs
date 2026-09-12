@@ -16,8 +16,10 @@
 //   - Set CSRF_SECRET to a unique, random value per deployment.
 //   - Ensure your reverse proxy validates X-Forwarded-For before reaching Axum.
 
+#[cfg(feature = "ssr")]
 use std::{net::SocketAddr, sync::Arc};
 
+#[cfg(feature = "ssr")]
 use axum::{
     Router,
     body::Body,
@@ -27,16 +29,23 @@ use axum::{
     response::Response,
     routing::post,
 };
+#[cfg(feature = "ssr")]
 use leptos::config::get_configuration;
+#[cfg(feature = "ssr")]
 use leptos::context::provide_context;
+#[cfg(feature = "ssr")]
 use leptos_axum::{LeptosRoutes, generate_route_list, handle_server_fns_with_context};
+#[cfg(feature = "ssr")]
 use tower_http::limit::RequestBodyLimitLayer;
+#[cfg(feature = "ssr")]
 use tower_governor::{
     GovernorLayer,
     governor::GovernorConfigBuilder,
     key_extractor::SmartIpKeyExtractor,
 };
+#[cfg(feature = "ssr")]
 use url::Url;
+#[cfg(feature = "ssr")]
 use leptos_hl_contact::{
     axum_helpers::delivery_context_fn,
     csrf::{CsrfConfig, CsrfConfigContext, generate_csrf_token},
@@ -46,12 +55,14 @@ use leptos_hl_contact::{
 // Uncomment for real SMTP delivery:
 // use leptos_hl_contact::delivery::smtp::{LettreSmtpDelivery, SmtpConfig, SmtpTlsMode};
 
-mod app;
+#[cfg(feature = "ssr")]
+use axum_with_security::app::{self, shell};
 
 // ---------------------------------------------------------------------------
 // Strict Origin / Referer validation
 // ---------------------------------------------------------------------------
 
+#[cfg(feature = "ssr")]
 #[derive(Clone)]
 struct SecurityState {
     allowed_origin: Arc<Url>,
@@ -61,6 +72,7 @@ struct SecurityState {
 ///
 /// Parses both values as URLs and compares scheme, host, and port — preventing
 /// prefix-spoofing attacks such as `https://example.com.evil.test`.
+#[cfg(feature = "ssr")]
 fn origin_matches(header_value: &str, allowed: &Url) -> bool {
     let Ok(parsed) = Url::parse(header_value) else {
         return false;
@@ -70,6 +82,7 @@ fn origin_matches(header_value: &str, allowed: &Url) -> bool {
         && parsed.port_or_known_default() == allowed.port_or_known_default()
 }
 
+#[cfg(feature = "ssr")]
 async fn check_origin(
     axum::extract::State(state): axum::extract::State<SecurityState>,
     req: Request<Body>,
@@ -98,6 +111,7 @@ async fn check_origin(
 // ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
+#[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -201,8 +215,13 @@ async fn main() {
                 provide_context::<CsrfConfigContext>(Arc::clone(&csrf_for_ssr));
                 provide_context(generate_csrf_token(&csrf_for_ssr));
             },
-            app::App,
+            {
+                let o = leptos_options.clone();
+                move || shell(o.clone())
+            },
         )
+        // Serves the WASM client from `/pkg/*` (site-root in Cargo.toml).
+        .fallback(leptos_axum::file_and_error_handler(shell))
         .with_state(leptos_options)
         // Security layers (outermost runs first):
         .layer(from_fn_with_state(security_state, check_origin))
@@ -225,3 +244,8 @@ async fn main() {
     .await
     .unwrap();
 }
+
+// Without `ssr` this crate builds only as a `cdylib` for the browser; the
+// binary target still has to compile, so it gets an empty `main`.
+#[cfg(not(feature = "ssr"))]
+fn main() {}

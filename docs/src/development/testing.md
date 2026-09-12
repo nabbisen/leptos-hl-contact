@@ -48,13 +48,38 @@ Integration tests that drive `submit_contact` end to end do not exist yet
 
 ## Running the examples
 
+`axum-basic` is server-only and needs nothing but Cargo:
+
 ```bash
 cd examples/axum-basic && cargo run
-cd examples/axum-with-security && CSRF_SECRET=$(openssl rand -hex 32) ALLOWED_ORIGIN=http://127.0.0.1:3000 cargo run
 ```
 
-Both use `NoopDelivery`; switch to `LettreSmtpDelivery` and point it at
-MailHog to see real messages
+`axum-with-security` ships a WASM client, so it is built and served with
+[cargo-leptos](https://github.com/leptos-rs/cargo-leptos):
+
+```bash
+cargo install cargo-leptos
+cd examples/axum-with-security
+CSRF_SECRET=$(openssl rand -hex 32) ALLOWED_ORIGIN=http://127.0.0.1:3000 cargo leptos watch
+```
+
+Use `cargo leptos serve` for a one-shot build without the file watcher.
+`ALLOWED_ORIGIN` must match the scheme, host and port in the address bar
+exactly, or the origin check rejects every POST with `403`.
+
+Without cargo-leptos the server binary still compiles and runs, but no
+client bundle is produced, so the form falls back to the plain-POST path:
+
+```bash
+cd examples/axum-with-security && cargo check --features ssr
+```
+
+CI checks both targets of this example — `--features ssr` and
+`--features hydrate --target wasm32-unknown-unknown --lib` — but does not run
+cargo-leptos.
+
+Both examples use `NoopDelivery`; switch to `LettreSmtpDelivery` and point it
+at MailHog to see real messages
 ([Delivery Backends](../guides/delivery-backends.md#testing-delivery-locally)).
 
 ## Building this book

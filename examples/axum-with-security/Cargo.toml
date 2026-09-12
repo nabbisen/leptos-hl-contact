@@ -1,6 +1,10 @@
 # This example is NOT a workspace member.
-# Run it standalone:
-#   cd examples/axum-with-security && cargo run
+# It ships a WASM client, so it is built and run with cargo-leptos:
+#   cargo install cargo-leptos
+#   cd examples/axum-with-security
+#   CSRF_SECRET=$(openssl rand -hex 32) ALLOWED_ORIGIN=http://127.0.0.1:3000 cargo leptos watch
+#
+# `cargo check --features ssr` still works without cargo-leptos.
 [package]
 name        = "axum-with-security"
 description = "Production example: leptos-hl-contact with rate limiting, CSRF, and Origin validation."
@@ -10,21 +14,70 @@ authors     = ["nabbisen"]
 license     = "Apache-2.0"
 publish     = false
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [[bin]]
 name = "axum-with-security"
 path = "src/main.rs"
 
+[features]
+hydrate = ["leptos/hydrate", "leptos-hl-contact/hydrate"]
+ssr = [
+    "leptos/ssr",
+    "leptos_meta/ssr",
+    "leptos_router/ssr",
+    "dep:leptos_axum",
+    "dep:axum",
+    "dep:tokio",
+    "dep:tower",
+    "dep:tower-http",
+    "dep:tower_governor",
+    "dep:tracing-subscriber",
+    "dep:dotenvy",
+    "dep:url",
+    "leptos-hl-contact/ssr",
+    "leptos-hl-contact/smtp-lettre",
+    "leptos-hl-contact/axum-helpers",
+    "leptos-hl-contact/csrf",
+]
+
 [dependencies]
-leptos         = { version = "0.8", features = ["ssr"] }
-leptos_axum    = { version = "0.8" }
-leptos_router  = { version = "0.8" }
-leptos-hl-contact = { path = "../../crates/leptos-hl-contact", features = ["ssr", "smtp-lettre", "axum-helpers", "csrf"] }
-axum           = { version = "0.8" }
-tower_governor = { version = "0.8" }
-tower          = { version = "0.5" }
-tower-http     = { version = "0.6", features = ["limit"] }
-tokio          = { version = "1", features = ["rt-multi-thread", "macros"] }
-tracing        = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-dotenvy        = "0.15"
-url            = "2"
+leptos        = { version = "0.8" }
+leptos_meta   = { version = "0.8" }
+leptos_router = { version = "0.8" }
+# No default features: the two example features above select what the crate
+# needs.  `csrf` implies `ssr`, so it must never reach the WASM build.
+leptos-hl-contact = { path = "../../crates/leptos-hl-contact", default-features = false }
+
+console_error_panic_hook = "0.1"
+wasm-bindgen             = "=0.2.126"
+tracing                  = "0.1"
+
+# SSR-only
+leptos_axum        = { version = "0.8", optional = true }
+axum               = { version = "0.8", optional = true }
+tower_governor     = { version = "0.8", optional = true }
+tower              = { version = "0.5", optional = true }
+tower-http         = { version = "0.6", features = ["limit", "fs"], optional = true }
+tokio              = { version = "1", features = ["rt-multi-thread", "macros"], optional = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"], optional = true }
+dotenvy            = { version = "0.15", optional = true }
+url                = { version = "2", optional = true }
+
+[package.metadata.leptos]
+output-name         = "axum-with-security"
+site-root           = "target/site"
+site-pkg-dir        = "pkg"
+site-addr           = "127.0.0.1:3000"
+reload-port         = 3001
+bin-features        = ["ssr"]
+lib-features        = ["hydrate"]
+lib-profile-release = "wasm-release"
+
+[profile.wasm-release]
+inherits      = "release"
+opt-level     = 'z'
+lto           = true
+codegen-units = 1
+panic         = "abort"

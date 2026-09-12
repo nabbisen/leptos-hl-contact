@@ -42,14 +42,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        example: [axum-basic, axum-with-security]
+        include:
+          # Server-only; no features to select.
+          - example: axum-basic
+            features: ""
+          # cargo-leptos layout: the binary needs `ssr`, and the WASM client is
+          # checked separately in the step below.
+          - example: axum-with-security
+            features: "--features ssr"
     steps:
       - uses: actions/checkout@v6
       - name: Install Rust 1.91
         uses: dtolnay/rust-toolchain@1.91
         with:
           components: clippy, rustfmt
+          targets: wasm32-unknown-unknown
 
       - name: check
-        run: cargo check
+        run: cargo check ${{ matrix.features }}
+        working-directory: examples/${{ matrix.example }}
+
+      # The WASM client is what makes hydration testable; cargo-leptos itself
+      # is not run in CI.
+      - name: check (wasm client)
+        if: matrix.example == 'axum-with-security'
+        run: cargo check --features hydrate --target wasm32-unknown-unknown --lib
         working-directory: examples/${{ matrix.example }}

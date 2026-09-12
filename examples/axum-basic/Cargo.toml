@@ -29,3 +29,10 @@ tokio          = { version = "1", features = ["rt-multi-thread", "macros"] }
 tracing        = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dotenvy        = "0.15"
+
+# Server-only example: no WASM client, so no cargo-leptos.  This table only
+# supplies what `get_configuration(None)` looks for, silencing the
+# LEPTOS_OUTPUT_NAME notice the binary printed at startup.
+[package.metadata.leptos]
+output-name = "axum-basic"
+site-addr   = "127.0.0.1:3000"

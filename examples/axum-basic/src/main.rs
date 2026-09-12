@@ -45,7 +45,9 @@ async fn main() {
     let delivery: ContactDeliveryContext = Arc::new(NoopDelivery);
     let ctx = delivery_context_fn(delivery);
 
-    let conf = get_configuration(None).unwrap();
+    // `Some("Cargo.toml")` reads [package.metadata.leptos]; `None` reads only
+    // environment variables and prints a LEPTOS_OUTPUT_NAME notice without them.
+    let conf = get_configuration(Some("Cargo.toml")).unwrap();
     let leptos_options = conf.leptos_options.clone();
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(app::App);
