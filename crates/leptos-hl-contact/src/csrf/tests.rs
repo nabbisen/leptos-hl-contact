@@ -55,11 +55,6 @@ fn expired_token_fails_verification() {
         secret_key: b"test-secret".to_vec(),
         token_ttl_secs: 0, // expire immediately
     };
-    let token = generate_csrf_token(&config);
-    // ttl = 0 means any token older than 0 seconds is expired;
-    // even a freshly generated token may be 1s old on a slow machine,
-    // but this test is best-effort for the expiry path.
-    // Instead, fabricate an old token directly.
     let old_ts = 1_000_000u64; // year 1970+~11 days, definitely expired
     let payload = format!("{old_ts}|aabbccddeeff00112233445566778899");
     let sig = super::sign(&payload, &config.secret_key);

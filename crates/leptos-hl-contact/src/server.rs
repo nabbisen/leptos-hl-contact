@@ -112,21 +112,24 @@ pub async fn submit_contact(
         }
 
         // 5. Server-side policy (require_subject, max_message_len).
-        #[cfg(feature = "ssr")]
         {
             use crate::config::ContactServerPolicy;
             if let Some(policy) = use_context::<ContactServerPolicy>() {
                 if policy.require_subject && input.subject.is_none() {
-                    let mut errs = crate::error::ContactFieldErrors::default();
-                    errs.subject = Some("Subject is required.".into());
+                    let errs = crate::error::ContactFieldErrors {
+                        subject: Some("Subject is required.".into()),
+                        ..Default::default()
+                    };
                     return Err(ServerFnError::Args(errs.into_server_fn_message()));
                 }
                 if input.message.len() > policy.max_message_len {
-                    let mut errs = crate::error::ContactFieldErrors::default();
-                    errs.message = Some(format!(
-                        "Message must be at most {} characters.",
-                        policy.max_message_len
-                    ));
+                    let errs = crate::error::ContactFieldErrors {
+                        message: Some(format!(
+                            "Message must be at most {} characters.",
+                            policy.max_message_len
+                        )),
+                        ..Default::default()
+                    };
                     return Err(ServerFnError::Args(errs.into_server_fn_message()));
                 }
             }

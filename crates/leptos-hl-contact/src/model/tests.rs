@@ -1,7 +1,6 @@
 // tests.rs — unit tests for the parent module.
 
 use super::*;
-use validator::Validate;
 
 fn valid_input() -> ContactInput {
     ContactInput::from_raw(

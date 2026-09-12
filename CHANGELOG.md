@@ -4,6 +4,10 @@
 
 No version assigned; the owner decides the release number.
 
+### Fixed
+
+- CI gates green: rustfmt, clippy, doctest.
+
 ### Documentation
 
 - Documentation book restructured into sections (Getting Started, Guides,
