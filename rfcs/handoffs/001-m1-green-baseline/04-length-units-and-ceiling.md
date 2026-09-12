@@ -30,6 +30,9 @@ ceiling a single constant that nothing can exceed.
 - `src/components.rs` (the `maxlength` expression only)
 - `src/lib.rs` (re-export)
 - `docs/src/guides/customization.md`, `docs/src/reference/api.md`
+- `.github/workflows/ci.yml` (added by review of handoff 02): one
+  feature-combination clippy step in `check`; `RUSTFLAGS: -D warnings` on
+  the `examples` job
 
 ## Explicit non-change scope
 
@@ -81,6 +84,16 @@ ceiling a single constant that nothing can exceed.
    In `components.rs` render `maxlength=options.effective_max_message_len().to_string()`.
    Update the rustdoc of both `max_message_len` fields from "must not
    exceed" to "values above `MESSAGE_MAX_LEN` are clamped".
+
+5. **Feature-combination warning (added by review of handoff 02).**  With
+   `ssr` on and `csrf` off the crate emits `unused variable: csrf_token` in
+   `server.rs`.  Silence it structurally: inside the `ssr` block add
+   `#[cfg(not(feature = "csrf"))] let _ = &csrf_token;` next to the
+   `#[cfg(feature = "csrf")]` block, with a one-line comment.  Then add to
+   the `check` job, after the existing clippy step:
+   `cargo clippy --all-targets --no-default-features --features ssr,smtp-lettre,axum-helpers -- -D warnings`
+   and set `env: RUSTFLAGS: -D warnings` on the `examples` job.  Both must
+   be green in the run you cite.
 
 ## Required tests
 

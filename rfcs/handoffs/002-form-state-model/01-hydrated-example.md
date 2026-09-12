@@ -23,7 +23,9 @@ a server binary and a hydrate library.
 
 ## Explicit non-change scope
 
-The crate; `examples/axum-basic` stays server-only; the example's security
+The crate; `examples/axum-basic` stays server-only apart from a minimal
+`[package.metadata.leptos]` table (`output-name`, `site-addr`) that
+silences the `LEPTOS_OUTPUT_NAME` startup notice both examples print today; the example's security
 layers (body limit, rate limit, origin check, token) stay exactly as they
 are.
 

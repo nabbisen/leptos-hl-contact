@@ -23,7 +23,11 @@ say `version = "0.3.2"` while the workspace is `0.3.3`.
 
 - `examples/axum-basic/src/main.rs`, `examples/axum-with-security/src/main.rs`
 - `examples/*/Cargo.toml` (version; Leptos metadata only if needed, see 3)
+- `examples/*/Cargo.lock` — committed and kept (binaries; CI checks pinned
+  versions).  Every file in the commit must appear in the review request's
+  changed-files list.
 - `.github/workflows/ci.yml`
+- `docs/src/security/hardening.md` (one sentence, item 6)
 - `docs/src/development/testing.md` "Running the examples" only if the
   commands there turn out to be wrong.
 
@@ -55,6 +59,12 @@ say `version = "0.3.2"` while the workspace is `0.3.3`.
    the smallest change and list it in the review request under
    "differences".  If the fix would need a change in the crate, stop and
    report instead.
+6. **Connection info (added by review 2026-09-12).**  `SmartIpKeyExtractor`
+   falls back to the peer address only if `ConnectInfo<SocketAddr>` is in
+   the request; serve `axum-with-security` with
+   `app.into_make_service_with_connect_info::<std::net::SocketAddr>()`.
+   Without it every request lacking a forwarded-IP header is a 500.  Add
+   one sentence saying so under "Rate limiting" in `hardening.md`.
 5. **CI job.**  Add to `.github/workflows/ci.yml` a job `examples` that
    installs the same toolchain as `check` (after handoff 01 this is
    `dtolnay/rust-toolchain@1.91`) and runs, for each example directory,
