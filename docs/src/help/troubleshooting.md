@@ -1,5 +1,18 @@
 # Troubleshooting
 
+## Server panics at startup: "Path segments must not start with `*`"
+
+Axum 0.8 changed the wildcard syntax, but you do not need this route at all:
+`leptos_routes_with_context` registers every server function itself.  Delete
+the `.route("/api/…", …)` line and provide your context in the closure you
+pass to `leptos_routes_with_context`.  See
+[Axum Integration](../guides/axum-integration.md).
+
+Releases before 0.3.4 told integrators to write that route, and the
+documentation of the time spelled it with the Axum 0.7 form `"/api/*fn_name"`,
+which is what panics.  A value provided only in that route's closure never
+reached the server function anyway.
+
 ## "This form is not available right now."
 
 `ContactDeliveryContext` is missing from the context closure.  Provide it
