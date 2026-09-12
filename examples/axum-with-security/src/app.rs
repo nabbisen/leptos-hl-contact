@@ -3,7 +3,7 @@
 use leptos::prelude::*;
 use leptos_meta::{MetaTags, provide_meta_context};
 use leptos_router::{
-    components::{Route, Router, Routes},
+    components::{A, Route, Router, Routes},
     path,
 };
 
@@ -42,10 +42,26 @@ pub fn App() -> impl IntoView {
     view! {
         <Router>
             <Routes fallback=|| view! { <p>"Page not found."</p> }>
-                <Route path=path!("/") view=ContactPage />
+                <Route path=path!("/") view=HomePage />
+                <Route path=path!("/contact") view=ContactPage />
                 <Route path=path!("/thanks") view=ThanksPage />
             </Routes>
         </Router>
+    }
+}
+
+/// A page without the form, linking to it with a client-side `<A>`.
+///
+/// Following that link creates the form in the browser with no server render,
+/// so its token field starts empty and `ContactForm` fetches a token.  Loading
+/// `/contact` directly takes the other path: the server renders the token.
+#[component]
+fn HomePage() -> impl IntoView {
+    view! {
+        <main style="max-width: 600px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
+            <h1>"Welcome"</h1>
+            <p><A href="/contact">"Contact us"</A></p>
+        </main>
     }
 }
 
@@ -82,7 +98,7 @@ fn ThanksPage() -> impl IntoView {
         <main style="max-width: 600px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
             <h1>"Thank you"</h1>
             <p>"Your message has been sent. We will get back to you soon."</p>
-            <p><a href="/">"Back to the form"</a></p>
+            <p><a href="/contact">"Back to the form"</a></p>
         </main>
     }
 }

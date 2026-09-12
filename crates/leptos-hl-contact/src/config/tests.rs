@@ -320,3 +320,9 @@ fn field_text_substitutes_in_a_translated_label() {
     );
     assert_eq!(text, "1〜80文字で入力してください。");
 }
+
+/// One minute before the default one-hour TTL.
+#[test]
+fn options_default_refreshes_the_token_a_minute_before_the_default_ttl() {
+    assert_eq!(ContactFormOptions::default().token_refresh_secs, Some(3540));
+}

@@ -246,6 +246,17 @@ pub struct ContactFormOptions {
     /// After a failed submission, move keyboard focus to the first invalid
     /// input.  Client-side only.  Defaults to `true`.
     pub focus_first_error: bool,
+
+    /// Seconds after a form token's issue time at which the browser fetches
+    /// a replacement, so a form left open never submits an expired token.
+    /// Client-side only.  Defaults to `Some(3540)`.
+    ///
+    /// The browser does not know the server's TTL, so this **should be
+    /// `ttl_secs - 60`**.  Values of 60 or less schedule nothing — they
+    /// correspond to a TTL of two minutes or less, where a refresh would race
+    /// the expiry.  `None` disables the refresh.  Has no effect without the
+    /// form token.
+    pub token_refresh_secs: Option<u64>,
 }
 
 impl Default for ContactFormOptions {
@@ -255,6 +266,7 @@ impl Default for ContactFormOptions {
             require_subject: false,
             max_message_len: MESSAGE_MAX_LEN,
             focus_first_error: true,
+            token_refresh_secs: Some(3540),
         }
     }
 }

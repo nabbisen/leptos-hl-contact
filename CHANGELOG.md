@@ -50,6 +50,18 @@ No version assigned; the owner decides the release number.
 - `issue_form_token_with_nonce`, for wiring binding into a framework other
   than Axum: it signs a nonce the browser already holds, and refuses
   anything that is not 32 hex characters.
+- **Tokens for forms the server did not render.**  A form reached by
+  client-side navigation arrives with an empty token field; `ContactForm`
+  now notices that from the DOM after mount and fetches a token from the new
+  `issue_form_token_fn` server function (`POST /api/form_token`).  A
+  server-rendered form already has one and makes no request.  With binding
+  on, the fetched token reuses the browser's nonce, and
+  `axum_helpers::provide_form_token_issuer` re-sends the cookie through the
+  new `FormTokenIssuer` context.
+- **Refresh before expiry.**  `ContactFormOptions::token_refresh_secs`,
+  default `Some(3540)`, fetches a replacement token that long after issue,
+  so a form left open does not submit an expired one.  Set it to
+  `ttl_secs - 60` if you change the TTL; `None` disables it.
 - `FormTokenConfig` builders `with_ttl`, `with_min_age`, `with_binding`.
 
 ### Migration

@@ -421,6 +421,54 @@ mod cookie_binding {
         assert!(issue_form_token_with_nonce(&config, "too-short").is_none());
     }
 
+    // -----------------------------------------------------------------------
+    // The issuer — the cookie for a token fetched from the browser
+    // -----------------------------------------------------------------------
+
+    /// The whole path a `POST /api/form_token` takes through the one context
+    /// closure: the page-render helper does nothing (not a GET), the binding
+    /// is read under the prefixed name, the token reuses that nonce, and the
+    /// issuer re-sends the same prefixed cookie.
+    #[test]
+    fn a_fetched_token_reuses_the_nonce_and_re_sends_the_cookie() {
+        use crate::form_token::{Binding, FormToken, FormTokenConfig, issue_for_request};
+        use leptos::context::{provide_context, use_context};
+
+        let config: FormTokenContext = Arc::new(
+            FormTokenConfig::new(b"a-secret-key-at-least-32-bytes".to_vec())
+                .with_binding(Binding::Cookie),
+        );
+        let cookie = FormTokenCookie::default();
+        let existing = "00eaaaa84b55005200eaaaa84b550052";
+        let res = leptos_axum::ResponseOptions::default();
+
+        let token = in_scope(|| {
+            provide_context(parts_with(
+                axum::http::Method::POST,
+                Some(&format!("__Host-hl_contact_ft={existing}")),
+            ));
+            provide_context(res.clone());
+            provide_context(Arc::clone(&config));
+            provide_form_token_with_cookie(&config, &cookie);
+            provide_form_token_binding(&cookie);
+            provide_form_token_issuer(&cookie);
+            assert!(
+                use_context::<FormToken>().is_none(),
+                "the page-render helper must stay out of a POST"
+            );
+            issue_for_request().expect("configured")
+        });
+
+        assert_eq!(token_nonce(&token.0), Some(existing));
+        let headers = res.0.read().unwrap().headers.clone();
+        let set: Vec<_> = headers
+            .get_all(axum::http::header::SET_COOKIE)
+            .iter()
+            .map(|v| v.to_str().unwrap().to_owned())
+            .collect();
+        assert_eq!(set, vec![set_cookie_value(existing, &cookie, 3600)]);
+    }
+
     /// Without a request in context there is nothing to decide on, so nothing is
     /// issued rather than a token being handed out blindly.
     #[test]

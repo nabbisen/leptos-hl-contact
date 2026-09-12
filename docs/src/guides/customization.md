@@ -70,6 +70,7 @@ let options = ContactFormOptions {
     require_subject:   false,  // mark it required in the UI (no effect if hidden)
     max_message_len:   4000,   // textarea maxlength; clamped to 4 000
     focus_first_error: true,   // focus the first invalid input after a failure
+    token_refresh_secs: Some(3540), // fetch a fresh form token this long after issue
 };
 ```
 

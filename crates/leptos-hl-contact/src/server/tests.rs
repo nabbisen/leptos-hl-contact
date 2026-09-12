@@ -84,3 +84,29 @@ fn too_fast_message_has_the_contact_error_prefix() {
         Some(ContactErrorCode::TooFast)
     );
 }
+
+// ---------------------------------------------------------------------------
+// token_issued_at — drives the browser's refresh timer
+// ---------------------------------------------------------------------------
+
+#[test]
+fn token_issued_at_reads_the_first_segment() {
+    assert_eq!(
+        crate::server::token_issued_at("1789232333|2546fb444f8f1bea|2dc456c0"),
+        Some(1_789_232_333)
+    );
+}
+
+/// A malformed value schedules nothing rather than a nonsense timer.
+#[test]
+fn token_issued_at_is_none_for_anything_but_a_token() {
+    for bad in [
+        "",
+        "1789232333",           // a bare number
+        "1789232333|nonce",     // two segments
+        "soon|nonce|signature", // not a number
+        "-5|nonce|signature",   // not unsigned
+    ] {
+        assert_eq!(crate::server::token_issued_at(bad), None, "{bad:?}");
+    }
+}

@@ -11,6 +11,7 @@ to `leptos_routes_with_context`:
 | `FormTokenContext` (`form-token` feature) | required — token verification, fail-closed without it |
 | `FormToken` (`form-token` feature) | required — one fresh token per page render; unused on server-function requests |
 | `FormTokenBinding` (`form-token` feature) | required for `Binding::Cookie` — the cookie as it arrived |
+| `FormTokenIssuer` (`form-token` feature) | required for `Binding::Cookie` with a hydrated form — sets the cookie for a token the browser fetches |
 | `ContactServerPolicy` | optional — server-side limits |
 | `ContactSuccessRedirect` | required for the success redirect |
 
@@ -68,8 +69,8 @@ use leptos::context::provide_context;
 use leptos_hl_contact::{
     ContactServerPolicy,
     axum_helpers::{
-        FormTokenCookie, provide_form_token_binding, provide_form_token_with_cookie,
-        success_redirect,
+        FormTokenCookie, provide_form_token_binding, provide_form_token_issuer,
+        provide_form_token_with_cookie, success_redirect,
     },
     form_token::{Binding, FormTokenConfig, FormTokenContext},
 };
@@ -93,13 +94,15 @@ let app = Router::new()
         provide_form_token_with_cookie(&token_config, &token_cookie);
         // Reads that cookie back on the submission.
         provide_form_token_binding(&token_cookie);
+        // Sets it for a token the browser fetches from /api/form_token.
+        provide_form_token_issuer(&token_cookie);
         provide_context(policy.clone());
         provide_context(redirect.clone());
     }, App)
     .with_state(leptos_options);
 ```
 
-Both token helpers need the `form-token` feature alongside `axum-helpers`.
+The token helpers need the `form-token` feature alongside `axum-helpers`.
 Without binding, replace them with
 `provide_context(issue_form_token(&token_config))` — see
 [Form Token](../security/form-token.md#cookie-binding) for the trade-off.

@@ -71,8 +71,17 @@ fn FieldError(
 /// Only the success region, the generic-error region, and each field's error
 /// paragraph and ARIA attributes react to the action's value.  Keeping the
 /// form itself out of the reactive closure is what preserves the hidden
-/// anti-automation token, which the server renders once and the client cannot
-/// regenerate.
+/// anti-automation token across submissions.
+///
+/// # Form token in the browser
+///
+/// The hidden token field is a signal, initialised from the server render.
+/// After mount the browser reads the field's **DOM** value: if the server put
+/// a token there, nothing happens; if it is empty — the form was created by
+/// client-side navigation — the component fetches one from
+/// [`issue_form_token_fn`](crate::server::issue_form_token_fn).  While the
+/// page stays open, [`ContactFormOptions::token_refresh_secs`] schedules a
+/// replacement before the token expires.
 ///
 /// # Accessibility
 ///
@@ -116,15 +125,17 @@ pub fn ContactForm(
     let pending = submit_action.pending();
     let value = submit_action.value();
 
-    // Read the token once, at creation.  SSR has it in context; the browser
-    // does not, and the SSR-rendered attribute survives hydration because the
-    // form is never rebuilt.
+    // SSR has the token in context; the browser does not, and hydration keeps
+    // the server-rendered attribute until the signal changes.  In the browser
+    // the acquisition effect below copies that attribute into the signal.
     #[cfg(feature = "form-token")]
-    let form_token_value: String = leptos::context::use_context::<FormToken>()
+    let initial_token: String = leptos::context::use_context::<FormToken>()
         .map(|t| t.0.clone())
         .unwrap_or_default();
     #[cfg(not(feature = "form-token"))]
-    let form_token_value: String = String::new();
+    let initial_token: String = String::new();
+    let token = RwSignal::new(initial_token);
+    let token_ref = NodeRef::<leptos::html::Input>::new();
 
     let classes = StoredValue::new(classes);
     let labels = StoredValue::new(labels);
@@ -188,6 +199,69 @@ pub fn ContactForm(
         });
     }
 
+    // ---- form token: acquire when missing, refresh before expiry ------------
+
+    // Same gate as the focus effect above: this needs a DOM and a real client.
+    #[cfg(all(feature = "hydrate", not(feature = "ssr")))]
+    {
+        use crate::server::{IssueFormTokenFn, token_issued_at};
+
+        let issue = ServerAction::<IssueFormTokenFn>::new();
+
+        // The DOM value, not a hydration flag, decides: a server render leaves
+        // a token in the field, client-side navigation leaves it empty.
+        Effect::new(move |_| {
+            let Some(el) = token_ref.get() else {
+                return;
+            };
+            let rendered = el.value();
+            if rendered.is_empty() {
+                issue.dispatch(IssueFormTokenFn {});
+            } else if token.with_untracked(|t| *t != rendered) {
+                // The browser build has no `FormToken` context, so the signal
+                // starts empty even when the server rendered a token.  Adopt
+                // the rendered value, or the refresh below would read an empty
+                // signal and never schedule.  The DOM already shows this value,
+                // so nothing visible changes.
+                token.set(rendered);
+            }
+        });
+
+        Effect::new(move |_| {
+            if let Some(Ok(t)) = issue.value().get() {
+                token.set(t);
+            }
+        });
+
+        // Values of 60 or less mean a TTL of two minutes or less, where a
+        // refresh would race the expiry.
+        if let Some(refresh) = options
+            .with_value(|o| o.token_refresh_secs)
+            .filter(|secs| *secs > 60)
+        {
+            // Re-runs whenever the token changes, replacing the pending timer.
+            Effect::new(move |previous: Option<Option<TimeoutHandle>>| {
+                if let Some(Some(handle)) = previous {
+                    handle.clear();
+                }
+                let issued = token.with(|t| token_issued_at(t))?;
+                let now = (leptos::web_sys::js_sys::Date::now() / 1000.0) as u64;
+                let due = issued.saturating_add(refresh);
+                (due > now).then_some(())?;
+                set_timeout_with_handle(
+                    move || {
+                        // The form is gone after a successful submission.
+                        if token_ref.get_untracked().is_some() {
+                            issue.dispatch(IssueFormTokenFn {});
+                        }
+                    },
+                    std::time::Duration::from_secs(due - now),
+                )
+                .ok()
+            });
+        }
+    }
+
     // ---- markup ------------------------------------------------------------
 
     view! {
@@ -226,7 +300,6 @@ pub fn ContactForm(
                 let show_subject = options.with_value(|o| o.show_subject);
                 let require_subject = options.with_value(|o| o.require_subject);
                 let max_msg_len = options.with_value(|o| o.effective_max_message_len());
-                let form_token_value = form_token_value.clone();
 
                 view! {
                     <ActionForm action=submit_action>
@@ -319,13 +392,15 @@ pub fn ContactForm(
                             />
                         </div>
 
-                        // Form token — hidden field, rendered by SSR.
-                        // Empty when the `form-token` feature is disabled or
+                        // Form token — hidden field.  Rendered by SSR, or
+                        // fetched by the browser when it arrives empty.  Empty
+                        // when the `form-token` feature is disabled or
                         // FormTokenContext is not provided.
                         <input
                             type="hidden"
                             name="form_token"
-                            value=form_token_value
+                            value=move || token.get()
+                            node_ref=token_ref
                         />
 
                         // Honeypot — visually hidden; excluded from assistive tech.

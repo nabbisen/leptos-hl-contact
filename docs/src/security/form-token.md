@@ -107,7 +107,10 @@ but not every route: a response-header injection on your own origin, or a
 deployment where the prefix does not apply, reopens it.  That is why the
 Origin check stays on.  Binding also does nothing against a script or bot
 that simply loads the page and submits from its own browser — that is the
-minimum age's and the rate limit's job.
+minimum age's and the rate limit's job.  And a page served from a cache
+pairs one visitor's token with another visitor's cookie, which breaks the
+binding outright; see [Do not cache the contact page](#cookie-binding)
+above.
 
 Any other framework can use binding by providing
 [`FormTokenBinding`](https://docs.rs/leptos-hl-contact/latest/leptos_hl_contact/form_token/struct.FormTokenBinding.html)
@@ -117,6 +120,48 @@ itself; the core never parses cookies.
 > with a fresh token.  A reverse proxy or CDN that caches the page, or strips
 > `Set-Cookie` from a cached response, serves one visitor's token to another
 > and every submission fails.  Send `Cache-Control: no-store` for that route.
+
+## Tokens in the browser: acquisition and refresh
+
+A server render puts a token in the hidden field.  Two situations leave the
+browser without a usable one, and `ContactForm` handles both itself when the
+page is hydrated.
+
+**Client-side navigation.**  A visitor who reaches the form through a
+client-side link — `<A href="/contact">` — gets a form the server never
+rendered, so the field is empty.  After mount the component reads the
+field's value from the DOM; if it is empty, it calls the
+`issue_form_token_fn` server function (`POST /api/form_token`) and puts the
+result in the field.  A form that *was* server-rendered already has a value
+and makes no request.  The check is on the DOM, not on whether the page is
+hydrating, so it is right in both cases.
+
+**A form left open.**  A token expires after `ttl_secs`.  While the page
+stays open, the component fetches a replacement
+`ContactFormOptions::token_refresh_secs` seconds after the current token was
+issued — by default 3 540, a minute before the default one-hour TTL.  The
+browser does not know your TTL, so **set it to `ttl_secs - 60`** if you
+change the TTL.  Values of 60 or less schedule nothing, and `None` turns the
+refresh off.  A token already past its refresh point when the page loads is
+not refreshed.
+
+With binding on, a fetched token reuses the browser's existing nonce, exactly
+as a page render does, so fetching one never invalidates a form open in
+another tab.  Provide the issuer in the context closure so the cookie is
+re-sent for it:
+
+```rust,ignore
+provide_form_token_with_cookie(&token_config, &token_cookie);
+provide_form_token_binding(&token_cookie);
+provide_form_token_issuer(&token_cookie);   // for tokens fetched by the browser
+```
+
+**Rate-limit the endpoint.**  `/api/form_token` is public.  It grants nothing
+a page render does not, but it is cheaper to call than a page, so make sure
+your rate limit covers it like every other route.
+
+Without JavaScript none of this runs, and none of it is needed: the page is
+always server-rendered, with a token.
 
 ## The minimum age
 

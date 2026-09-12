@@ -225,3 +225,109 @@ fn binding_cookie_requires_a_matching_nonce() {
     );
     assert_eq!(verify_form_token(&token.0, Some(&nonce), &config), Ok(()));
 }
+
+// ---------------------------------------------------------------------------
+// issue_for_request — the body of `issue_form_token_fn`
+// ---------------------------------------------------------------------------
+
+fn in_owner<T>(f: impl FnOnce() -> T) -> T {
+    let owner = leptos::reactive::owner::Owner::new();
+    owner.set();
+    let out = f();
+    drop(owner);
+    out
+}
+
+fn bound_config() -> FormTokenContext {
+    Arc::new(test_config().with_binding(Binding::Cookie))
+}
+
+fn nonce_of(token: &FormToken) -> &str {
+    token.0.split('|').nth(1).unwrap()
+}
+
+/// Handoff 03 amendment: the fetch is a POST, so the page render's GET gate
+/// does not protect it.  It must reuse the browser's nonce itself, or every
+/// tab that fetches a token invalidates the others.
+#[test]
+fn a_fetched_token_reuses_the_browsers_nonce() {
+    use leptos::context::provide_context;
+    let cookie = "00eaaaa84b55005200eaaaa84b550052";
+
+    let token = in_owner(|| {
+        provide_context(bound_config());
+        provide_context(FormTokenBinding(Some(cookie.into())));
+        issue_for_request().expect("configured")
+    });
+
+    assert_eq!(nonce_of(&token), cookie);
+    assert!(verify_form_token(&token.0, Some(cookie), &bound_config()).is_ok());
+}
+
+#[test]
+fn a_fetched_token_mints_when_there_is_no_cookie() {
+    use leptos::context::provide_context;
+
+    let token = in_owner(|| {
+        provide_context(bound_config());
+        provide_context(FormTokenBinding(None));
+        issue_for_request().expect("configured")
+    });
+
+    assert_eq!(nonce_of(&token).len(), 32);
+}
+
+#[test]
+fn a_fetched_token_does_not_trust_an_unusable_cookie() {
+    use leptos::context::provide_context;
+
+    let token = in_owner(|| {
+        provide_context(bound_config());
+        provide_context(FormTokenBinding(Some("not-a-nonce".into())));
+        issue_for_request().expect("configured")
+    });
+
+    assert_ne!(nonce_of(&token), "not-a-nonce");
+    assert_eq!(nonce_of(&token).len(), 32);
+}
+
+/// Without binding the cookie means nothing, so it is not consulted — as in
+/// `submit_contact`.
+#[test]
+fn a_fetched_token_ignores_the_cookie_without_binding() {
+    use leptos::context::provide_context;
+    let cookie = "00eaaaa84b55005200eaaaa84b550052";
+
+    let token = in_owner(|| {
+        provide_context::<FormTokenContext>(Arc::new(test_config()));
+        provide_context(FormTokenBinding(Some(cookie.into())));
+        issue_for_request().expect("configured")
+    });
+
+    assert_ne!(nonce_of(&token), cookie);
+}
+
+#[test]
+fn a_fetched_token_is_handed_to_the_issuer() {
+    use leptos::context::provide_context;
+    use std::sync::Mutex;
+
+    let seen: Arc<Mutex<Vec<String>>> = Arc::default();
+    let token = in_owner(|| {
+        provide_context(bound_config());
+        let seen = Arc::clone(&seen);
+        provide_context(FormTokenIssuer(Arc::new(move |t| {
+            seen.lock().unwrap().push(t.0.clone());
+        })));
+        issue_for_request().expect("configured")
+    });
+
+    assert_eq!(*seen.lock().unwrap(), vec![token.0]);
+}
+
+/// Fail closed, like `submit_contact`: no config, no token.
+#[test]
+fn a_fetched_token_is_refused_without_the_config() {
+    let err = in_owner(issue_for_request).expect_err("not configured");
+    assert!(err.to_string().contains("not_configured"), "{err}");
+}

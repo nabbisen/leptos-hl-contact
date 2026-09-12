@@ -338,6 +338,67 @@ pub fn verify_form_token(
 pub struct FormTokenBinding(pub Option<String>);
 
 // ---------------------------------------------------------------------------
+// FormTokenIssuer
+// ---------------------------------------------------------------------------
+
+/// Called with every token that [`issue_form_token_fn`] issues.
+///
+/// A page render sets the binding cookie itself.  A token fetched from the
+/// browser has no page render, so this is where the cookie is written for
+/// it.  With Axum,
+/// [`provide_form_token_issuer`](crate::axum_helpers::provide_form_token_issuer)
+/// provides one; any other framework can build its own.
+///
+/// It is called after the nonce has been chosen, so it only writes: it cannot
+/// and need not decide which nonce the token carries.
+#[derive(Clone)]
+pub struct FormTokenIssuer(pub Arc<dyn Fn(&FormToken) + Send + Sync>);
+
+impl std::fmt::Debug for FormTokenIssuer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("FormTokenIssuer(..)")
+    }
+}
+
+pub use crate::server::{IssueFormTokenFn, issue_form_token_fn};
+
+/// Issue a token for the current request, as `issue_form_token_fn` does.
+///
+/// Separated from the server function so it can be tested without one.
+pub(crate) fn issue_for_request() -> Result<FormToken, leptos::server_fn::error::ServerFnError> {
+    use leptos::context::use_context;
+    use leptos::server_fn::error::ServerFnError;
+
+    let Some(config) = use_context::<FormTokenContext>() else {
+        tracing::error!(
+            "FormTokenContext not provided but the `form-token` feature is enabled \
+             — check that you supply it in the context closure"
+        );
+        return Err(ServerFnError::ServerError(
+            crate::error::ContactErrorCode::NotConfigured.into_server_fn_message(),
+        ));
+    };
+
+    // Reuse the browser's nonce, exactly as a page render does.  Minting a new
+    // one here would re-set the cookie and invalidate every form open
+    // elsewhere.  An unusable value is not trusted: it mints instead.
+    let reused = if config.binding == Binding::Cookie {
+        use_context::<FormTokenBinding>()
+            .and_then(|b| b.0)
+            .and_then(|nonce| issue_form_token_with_nonce(&config, &nonce))
+    } else {
+        None
+    };
+    let token = reused.unwrap_or_else(|| issue_form_token(&config));
+
+    if let Some(issuer) = use_context::<FormTokenIssuer>() {
+        (issuer.0)(&token);
+    }
+
+    Ok(token)
+}
+
+// ---------------------------------------------------------------------------
 // FormTokenContext
 // ---------------------------------------------------------------------------
 

@@ -13,7 +13,8 @@ use std::sync::Arc;
 
 #[cfg(feature = "form-token")]
 use crate::form_token::{
-    FormTokenBinding, FormTokenContext, issue_form_token, issue_form_token_with_nonce,
+    FormTokenBinding, FormTokenContext, FormTokenIssuer, issue_form_token,
+    issue_form_token_with_nonce,
 };
 use crate::{config::ContactSuccessRedirect, delivery::ContactDeliveryContext};
 
@@ -275,6 +276,40 @@ pub fn provide_form_token_binding(cookie: &FormTokenCookie) {
         .and_then(|parts| request_cookie(&parts, &effective_name(cookie)));
 
     provide_context(FormTokenBinding(value));
+}
+
+/// Set the binding cookie for tokens fetched from the browser.
+///
+/// Call this inside the same context closure as the other two helpers.  A
+/// page render sets its cookie through
+/// [`provide_form_token_with_cookie`]; a token requested by `ContactForm`
+/// through [`issue_form_token_fn`](crate::server::issue_form_token_fn) has
+/// no page render, and this is what writes the cookie for it.
+///
+/// The cookie is written through the same builder, so the `__Host-` prefix
+/// and every attribute match.  The nonce itself is chosen before the issuer
+/// runs, reusing the one the browser already holds.
+#[cfg(feature = "form-token")]
+pub fn provide_form_token_issuer(cookie: &FormTokenCookie) {
+    use leptos::context::{provide_context, use_context};
+
+    let cookie = cookie.clone();
+    provide_context(FormTokenIssuer(Arc::new(move |token| {
+        // Both are read when the token is issued, inside that request.
+        let Some(config) = use_context::<FormTokenContext>() else {
+            return;
+        };
+        if let Some(nonce) = token_nonce(&token.0)
+            && let Some(res) = use_context::<leptos_axum::ResponseOptions>()
+            && let Ok(value) = axum::http::HeaderValue::from_str(&set_cookie_value(
+                nonce,
+                &cookie,
+                config.ttl_secs,
+            ))
+        {
+            res.append_header(axum::http::header::SET_COOKIE, value);
+        }
+    })));
 }
 
 /// The named cookie as it arrived on this request, if it did.

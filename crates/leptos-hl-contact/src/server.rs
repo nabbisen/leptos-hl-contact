@@ -197,6 +197,66 @@ pub async fn submit_contact(
 }
 
 // ---------------------------------------------------------------------------
+// issue_form_token_fn
+// ---------------------------------------------------------------------------
+
+/// Issue a form token for a form that was not rendered with one.
+///
+/// Leptos server function compiled to `POST /api/form_token`.  `ContactForm`
+/// calls it from the browser in two cases: the form was created by
+/// client-side navigation, so no server render put a token in it; or the
+/// token it has is close to expiry and
+/// [`ContactFormOptions::token_refresh_secs`](crate::config::ContactFormOptions::token_refresh_secs)
+/// schedules a replacement.
+///
+/// On the server it reads
+/// [`FormTokenContext`](crate::form_token::FormTokenContext); without it the
+/// call fails with `not_configured`, as `submit_contact` does.  With
+/// [`Binding::Cookie`](crate::form_token::Binding::Cookie) the token reuses
+/// the nonce the browser already holds, so fetching a token never
+/// invalidates a form open in another tab.  If a
+/// [`FormTokenIssuer`](crate::form_token::FormTokenIssuer) is in context it
+/// is called with the token, which is how the Axum helper sets the cookie.
+///
+/// The endpoint is public, and grants nothing a page render does not: cover
+/// it with the same rate limit as the rest of the site.
+///
+/// Declared outside the `form_token` module because the browser build, which
+/// is the caller, never has the `form-token` feature.
+#[cfg(any(feature = "form-token", not(feature = "ssr")))]
+#[server(endpoint = "form_token")]
+pub async fn issue_form_token_fn() -> Result<String, ServerFnError> {
+    #[cfg(feature = "form-token")]
+    {
+        crate::form_token::issue_for_request().map(|t| t.0)
+    }
+    // Without `form-token` this function exists only in the browser build,
+    // where `#[server]` replaces the body with a request.  This branch never
+    // runs; it only has to type-check.
+    #[cfg(not(feature = "form-token"))]
+    {
+        Err(ServerFnError::ServerError(
+            crate::error::ContactErrorCode::NotConfigured.into_server_fn_message(),
+        ))
+    }
+}
+
+/// The issue time of a token, in Unix seconds — its first `|` segment.
+///
+/// The browser uses it to schedule a refresh.  It does not verify anything:
+/// a malformed value yields `None` and simply schedules nothing.
+#[cfg_attr(
+    not(all(feature = "hydrate", not(feature = "ssr"))),
+    allow(dead_code, reason = "used by the client refresh and by tests")
+)]
+pub(crate) fn token_issued_at(token: &str) -> Option<u64> {
+    let (timestamp, rest) = token.split_once('|')?;
+    // A bare number is not a token.
+    rest.contains('|').then_some(())?;
+    timestamp.parse().ok()
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 

@@ -15,7 +15,8 @@ examples.
 `submit_contact`, and with the
 `form-token` feature `Binding`, `FormToken`, `FormTokenConfig`,
 `FormTokenBinding`, `FormTokenContext`, `FormTokenError`,
-`issue_form_token`, `issue_form_token_with_nonce`, `verify_form_token`.
+`FormTokenIssuer`, `issue_form_token`, `issue_form_token_fn`,
+`issue_form_token_with_nonce`, `verify_form_token`.
 
 ## `components`
 
@@ -265,6 +266,7 @@ pub struct FormTokenCookie {
 }
 pub fn provide_form_token_with_cookie(config: &FormTokenContext, cookie: &FormTokenCookie);
 pub fn provide_form_token_binding(cookie: &FormTokenCookie);
+pub fn provide_form_token_issuer(cookie: &FormTokenCookie);
 ```
 
 `success_redirect` builds a `ContactSuccessRedirect` backed by
@@ -274,7 +276,9 @@ because it is startup configuration.
 `provide_form_token_with_cookie` acts on `GET` requests only, and reuses the
 nonce from an existing cookie so the value is stable per browser.  The
 `__Host-` prefix is added to `name` when `secure` is `true` and `path` is
-`/`, and both helpers read and write under that same effective name.  Both
+`/`, and all three helpers read and write under that same effective name.
+`provide_form_token_issuer` writes the cookie for a token the browser fetches
+from `issue_form_token_fn`.  Both
 helpers belong in the one context closure:
 [Cookie binding](../security/form-token.md#cookie-binding).
 
@@ -307,9 +311,15 @@ pub struct FormToken(pub String);
 pub type FormTokenContext = Arc<FormTokenConfig>;
 
 pub struct FormTokenBinding(pub Option<String>);
+pub struct FormTokenIssuer(pub Arc<dyn Fn(&FormToken) + Send + Sync>);
 
 pub fn issue_form_token(config: &FormTokenConfig) -> FormToken;
 pub fn issue_form_token_with_nonce(config: &FormTokenConfig, nonce: &str) -> Option<FormToken>;
+
+// Server function, POST /api/form_token.  Declared in `server` so the browser
+// build has it; re-exported here.
+#[server(endpoint = "form_token")]
+pub async fn issue_form_token_fn() -> Result<String, ServerFnError>;
 pub fn verify_form_token(token: &str, bound_value: Option<&str>, config: &FormTokenConfig)
     -> Result<(), FormTokenError>;
 ```

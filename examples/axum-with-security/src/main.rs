@@ -36,24 +36,22 @@ use leptos::context::provide_context;
 #[cfg(feature = "ssr")]
 use leptos_axum::{LeptosRoutes, generate_route_list};
 #[cfg(feature = "ssr")]
-use tower_http::limit::RequestBodyLimitLayer;
-#[cfg(feature = "ssr")]
-use tower_governor::{
-    GovernorLayer,
-    governor::GovernorConfigBuilder,
-    key_extractor::SmartIpKeyExtractor,
-};
-#[cfg(feature = "ssr")]
-use url::Url;
-#[cfg(feature = "ssr")]
 use leptos_hl_contact::{
     axum_helpers::{
         FormTokenCookie, delivery_context_fn, provide_form_token_binding,
-        provide_form_token_with_cookie, success_redirect,
+        provide_form_token_issuer, provide_form_token_with_cookie, success_redirect,
     },
-    form_token::{Binding, FormTokenConfig, FormTokenContext},
     delivery::{ContactDeliveryContext, noop::NoopDelivery},
+    form_token::{Binding, FormTokenConfig, FormTokenContext},
 };
+#[cfg(feature = "ssr")]
+use tower_governor::{
+    GovernorLayer, governor::GovernorConfigBuilder, key_extractor::SmartIpKeyExtractor,
+};
+#[cfg(feature = "ssr")]
+use tower_http::limit::RequestBodyLimitLayer;
+#[cfg(feature = "ssr")]
+use url::Url;
 
 // Uncomment for real SMTP delivery:
 // use leptos_hl_contact::delivery::smtp::{LettreSmtpDelivery, SmtpConfig, SmtpTlsMode};
@@ -210,9 +208,11 @@ async fn main() {
                 ctx.clone()();
                 provide_context::<FormTokenContext>(Arc::clone(&token_config));
                 // Issues a token and sets its cookie on page renders only;
-                // reads the cookie back on every request.
+                // reads the cookie back on every request; and sets it for a
+                // token the browser fetches from `/api/form_token`.
                 provide_form_token_with_cookie(&token_config, &token_cookie);
                 provide_form_token_binding(&token_cookie);
+                provide_form_token_issuer(&token_cookie);
                 provide_context(redirect.clone());
             },
             {

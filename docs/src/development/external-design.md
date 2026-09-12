@@ -109,7 +109,7 @@ branch on the method or path rather than splitting the closure.
 
 | Mode | Component runs | Server function | Notes |
 |------|----------------|-----------------|-------|
-| SSR + hydrate | server, then browser | server | Full interactivity; the hidden token is rendered by SSR and preserved by hydration (tachys does not rewrite static attributes on first hydration) |
+| SSR + hydrate | server, then browser | server | Full interactivity; the hidden token is rendered by SSR and preserved by hydration (tachys does not rewrite a reactive attribute on first hydration from server HTML).  A form reached by client-side navigation arrives with an empty token field and fetches one from `issue_form_token_fn` |
 | SSR only, no WASM shipped | server | server | Plain POST; behaviour per §4.1.4 |
 | Islands | server; island in browser | server | Same as SSR + hydrate for the island |
 
