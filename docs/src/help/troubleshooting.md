@@ -29,7 +29,7 @@ One of:
   field is empty.  Add `provide_context(generate_csrf_token(&csrf))` there.
 - The token is older than `token_ttl_secs` (default one hour).
 - The secret differs between instances behind a load balancer.
-- The known 0.3.3 re-render issue below.
+- The known re-render issue below.
 
 ## The form submits but no email arrives
 
@@ -72,17 +72,15 @@ Rust 1.85 or later is required.  `rustup update`.
 with a native TLS library available, or open an issue if you need a rustls
 option in `LettreSmtpDelivery`.
 
-## Known issues in 0.3.3
+## Known issues
 
 Confirmed by the maintainers; scheduled in `ROADMAP.md`.
 
 | Symptom | Cause | Item |
 |---------|-------|------|
-| Validation errors appear as the generic banner, never under the field | Client-side parsing of the error payload fails because the framework prefixes the message | P-02 |
 | After a validation error in the browser the typed input is cleared | The form subtree is rebuilt when the result changes | P-10 |
 | After that rebuild the next submit fails with "reload the page" (`csrf` feature) | The hidden token field is empty on the client | P-11 |
 | Without JavaScript, a successful submit shows no confirmation | The redirect back to the page carries no success signal | P-13 |
-| Both bundled examples panic at startup | Axum 0.7 wildcard syntax in the route | P-09 |
 
 ## Still stuck?
 

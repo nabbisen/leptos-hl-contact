@@ -25,10 +25,6 @@ Example of the rendered error state:
 </p>
 ```
 
-> In `0.3.3` per-field errors are not displayed in the browser because of a
-> client-side parsing defect; the generic error banner appears instead.  See
-> [Known issues](../help/troubleshooting.md#known-issues-in-033).
-
 ## Your responsibilities
 
 - Colour contrast of the classes you supply (WCAG AA: 4.5:1).

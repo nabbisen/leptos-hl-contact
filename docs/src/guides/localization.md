@@ -28,8 +28,8 @@ them.
 
 ## What is not localisable yet
 
-Messages composed on the server are English in `0.3.3` and cannot be
-overridden through labels:
+Messages composed on the server are English and cannot yet be overridden
+through labels:
 
 - Per-field validation messages ("Name must be 1–80 characters", …)
 - Server-policy messages ("Subject is required.", …)

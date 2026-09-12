@@ -157,7 +157,7 @@ dependencies = [
 
 [[package]]
 name = "axum-with-security"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "axum",
  "dotenvy",
@@ -1316,7 +1316,7 @@ dependencies = [
 
 [[package]]
 name = "leptos-hl-contact"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "axum",
  "hex",

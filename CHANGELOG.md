@@ -1,8 +1,6 @@
 # Changelog
 
-## [Unreleased]
-
-No version assigned; the owner decides the release number.
+## [0.3.4] — 2026-09-12
 
 ### Fixed
 
