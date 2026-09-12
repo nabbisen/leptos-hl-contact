@@ -136,6 +136,16 @@ parses the `contact_error:` prefix from `Args` or `ServerError`.  The
 generic banner memo becomes: field payload present → none; contact code
 present → its label; otherwise `labels.error`.
 
+## Amendment 2026-09-13 — `Required` for blank values
+
+D2 said the client renders `Length` for every length violation, because
+`validator` reports a blank required string that way.  Handoff 01
+implemented that faithfully and it reads badly: an empty box is told it
+must be "between 1 and 80 characters".  D2 is amended — the crate emits
+`Required` when the trimmed value is empty and the rule has `min ≥ 1`,
+which `validator` cannot distinguish but the model can.  No new code
+variant, no wire change.  Handoff 02 (roadmap P-29).
+
 ## Alternatives considered
 
 | Alternative | Why not |

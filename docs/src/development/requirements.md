@@ -195,7 +195,7 @@ input the browser accepted.
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
 | FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr`), `axum-helpers` (implies `ssr`), `csrf` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met (M1) |
-| FR-CFG-02 | Required context values MUST be documented for the context closure, and helpers MUST exist for Axum | MUST | Partial: docs still describe two sites; corrected by RFC 007 |
+| FR-CFG-02 | Required context values MUST be documented for the context closure, and helpers MUST exist for Axum | MUST | Met (RFC 007) |
 | FR-CFG-03 | Misconfiguration MUST surface loudly (startup panic in examples, `error` log in the crate) and MUST NOT fall back to an insecure default | MUST | Met |
 | FR-CFG-04 | Types holding secrets MUST redact them in `Debug` output | MUST | Met |
 | FR-CFG-05 | Defaults MUST be the secure choice (STARTTLS; one-hour token TTL; policy off means "validator limits apply", never "no limits") | MUST | Met |
@@ -205,7 +205,7 @@ input the browser accepted.
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
 | FR-I18N-01 | All strings rendered by the component MUST be overridable per instance | MUST | Met |
-| FR-I18N-02 | All visitor-visible strings that originate on the server (validation, policy, token, configuration, delivery messages) MUST be localisable by the integrator | MUST | Gap (P-14: English strings composed on the server) |
+| FR-I18N-02 | All visitor-visible strings that originate on the server (validation, policy, token, configuration, delivery messages) MUST be localisable by the integrator | MUST | Met (RFC 003: codes on the wire, labels on the client) |
 | FR-I18N-03 | Presets for common languages SHOULD be offered | SHOULD | Planned (P-20) |
 | FR-I18N-04 | The component MUST NOT hard-code text direction, locale formatting, or language attributes; these belong to the host page | MUST | Met |
 | FR-I18N-05 | Unicode input MUST be accepted and preserved end to end, including correct encoding of non-ASCII display names and subjects in email headers | MUST | Met (lettre encodes headers) |
@@ -328,8 +328,10 @@ input the browser accepted.
 
 **Constraints (framework and platform facts)**
 
-- Leptos runs server functions in a handler separate from SSR, so context
-  must be provided at two sites.  This is inherent, not a crate choice.
+- Leptos runs server functions in a handler separate from the SSR renderer,
+  but `leptos_routes_with_context` registers them itself and serves both with
+  the same context closure, so one closure provides everything (RFC 007).
+  Where a value must differ by request kind, the closure reads `Parts`.
 - Leptos context does not exist in the browser; anything the client needs
   after hydration must be in the DOM or in reactive state.
 - Without JavaScript, the framework answers a form POST with a redirect to
@@ -350,13 +352,11 @@ input the browser accepted.
 |-------------|--------|--------------|
 | NFR-TEST-02, NFR-TEST-03 | Gap | P-15 |
 | FR-UI-12 (client-side navigation) | Planned | RFC 004 |
-| FR-CFG-02 | Partial | RFC 007 |
 | FR-ABUSE-02 | Planned | P-12 / RFC 004 |
 | FR-ABUSE-10..12 | Planned | P-21 / RFC 005 |
 | FR-ABUSE-13 | Planned | P-12 / RFC 004 |
 | FR-ABUSE-14 | Planned | P-25 / RFC 006 |
 | FR-DEL-08, NFR-PERF-03 | Gap | Future (queue adapter) |
-| FR-I18N-02 | Gap | P-14 |
 | FR-I18N-03 | Planned | P-20 |
 | NFR-PORT-02 | Decision | P-23 |
 | NFR-DEP-02 | Partial | P-24 |
@@ -384,6 +384,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 6 | RFC 007 and RFC 003 handoff 01: FR-CFG-02 and FR-I18N-02 Met; the "two context sites" constraint corrected |
 | 2026-09-12 | Draft 5 | RFC 002 handoff 03: FR-UI-06, FR-PE-03 Met; FR-CFG-02 downgraded to Partial pending RFC 007 (one context closure) |
 | 2026-09-12 | Draft 4 | RFC 002 handoff 02: FR-UI-04, FR-UI-07, FR-UI-12 (SSR+hydrate), FR-UI-13 set to Met |
 | 2026-09-12 | Draft 3 | M1 (RFC 001) implemented and approved: statuses for FR-UI-08, FR-SUB-06/07, FR-VAL-07/08, FR-CFG-01, FR-A11Y-03, NFR-DOC-01..03, NFR-TEST-01, NFR-REL-02 set to Met |

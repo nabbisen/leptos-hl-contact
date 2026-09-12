@@ -83,7 +83,7 @@ per-field errors visible.
 | P-08 | `docs/book.toml` `git-repository-icon` rejected by mdbook 0.5 in every tried form — **done 2026-09-12**: key removed, default icon used; book builds | Low | docs | verified |
 | P-09 | Examples panicked at startup on the Axum 0.7 wildcard syntax — **done** in handoff 001-02, approved 2026-09-12 (`16a32a9`, `e15ede3`); examples now compiled by a CI matrix job; `axum-with-security` additionally served with connection info so the rate limiter's peer-address fallback works (it had answered 500 to every header-less request) | **High** | fix + CI | verified |
 
-### M2 — Form robustness and anti-abuse redesign (proposed release: 0.4.0, minor) — RFC 002 implemented on `main` 2026-09-12; RFC 003 and RFC 007 remain
+### M2 — Form robustness and anti-abuse redesign (proposed release: 0.4.0, minor) — RFC 002, RFC 003 and RFC 007 implemented on `main` 2026-09-13; RFC 003 handoff 02 (P-29) remains before the 0.4.0 candidate
 
 Behavioural or API changes.  Each item needs an accepted RFC before a
 handoff is written.
@@ -95,14 +95,15 @@ handoff is written.
 | P-12 | Anti-forgery token redesign: the token is not bound to the visitor and is replayable within its TTL, so it does not prevent cross-site forgery on its own; decide between cookie binding, session binding, or repositioning it as an anti-automation "form token" with the Origin check as the documented CSRF control | **High** | RFC | verified by design reading |
 | P-13 | No success confirmation without JavaScript — **done** in handoff 002-03 (`fa3a970`): `ContactSuccessRedirect` + `axum_helpers::success_redirect`; every successful submission goes to the configured page in both modes; unconfigured case unchanged and documented | Medium | [RFC 002](./rfcs/accepted/002-form-state-model.md) | no-JS 302 reproduced by the architect |
 | P-27 | ~~Per-field errors do not render under hydration~~ — **withdrawn 2026-09-12**: reported by handoff 002-01, not reproducible by the architect on a clean client build (decode path verified natively, instrumented and clean hydrated runs both render the field error); attributed to a stale WASM bundle.  Handoff 02 begins with a clean rebuild and a regression check | — | withdrawn | verified in the browser |
-| P-14 | Localisable server-originated messages: validation, policy, token and configuration messages are English strings composed on the server and cannot be overridden through `ContactFormLabels`; move to error codes mapped to text on the client | Medium | [RFC 003](./rfcs/accepted/003-error-codes.md) | verified |
+| P-14 | Server-composed messages were English and unlocalisable — **done** in RFC 003 handoff 01 (`aaca97c`), approved 2026-09-13: codes on the wire, `ContactErrorLabels` on the client; verified with a Japanese label set on both the hydrated and no-JS paths | Medium | [RFC 003](./rfcs/accepted/003-error-codes.md) | verified by the architect |
 | P-15 | Test strategy: integration tests for `submit_contact` (CSRF fail-closed, policy, honeypot, delivery error), component render tests, no-JS flow; current server tests only check string sentinels | Medium | RFC / handoff | verified |
 | P-16 | Focus management after a failed submission — **done** in handoff 002-02: `focus_first_error` option, default on | Low | [RFC 002](./rfcs/accepted/002-form-state-model.md) | verified in the browser |
-| P-28 | **"Two context sites" guidance is wrong**: `leptos_routes_with_context` registers server functions itself with its own closure and Axum prefers the literal path, so the manual `/api/{*fn_name}` route is dead and every context must be provided in one closure.  Found by handoff 002-03.  Docs, examples, rustdoc sweep; RFC 004 amended (cookie issued only on `GET`) | **High** | [RFC 007](./rfcs/accepted/007-one-context-closure.md) | verified in leptos_axum 0.8.10 source |
+| P-28 | "Two context sites" guidance was wrong — **done** in RFC 007 handoff 01 (`804b0db`), approved 2026-09-13 with one correction: the manual route is gone from both examples and nine pages; the context closure is the single site | **High** | [RFC 007](./rfcs/accepted/007-one-context-closure.md) | verified by the architect |
 
 ### M3 — Anti-abuse (proposed release: 0.5.0, minor) — **theme authorized 2026-09-12**
 
-Owner decisions of 2026-09-12: theme approved and positioned directly
+Owner decisions of 2026-09-12: theme approved and positioned | P-29 | An empty required field renders the length message ("between 1 and 80 characters") rather than the required message, because `validator` reports a blank string as a `length` violation.  Correct per RFC 003 D2 as written; D2 amended | Medium | [RFC 003](./rfcs/accepted/003-error-codes.md) handoff 02 | verified in the browser 2026-09-13 |
+directly
 after M2; first-release providers are Cloudflare Turnstile, hCaptcha,
 reCAPTCHA v2 and v3 (not Enterprise); when a challenge is enabled,
 no-JavaScript submissions are rejected with a `<noscript>` message,
