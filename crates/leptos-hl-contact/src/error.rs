@@ -19,6 +19,136 @@ use thiserror::Error;
 /// `ServerFnError` message strings.
 pub const FIELD_ERROR_PREFIX: &str = "field_errors:";
 
+/// Sentinel prefix used to identify a [`ContactErrorCode`] inside
+/// `ServerFnError` message strings.
+pub const CONTACT_ERROR_PREFIX: &str = "contact_error:";
+
+// ---------------------------------------------------------------------------
+// Field error codes
+// ---------------------------------------------------------------------------
+
+/// Which field an error belongs to.
+///
+/// Used to pick between the general and the email-specific `format` label.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ContactField {
+    /// The `name` field.
+    Name,
+    /// The `email` field.
+    Email,
+    /// The `subject` field.
+    Subject,
+    /// The `message` field.
+    Message,
+}
+
+/// Why one field failed, as a code the client turns into text.
+///
+/// Lengths are counted in characters (Unicode scalar values), matching the
+/// validator and the component's `maxlength`.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum FieldErrorCode {
+    /// The field is required and was absent or blank.
+    Required,
+    /// The field's length is outside the permitted range.
+    Length {
+        /// Minimum number of characters.
+        min: usize,
+        /// Maximum number of characters.
+        max: usize,
+    },
+    /// The value is syntactically invalid, for example an email address.
+    Format,
+    /// The value contains a CR or LF, which is rejected to prevent email
+    /// header injection.
+    LineBreaks,
+}
+
+/// One field's error: a code, or text a server rendered itself.
+///
+/// The `Text` variant exists for compatibility: a 0.3 server sent English
+/// sentences, and `serde(untagged)` lets a current client still read them.
+/// A current server only ever sends [`Code`](Self::Code).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum FieldError {
+    /// A code the client renders from [`ContactErrorLabels`](crate::config::ContactErrorLabels).
+    Code(FieldErrorCode),
+    /// Pre-rendered text, shown unchanged.
+    Text(String),
+}
+
+// ---------------------------------------------------------------------------
+// ContactErrorCode
+// ---------------------------------------------------------------------------
+
+/// A whole-submission failure, as a code the client turns into text.
+///
+/// These reach the client as `contact_error:<code>` inside a
+/// `ServerFnError`; see [`from_server_fn_error`](Self::from_server_fn_error).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ContactErrorCode {
+    /// The form token was missing, malformed, or expired.
+    TokenInvalid,
+    /// A required context value is absent, so the form cannot accept
+    /// submissions.
+    NotConfigured,
+    /// The delivery backend refused or failed.
+    DeliveryFailed,
+    /// Something unforeseen went wrong.
+    Unexpected,
+}
+
+impl ContactErrorCode {
+    /// The wire spelling, without the prefix.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::TokenInvalid => "token_invalid",
+            Self::NotConfigured => "not_configured",
+            Self::DeliveryFailed => "delivery_failed",
+            Self::Unexpected => "unexpected",
+        }
+    }
+
+    /// Parse a wire spelling.  Returns `None` for anything unrecognised, so
+    /// a newer server's code falls back to the generic banner rather than
+    /// rendering nothing.
+    pub fn from_str_code(s: &str) -> Option<Self> {
+        match s {
+            "token_invalid" => Some(Self::TokenInvalid),
+            "not_configured" => Some(Self::NotConfigured),
+            "delivery_failed" => Some(Self::DeliveryFailed),
+            "unexpected" => Some(Self::Unexpected),
+            _ => None,
+        }
+    }
+
+    /// Encode into a `ServerFnError` message string.
+    pub fn into_server_fn_message(self) -> String {
+        format!("{}{}", CONTACT_ERROR_PREFIX, self.as_str())
+    }
+
+    /// Extract a code from a server-function error.
+    ///
+    /// Looks in both the `Args` and `ServerError` variants, and tolerates
+    /// leading text: the framework prefixes `Args` with
+    /// `"error deserializing server function arguments: "`.
+    pub fn from_server_fn_error<E>(
+        err: &leptos::server_fn::error::ServerFnError<E>,
+    ) -> Option<Self> {
+        use leptos::server_fn::error::ServerFnError;
+        let s = match err {
+            ServerFnError::Args(s) | ServerFnError::ServerError(s) => s,
+            _ => return None,
+        };
+        let at = s.find(CONTACT_ERROR_PREFIX)?;
+        Self::from_str_code(s[at + CONTACT_ERROR_PREFIX.len()..].trim())
+    }
+}
+
 /// Per-field validation error messages, safe to display to end-users.
 ///
 /// Returned by [`submit_contact`](crate::server::submit_contact) when
@@ -35,13 +165,13 @@ pub const FIELD_ERROR_PREFIX: &str = "field_errors:";
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ContactFieldErrors {
     /// Error for the `name` field.
-    pub name: Option<String>,
+    pub name: Option<FieldError>,
     /// Error for the `email` field.
-    pub email: Option<String>,
+    pub email: Option<FieldError>,
     /// Error for the `subject` field.
-    pub subject: Option<String>,
+    pub subject: Option<FieldError>,
     /// Error for the `message` field.
-    pub message: Option<String>,
+    pub message: Option<FieldError>,
 }
 
 impl ContactFieldErrors {
@@ -94,6 +224,16 @@ impl ContactFieldErrors {
         match err {
             leptos::server_fn::error::ServerFnError::Args(s) => Self::from_error_str(s),
             _ => None,
+        }
+    }
+
+    /// The error for one field, if any.
+    pub fn get(&self, field: ContactField) -> Option<&FieldError> {
+        match field {
+            ContactField::Name => self.name.as_ref(),
+            ContactField::Email => self.email.as_ref(),
+            ContactField::Subject => self.subject.as_ref(),
+            ContactField::Message => self.message.as_ref(),
         }
     }
 

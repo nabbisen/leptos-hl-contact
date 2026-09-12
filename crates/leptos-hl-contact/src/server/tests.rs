@@ -11,9 +11,9 @@ fn field_error_prefix_is_the_wire_sentinel() {
 
 #[test]
 fn field_error_message_has_prefix() {
-    use crate::error::ContactFieldErrors;
+    use crate::error::{ContactFieldErrors, FieldError, FieldErrorCode};
     let errs = ContactFieldErrors {
-        name: Some("required".into()),
+        name: Some(FieldError::Code(FieldErrorCode::Required)),
         ..Default::default()
     };
     let msg = errs.into_server_fn_message();
@@ -23,15 +23,26 @@ fn field_error_message_has_prefix() {
     );
 }
 
+/// Whole-submission errors carry the `contact_error:` prefix, never the
+/// field sentinel, so the component routes them to the banner.
 #[test]
-fn generic_error_has_no_prefix() {
-    let generic = "Failed to send message. Please try again later.";
-    assert!(!generic.starts_with(FIELD_ERROR_PREFIX));
+fn generic_error_has_no_field_prefix() {
+    use crate::error::ContactErrorCode;
+    for code in [
+        ContactErrorCode::TokenInvalid,
+        ContactErrorCode::NotConfigured,
+        ContactErrorCode::DeliveryFailed,
+        ContactErrorCode::Unexpected,
+    ] {
+        let msg = code.into_server_fn_message();
+        assert!(!msg.starts_with(FIELD_ERROR_PREFIX), "{msg}");
+        assert!(msg.starts_with(crate::error::CONTACT_ERROR_PREFIX), "{msg}");
+    }
 }
 
 #[test]
 fn csrf_error_message_has_no_field_prefix() {
-    let csrf_err = "Invalid or expired security token. Please reload the page.";
+    let csrf_err = crate::error::ContactErrorCode::TokenInvalid.into_server_fn_message();
     assert!(!csrf_err.starts_with(FIELD_ERROR_PREFIX));
 }
 
@@ -44,8 +55,8 @@ fn csrf_missing_context_error_is_not_field_error() {
     // The error returned when CsrfConfigContext is missing must be a
     // ServerError (not field_errors: prefix), so the component shows
     // the generic error banner, not a field-level message.
-    let missing_context_msg = "Contact form security is not configured. \
-         Please contact the site administrator.";
+    let missing_context_msg =
+        crate::error::ContactErrorCode::NotConfigured.into_server_fn_message();
     assert!(!missing_context_msg.starts_with(crate::error::FIELD_ERROR_PREFIX));
 }
 

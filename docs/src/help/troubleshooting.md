@@ -1,6 +1,6 @@
 # Troubleshooting
 
-## "Contact form is not configured."
+## "This form is not available right now."
 
 `ContactDeliveryContext` is missing from the context closure.  Provide it
 (or `delivery_context_fn`) in the closure you pass to
@@ -11,12 +11,12 @@ server functions alike.  The log line is:
 ERROR leptos_hl_contact::server: ContactDeliveryContext not provided — check server setup
 ```
 
-## "Contact form security is not configured."
+## The banner says the form is unavailable, with the `csrf` feature on
 
 The `csrf` feature is enabled but `CsrfConfigContext` is missing from the
 context closure.
 
-## "Invalid or expired security token. Please reload the page."
+## "Your session token expired. Please reload the page and try again."
 
 One of:
 

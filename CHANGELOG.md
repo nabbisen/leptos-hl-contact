@@ -28,6 +28,43 @@ No version assigned; the owner decides the release number.
   Without the context nothing changes: JavaScript clients show the inline
   message and no-JavaScript clients reload the form page.
 
+### Changed
+
+- **The server no longer composes visitor-facing text.**  Validation, policy,
+  token and configuration failures now travel as codes, and the component
+  renders them from the new `ContactFormLabels::errors`, so translating the
+  labels translates every message a visitor can see — including on the
+  no-JavaScript path.
+
+  **Breaking for struct-literal users** of two types:
+
+  - `ContactFieldErrors`'s four fields change from `Option<String>` to
+    `Option<FieldError>`.  Construct them as
+    `Some(FieldError::Code(FieldErrorCode::Required))`, or
+    `Some(FieldError::Text("…".into()))` to keep a literal sentence.  Reading
+    code should match on `FieldError` or call the new
+    `ContactFieldErrors::get(ContactField)`.
+  - `ContactFormLabels` gains `errors: ContactErrorLabels`.  Build it with
+    `..Default::default()` and you are unaffected; an exhaustive struct
+    literal must add the field.
+
+  On the wire, `field_errors:` members become objects such as
+  `{"kind":"length","min":1,"max":80}`, and whole-submission failures become
+  `contact_error:<code>`.  `FieldError` is `serde(untagged)`, so a current
+  client still reads a `0.3` server's sentences and shows them unchanged.
+  A `0.3` client reading a current server falls back to its generic banner,
+  which is what it already showed for every validation error.
+
+### Added
+
+- `FieldErrorCode`, `FieldError`, `ContactErrorCode`, `ContactField` and
+  `ContactErrorLabels`, all re-exported at the crate root, plus
+  `ContactFieldErrors::get`, `ContactErrorCode::from_server_fn_error` and
+  the `CONTACT_ERROR_PREFIX` sentinel.
+- `ContactErrorLabels::field_text` and `code_text` render a code into text;
+  `length` may use the `{min}` and `{max}` placeholders, replaced by plain
+  substitution with no format syntax.
+
 ### Documentation
 
 - **One context closure for Axum.**  The documentation told integrators to

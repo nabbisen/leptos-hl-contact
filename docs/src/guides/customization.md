@@ -56,6 +56,7 @@ let labels = ContactFormLabels {
 | `success` | Your message has been sent. We will get back to you soon. |
 | `error` | Failed to send message. Please try again later. |
 | `honeypot_label` | Leave this field blank *(screen-reader text only)* |
+| `errors` | [`ContactErrorLabels`](./localization.md#error-messages) — text for every error the server reports |
 
 Translating the form is covered in [Localization](./localization.md).
 

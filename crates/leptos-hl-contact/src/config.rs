@@ -8,7 +8,11 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{error::ContactFieldErrors, model::ContactInput, model::MESSAGE_MAX_LEN};
+use crate::{
+    error::{ContactField, ContactFieldErrors, FieldError, FieldErrorCode},
+    model::ContactInput,
+    model::MESSAGE_MAX_LEN,
+};
 
 // ---------------------------------------------------------------------------
 // ContactFormClasses
@@ -49,6 +53,93 @@ pub struct ContactFormClasses {
     pub error: String,
     /// Success message shown after a successful submission.
     pub success: String,
+}
+
+// ---------------------------------------------------------------------------
+// ContactErrorLabels
+// ---------------------------------------------------------------------------
+
+/// Text for every error the server can report.
+///
+/// The server sends codes, never sentences, so translating these translates
+/// the whole form.  `length` may contain the placeholders `{min}` and
+/// `{max}`, which are replaced with decimal numbers; there is no format
+/// syntax beyond those two.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ContactErrorLabels {
+    /// A required field was absent or blank.
+    pub required: String,
+    /// Length outside the permitted range.  May use `{min}` and `{max}`.
+    pub length: String,
+    /// The email field's value is not a valid address.
+    pub format_email: String,
+    /// Any other syntactically invalid value.
+    pub format: String,
+    /// CR or LF in a field that forbids them.
+    pub line_breaks: String,
+    /// The form token was missing, malformed, or expired.
+    pub token_invalid: String,
+    /// A required context value is absent on the server.
+    pub not_configured: String,
+    /// The delivery backend refused or failed.
+    pub delivery_failed: String,
+}
+
+impl Default for ContactErrorLabels {
+    fn default() -> Self {
+        Self {
+            required: "This field is required.".into(),
+            length: "Must be between {min} and {max} characters.".into(),
+            format_email: "Enter a valid email address.".into(),
+            format: "Invalid value.".into(),
+            line_breaks: "Line breaks are not allowed here.".into(),
+            token_invalid: "Your session token expired. Please reload the page and try again."
+                .into(),
+            not_configured: "This form is not available right now.".into(),
+            delivery_failed: "Failed to send message. Please try again later.".into(),
+        }
+    }
+}
+
+impl ContactErrorLabels {
+    /// Render one field's error.
+    ///
+    /// `field` selects between [`format_email`](Self::format_email) and
+    /// [`format`](Self::format); every other code ignores it.
+    pub fn field_text(&self, field: ContactField, err: &FieldError) -> String {
+        match err {
+            FieldError::Text(s) => s.clone(),
+            FieldError::Code(code) => match code {
+                FieldErrorCode::Required => self.required.clone(),
+                FieldErrorCode::Length { min, max } => self
+                    .length
+                    .replace("{min}", &min.to_string())
+                    .replace("{max}", &max.to_string()),
+                FieldErrorCode::Format => {
+                    if field == ContactField::Email {
+                        self.format_email.clone()
+                    } else {
+                        self.format.clone()
+                    }
+                }
+                FieldErrorCode::LineBreaks => self.line_breaks.clone(),
+            },
+        }
+    }
+
+    /// Render a whole-submission error.
+    ///
+    /// [`Unexpected`](crate::error::ContactErrorCode::Unexpected) renders as
+    /// [`delivery_failed`](Self::delivery_failed): from the visitor's side
+    /// the message did not go, and the cause belongs in the logs.
+    pub fn code_text(&self, code: crate::error::ContactErrorCode) -> String {
+        use crate::error::ContactErrorCode as C;
+        match code {
+            C::TokenInvalid => self.token_invalid.clone(),
+            C::NotConfigured => self.not_configured.clone(),
+            C::DeliveryFailed | C::Unexpected => self.delivery_failed.clone(),
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -93,6 +184,9 @@ pub struct ContactFormLabels {
     /// that discover the hidden element; should instruct users to leave it
     /// blank).
     pub honeypot_label: String,
+
+    /// Text for every error the server can report.
+    pub errors: ContactErrorLabels,
 }
 
 impl Default for ContactFormLabels {
@@ -107,6 +201,7 @@ impl Default for ContactFormLabels {
             success: "Your message has been sent. We will get back to you soon.".into(),
             error: "Failed to send message. Please try again later.".into(),
             honeypot_label: "Leave this field blank".into(),
+            errors: ContactErrorLabels::default(),
         }
     }
 }
@@ -239,12 +334,15 @@ impl ContactServerPolicy {
         let mut errs = ContactFieldErrors::default();
 
         if self.require_subject && input.subject.is_none() {
-            errs.subject = Some("Subject is required.".into());
+            errs.subject = Some(FieldError::Code(FieldErrorCode::Required));
         }
 
         let limit = self.effective_max_message_len();
         if input.message.chars().count() > limit {
-            errs.message = Some(format!("Message must be at most {limit} characters."));
+            errs.message = Some(FieldError::Code(FieldErrorCode::Length {
+                min: 1,
+                max: limit,
+            }));
         }
 
         errs

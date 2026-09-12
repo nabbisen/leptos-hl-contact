@@ -30,7 +30,8 @@ render           → provided via context (SSR renderer only)
 
 each submit    submit_contact receives csrf_token
                  → verify_csrf_token(token, &config)
-                 → false: "Invalid or expired security token. Please reload the page."
+                 → false: contact_error:token_invalid
+                           (rendered from labels.errors.token_invalid)
 ```
 
 Token format: `{unix_seconds}|{16-byte nonce hex}|{hmac_sha256 hex}`.
@@ -81,8 +82,9 @@ more than 60 seconds in the future.
 ## Fail-closed behaviour
 
 When the feature is enabled and `CsrfConfigContext` is missing from the
-context closure, every submission is rejected with a generic
-"security is not configured" message and an `error` log line.  This is
+context closure, every submission is rejected with the `not_configured`
+code — rendered from `labels.errors.not_configured` — and an `error` log
+line.  This is
 deliberate: forgetting the context must not silently disable the check.
 (Version 0.3.0 skipped verification in that case; 0.3.1 and later fail
 closed.)

@@ -76,12 +76,16 @@ browser ── POST /api/submit_contact (form-encoded) ──▶ submit_contact
 ## Error flow to the client
 
 ```text
-ServerFnError::Args("field_errors:{json}")
+ServerFnError::Args("field_errors:{\"email\":{\"kind\":\"format\"}}")
    → component matches the Args variant → ContactFieldErrors::from_server_fn_error
-   → ContactFieldErrors → FieldError beside each input
+   → FieldErrorCode → labels.errors.field_text(field, err) beside each input
 
-ServerFnError::Args("Invalid or expired security token…")   no payload
-ServerFnError::ServerError("…generic…")
+ServerFnError::Args("contact_error:token_invalid")
+ServerFnError::ServerError("contact_error:delivery_failed")
+   → ContactErrorCode::from_server_fn_error → labels.errors.code_text(code)
+   → generic banner
+
+anything else
    → generic banner with labels.error
 ```
 
@@ -93,8 +97,10 @@ message carries no sentinel — the token failure, for instance — yields
 framework's English wording.  `from_error_str` remains available for callers
 that hold only a string and locates the sentinel anywhere within it.
 
-The sentinel keeps a single error type on the wire.  Roadmap item P-14
-replaces the English texts inside the JSON with codes.
+The sentinel keeps a single error type on the wire, and the JSON carries
+codes rather than sentences, so no visitor-facing English is composed on the
+server (RFC 003).  `FieldError` is `serde(untagged)`, so a 0.3 server's
+pre-rendered strings still parse and are shown unchanged.
 
 ## Feature flags
 

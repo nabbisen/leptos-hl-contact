@@ -111,3 +111,82 @@ fn empty_subject_uses_fallback() {
     );
     assert_eq!(input2.effective_subject("Fallback"), "Fallback");
 }
+
+// ---------------------------------------------------------------------------
+// validate_fields produces codes, not sentences
+// ---------------------------------------------------------------------------
+
+use crate::error::{ContactField, FieldError, FieldErrorCode};
+
+fn code_for(input: &ContactInput, field: ContactField) -> FieldErrorCode {
+    match input.validate_fields().get(field) {
+        Some(FieldError::Code(c)) => c.clone(),
+        other => panic!("expected a code for {field:?}, got {other:?}"),
+    }
+}
+
+/// `validator` reports an empty required string as `length` with `min: 1`,
+/// not as a `required` code — so the client renders the length text.  The
+/// server emits `Required` only from the policy.
+#[test]
+fn empty_name_yields_length_code() {
+    let mut input = valid_input();
+    input.name = String::new();
+    assert_eq!(
+        code_for(&input, ContactField::Name),
+        FieldErrorCode::Length { min: 1, max: 80 }
+    );
+}
+
+#[test]
+fn over_long_name_yields_the_same_length_code() {
+    let mut input = valid_input();
+    input.name = "x".repeat(81);
+    assert_eq!(
+        code_for(&input, ContactField::Name),
+        FieldErrorCode::Length { min: 1, max: 80 }
+    );
+}
+
+#[test]
+fn bad_email_yields_format_code() {
+    let mut input = valid_input();
+    input.email = "not-an-email".into();
+    assert_eq!(
+        code_for(&input, ContactField::Email),
+        FieldErrorCode::Format
+    );
+}
+
+#[test]
+fn newline_in_name_yields_line_breaks_code() {
+    let mut input = valid_input();
+    input.name = "Alice\nEvil".into();
+    assert_eq!(
+        code_for(&input, ContactField::Name),
+        FieldErrorCode::LineBreaks
+    );
+}
+
+#[test]
+fn over_long_subject_yields_length_code_with_zero_min() {
+    let mut input = valid_input();
+    input.subject = Some("x".repeat(121));
+    assert_eq!(
+        code_for(&input, ContactField::Subject),
+        FieldErrorCode::Length { min: 0, max: 120 }
+    );
+}
+
+#[test]
+fn over_long_message_yields_length_code_at_the_ceiling() {
+    let mut input = valid_input();
+    input.message = "x".repeat(MESSAGE_MAX_LEN + 1);
+    assert_eq!(
+        code_for(&input, ContactField::Message),
+        FieldErrorCode::Length {
+            min: 1,
+            max: MESSAGE_MAX_LEN
+        }
+    );
+}

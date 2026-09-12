@@ -72,37 +72,30 @@ pub struct ContactInput {
     ///
     /// Constraints: 1–80 characters, no newline characters.
     #[validate(
-        length(min = 1, max = 80, message = "Name must be 1–80 characters"),
-        custom(function = "no_newlines", message = "Name must not contain newlines")
+        length(min = 1, max = 80),
+        custom(function = "no_newlines", code = "no_newlines")
     )]
     pub name: String,
 
     /// Email address used as the `Reply-To` header.
     ///
     /// Validated as an RFC 5321-style address by the `validator` crate.
-    #[validate(email(message = "A valid email address is required"))]
+    #[validate(email)]
     pub email: String,
 
     /// Optional subject line for the enquiry.
     ///
     /// Constraints: 0–120 characters, no newline characters.
     #[validate(
-        length(max = 120, message = "Subject must be at most 120 characters"),
-        custom(
-            function = "optional_no_newlines",
-            message = "Subject must not contain newlines"
-        )
+        length(max = 120),
+        custom(function = "optional_no_newlines", code = "no_newlines")
     )]
     pub subject: Option<String>,
 
     /// Body of the enquiry in plain text.
     ///
     /// Constraints: 1 to [`MESSAGE_MAX_LEN`] characters.
-    #[validate(length(
-        min = 1,
-        max = MESSAGE_MAX_LEN_U64,
-        message = "Message must be 1–4 000 characters"
-    ))]
+    #[validate(length(min = 1, max = MESSAGE_MAX_LEN_U64))]
     pub message: String,
 
     /// Honeypot field — must be empty.
@@ -168,21 +161,23 @@ impl ContactInput {
     /// [`ContactFieldErrors`](crate::error::ContactFieldErrors) value with a
     /// generic human-readable message for each failed field.
     pub fn validate_fields(&self) -> crate::error::ContactFieldErrors {
+        use crate::error::FieldError;
         use validator::Validate as _;
+
         let mut out = crate::error::ContactFieldErrors::default();
 
         if let Err(ve) = self.validate() {
             for (field, errors) in ve.field_errors() {
-                let msg = errors
-                    .first()
-                    .and_then(|e| e.message.as_deref())
-                    .unwrap_or("Invalid value")
-                    .to_owned();
+                let Some(first) = errors.first() else {
+                    continue;
+                };
+                let code = field_error_code(first);
+                let err = Some(FieldError::Code(code));
                 match field.as_ref() {
-                    "name" => out.name = Some(msg),
-                    "email" => out.email = Some(msg),
-                    "subject" => out.subject = Some(msg),
-                    "message" => out.message = Some(msg),
+                    "name" => out.name = err,
+                    "email" => out.email = err,
+                    "subject" => out.subject = err,
+                    "message" => out.message = err,
                     _ => {}
                 }
             }
@@ -198,6 +193,28 @@ impl ContactInput {
             .filter(|s| !s.is_empty())
             .unwrap_or(fallback)
             .to_owned()
+    }
+}
+
+/// Map one `validator` error to a [`FieldErrorCode`](crate::error::FieldErrorCode).
+///
+/// `validator` reports an empty required string as `length` with `min: 1`, so
+/// `Required` is never produced here; the server policy emits it.  A `length`
+/// error without `max` is rendered with `usize::MAX`, which no rule in this
+/// crate produces.
+fn field_error_code(e: &validator::ValidationError) -> crate::error::FieldErrorCode {
+    use crate::error::FieldErrorCode;
+
+    let param = |k: &str| e.params.get(k).and_then(|v| v.as_u64()).map(|n| n as usize);
+
+    match e.code.as_ref() {
+        "length" => FieldErrorCode::Length {
+            min: param("min").unwrap_or(0),
+            max: param("max").unwrap_or(usize::MAX),
+        },
+        "email" => FieldErrorCode::Format,
+        "no_newlines" => FieldErrorCode::LineBreaks,
+        _ => FieldErrorCode::Format,
     }
 }
 

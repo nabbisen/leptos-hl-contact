@@ -236,31 +236,52 @@ Unknown fields are ignored by the deserialiser.  Field order is irrelevant.
 
 #### 4.2.2 Error classes
 
-| Situation | Variant | Text (current, English) | Client rendering |
-|-----------|---------|-------------------------|------------------|
-| Field validation or policy failure | `ServerFnError::Args` | `field_errors:{"name":…,"email":…,"subject":…,"message":…}` | per field |
-| Token invalid or expired | `ServerFnError::Args` | "Invalid or expired security token. Please reload the page." | generic banner |
-| Token config missing | `ServerFnError::ServerError` | "Contact form security is not configured. …" | generic banner |
-| Delivery context missing | `ServerFnError::ServerError` | "Contact form is not configured. …" | generic banner |
-| Delivery failed | `ServerFnError::ServerError` | "Failed to send message. Please try again later." | generic banner |
+The server sends codes, never visitor-facing text.  Every message below is
+rendered on the client from `ContactFormLabels::errors` [FR-I18N-02].
+
+| Situation | Variant | String on the wire | Client rendering |
+|-----------|---------|--------------------|------------------|
+| Field validation or policy failure | `ServerFnError::Args` | `field_errors:{…}`, see §4.2.3 | per field, from `errors.required` / `length` / `format_email` / `format` / `line_breaks` |
+| Token invalid, expired or missing | `ServerFnError::Args` | `contact_error:token_invalid` | banner, `errors.token_invalid` |
+| Token config missing | `ServerFnError::ServerError` | `contact_error:not_configured` | banner, `errors.not_configured` |
+| Delivery context missing | `ServerFnError::ServerError` | `contact_error:not_configured` | banner, `errors.not_configured` |
+| Delivery failed | `ServerFnError::ServerError` | `contact_error:delivery_failed` | banner, `errors.delivery_failed` |
+| Unexpected | `ServerFnError::ServerError` | `contact_error:unexpected` | banner, `errors.delivery_failed` |
+
+An unrecognised code — from a newer server — yields no match and the client
+falls back to `labels.error`.
 
 #### 4.2.3 Field-error payload protocol
 
-Current wire form: the `Args` message string is the sentinel `field_errors:`
-followed by compact JSON with four optional string members.  Since M1 the
-client matches the `Args` variant (`ContactFieldErrors::from_server_fn_error`)
-rather than the framework's `Display` output, which prefixes the payload
-with `error deserializing server function arguments: `; the string parser
-remains as a tolerant fallback.
+The `Args` message is the sentinel `field_errors:` followed by compact JSON
+with four optional members, each a `FieldError`:
 
-Target form (P-14, to be decided in its RFC): the same sentinel, but each
-member carries a **code** rather than English text, for example
-`{"name":"length","email":"format","message":"length"}` plus an optional
-`limit` where relevant.  The component maps codes to `labels` entries.  The
-generic-error situations above likewise carry codes (`token_invalid`,
-`not_configured`, `delivery_failed`).  Text strings are then never composed
-on the server.  Both forms MUST be accepted by the client during one minor
-release to allow rolling upgrades.
+```json
+field_errors:{"name":{"kind":"length","min":1,"max":80},"email":{"kind":"format"}}
+```
+
+`FieldErrorCode` is internally tagged on `kind`, snake_case:
+`required`, `length` (with `min` and `max`, in characters), `format`,
+`line_breaks`.
+
+`FieldError` is **untagged**, so a member may be either that object or a
+plain string.  That is the compatibility hinge:
+
+| Server | Client | Result |
+|--------|--------|--------|
+| current | current | code, rendered from labels |
+| 0.3 (sentences) | current | parsed as `FieldError::Text`, shown unchanged |
+| current | 0.3 | the object fails to parse as a string, so the whole payload is rejected and the 0.3 client shows its generic banner — which is what it did for every validation error anyway |
+
+The client matches the `Args` variant
+(`ContactFieldErrors::from_server_fn_error`) rather than the framework's
+`Display` output, which prefixes the payload with
+`error deserializing server function arguments: `; the string parser remains
+as a tolerant fallback.  `ContactErrorCode::from_server_fn_error` reads the
+`contact_error:` prefix from either variant the same way.
+
+Lengths in `length` are characters, matching the validator, the policy and
+the textarea's `maxlength`.
 
 ### 4.3 Server-side integration interface
 
@@ -467,15 +488,14 @@ function.
 | Aspect | Current | Target |
 |--------|---------|--------|
 | Component strings | `ContactFormLabels`, all overridable | unchanged; add presets (P-20), for example `ContactFormLabels::ja()` |
-| Server-originated messages | English composed on the server | codes on the wire (§4.2.3); component maps code → `labels` entry (P-14).  New label fields: per-field `length`/`format`/`required` texts, `token_invalid`, `not_configured` |
+| Server-originated messages | codes on the wire (§4.2.3); the component renders them from `labels.errors` (RFC 003) | unchanged |
 | Text direction | not set by the component | unchanged; integrator sets `dir` on the host page or wrapper class |
 | Length limits | characters everywhere (M1) | unchanged |
 | Email header encoding | RFC 2047 via lettre | unchanged |
 | Language attribute | not set | unchanged; belongs to the page |
 
 Design rule: the crate never chooses a language.  It renders whatever
-strings it is given and, after P-14, never composes visitor-facing text on
-the server.
+strings it is given, and never composes visitor-facing text on the server.
 
 ---
 

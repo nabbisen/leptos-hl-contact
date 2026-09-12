@@ -77,10 +77,10 @@ direct POST.  See [Customization](../guides/customization.md).
 In your server logs, at `error` level with the category and transport
 detail.  Nothing internal is sent to the browser by design.
 
-**"Contact form is not configured."**
-`ContactDeliveryContext` is missing from the server-function handler.
-See [Axum Integration](../guides/axum-integration.md#the-two-context-sites).
+**The banner says the form is unavailable.**
+The server sent `not_configured`: a required context value is missing.  See
+[Axum Integration](../guides/axum-integration.md#the-context-closure).
 
-**"Contact form security is not configured."**
-The `csrf` feature is on but `CsrfConfigContext` is missing.  Same fix,
-for the token config.
+**…and the `csrf` feature is on.**
+`CsrfConfigContext` is missing from the context closure.  Same fix, for the
+token config.

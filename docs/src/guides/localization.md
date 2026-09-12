@@ -26,18 +26,75 @@ Language, text direction, and locale belong to the page: set `lang` and
 `dir` on your document or on a wrapper element.  The component never sets
 them.
 
-## What is not localisable yet
+## Error messages
 
-Messages composed on the server are English and cannot yet be overridden
-through labels:
+The server sends codes, never sentences, so every message a visitor can see
+comes from `labels.errors`:
 
-- Per-field validation messages ("Name must be 1–80 characters", …)
-- Server-policy messages ("Subject is required.", …)
-- The token failure message ("Invalid or expired security token…")
+```rust,ignore
+use leptos_hl_contact::{ContactErrorLabels, ContactFormLabels};
 
-The roadmap item P-14 replaces these with error codes that the component
-maps to label entries, which makes the whole form localisable.  Until then,
-the generic `labels.error` text is what visitors see for non-field errors.
+let labels = ContactFormLabels {
+    errors: ContactErrorLabels {
+        required:        "この項目は必須です。".into(),
+        length:          "{min}〜{max}文字で入力してください。".into(),
+        format_email:    "メールアドレスの形式が正しくありません。".into(),
+        format:          "入力内容が正しくありません。".into(),
+        line_breaks:     "改行は使用できません。".into(),
+        token_invalid:   "セッションの有効期限が切れました。ページを再読み込みしてください。".into(),
+        not_configured:  "現在このフォームはご利用いただけません。".into(),
+        delivery_failed: "送信できませんでした。しばらくしてからお試しください。".into(),
+    },
+    ..Default::default()
+};
+```
+
+| Field | Shown when |
+|-------|------------|
+| `required` | a required field was blank — the server policy's `require_subject` |
+| `length` | the value is too short or too long; `{min}` and `{max}` are replaced with numbers |
+| `format_email` | the email field is not a valid address |
+| `format` | any other field is syntactically invalid |
+| `line_breaks` | a line break appears in `name` or `subject` |
+| `token_invalid` | the form token was missing, malformed or expired |
+| `not_configured` | the server is missing a required context value |
+| `delivery_failed` | the backend refused or failed, and for any unexpected error |
+
+`{min}` and `{max}` are the only placeholders, and they are replaced by plain
+string substitution — there is no format syntax, so translated text may put
+them in any order or omit them.
+
+`labels.error` remains as the last-resort banner for a payload the client
+does not recognise, such as one from a newer server.
+
+### A complete Japanese form
+
+```rust,ignore
+let labels = ContactFormLabels {
+    name:    "お名前".into(),
+    email:   "メールアドレス".into(),
+    subject: "件名".into(),
+    message: "お問い合わせ内容".into(),
+    submit:  "送信する".into(),
+    sending: "送信中…".into(),
+    success: "送信完了しました。折り返しご連絡いたします。".into(),
+    error:   "送信できませんでした。しばらくしてからお試しください。".into(),
+    honeypot_label: "このフィールドは空欄にしてください".into(),
+    errors: ContactErrorLabels {
+        required:        "この項目は必須です。".into(),
+        length:          "{min}〜{max}文字で入力してください。".into(),
+        format_email:    "メールアドレスの形式が正しくありません。".into(),
+        format:          "入力内容が正しくありません。".into(),
+        line_breaks:     "改行は使用できません。".into(),
+        token_invalid:   "セッションの有効期限が切れました。ページを再読み込みしてください。".into(),
+        not_configured:  "現在このフォームはご利用いただけません。".into(),
+        delivery_failed: "送信できませんでした。しばらくしてからお試しください。".into(),
+    },
+};
+```
+
+With those labels no English reaches the visitor on any path, including a
+submission without JavaScript.
 
 ## Unicode input
 

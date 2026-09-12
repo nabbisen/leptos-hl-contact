@@ -4,7 +4,11 @@ use leptos::prelude::*;
 use leptos::server_fn::error::ServerFnError;
 
 #[cfg(feature = "ssr")]
-use crate::{delivery::ContactDeliveryContext, error::ContactValidationError, model::ContactInput};
+use crate::{
+    delivery::ContactDeliveryContext,
+    error::{ContactErrorCode, ContactValidationError},
+    model::ContactInput,
+};
 
 /// Submit a contact form enquiry.
 ///
@@ -77,16 +81,14 @@ pub async fn submit_contact(
                      — check that you supply it in both handler closures"
                 );
                 return Err(ServerFnError::ServerError(
-                    "Contact form security is not configured. \
-                     Please contact the site administrator."
-                        .into(),
+                    ContactErrorCode::NotConfigured.into_server_fn_message(),
                 ));
             };
             let token = csrf_token.as_deref().unwrap_or("");
             if !verify_csrf_token(token, &csrf_config) {
                 tracing::warn!("CSRF token verification failed");
                 return Err(ServerFnError::Args(
-                    "Invalid or expired security token. Please reload the page.".into(),
+                    ContactErrorCode::TokenInvalid.into_server_fn_message(),
                 ));
             }
         }
@@ -105,7 +107,7 @@ pub async fn submit_contact(
             Err(e) => {
                 tracing::error!(error = %e, "unexpected honeypot error");
                 return Err(ServerFnError::ServerError(
-                    "An unexpected error occurred.".into(),
+                    ContactErrorCode::Unexpected.into_server_fn_message(),
                 ));
             }
         }
@@ -138,7 +140,7 @@ pub async fn submit_contact(
         let Some(delivery) = use_context::<ContactDeliveryContext>() else {
             tracing::error!("ContactDeliveryContext not provided — check server setup");
             return Err(ServerFnError::ServerError(
-                "Contact form is not configured. Please contact the site administrator.".into(),
+                ContactErrorCode::NotConfigured.into_server_fn_message(),
             ));
         };
 
@@ -150,7 +152,7 @@ pub async fn submit_contact(
         if let Err(e) = delivery.deliver(input).await {
             tracing::error!(error = %e, "contact form delivery failed");
             return Err(ServerFnError::ServerError(
-                "Failed to send message. Please try again later.".into(),
+                ContactErrorCode::DeliveryFailed.into_server_fn_message(),
             ));
         }
 

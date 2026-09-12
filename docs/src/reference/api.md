@@ -10,7 +10,9 @@ examples.
 `ContactFormOptions`, `ContactServerPolicy`, `ContactDelivery`,
 `ContactDeliveryContext`, `ContactDeliveryError`, `ContactFieldErrors`,
 `ContactValidationError`, `ContactInput`, `MESSAGE_MAX_LEN`,
-`ContactSuccessRedirect`, `InvalidRedirectPath`, `submit_contact`, and with the
+`ContactSuccessRedirect`, `InvalidRedirectPath`, `ContactErrorCode`,
+`ContactErrorLabels`, `ContactField`, `FieldError`, `FieldErrorCode`,
+`submit_contact`, and with the
 `csrf` feature `CsrfConfig`, `CsrfConfigContext`, `CsrfToken`,
 `generate_csrf_token`, `verify_csrf_token`.
 
@@ -56,8 +58,10 @@ pub async fn submit_contact(
 | Outcome | Returned as |
 |---------|-------------|
 | Validation or policy failure | `ServerFnError::Args("field_errors:{…json…}")` |
-| Token invalid or expired | `ServerFnError::Args(generic text)` |
-| Token config missing, delivery context missing, delivery failed | `ServerFnError::ServerError(generic text)` |
+| Token invalid, expired or missing | `ServerFnError::Args("contact_error:token_invalid")` |
+| Token config or delivery context missing | `ServerFnError::ServerError("contact_error:not_configured")` |
+| Delivery failed | `ServerFnError::ServerError("contact_error:delivery_failed")` |
+| Unexpected | `ServerFnError::ServerError("contact_error:unexpected")` |
 | Honeypot filled | `Ok(())` without delivery |
 
 **Feature:** `ssr` for the body; the client stub exists under any feature.
@@ -66,7 +70,13 @@ pub async fn submit_contact(
 
 ```rust,ignore
 pub struct ContactFormClasses { pub root, field, label, input, textarea, button, error, success: String }
-pub struct ContactFormLabels  { pub name, email, subject, message, submit, sending, success, error, honeypot_label: String }
+pub struct ContactFormLabels  { pub name, email, subject, message, submit, sending, success, error, honeypot_label: String, pub errors: ContactErrorLabels }
+pub struct ContactErrorLabels { pub required, length, format_email, format, line_breaks, token_invalid, not_configured, delivery_failed: String }
+
+impl ContactErrorLabels {
+    pub fn field_text(&self, field: ContactField, err: &FieldError) -> String;
+    pub fn code_text(&self, code: ContactErrorCode) -> String;
+}
 pub struct ContactFormOptions { pub show_subject: bool, pub require_subject: bool, pub max_message_len: usize, pub focus_first_error: bool }
 pub struct ContactServerPolicy { pub require_subject: bool, pub max_message_len: usize }
 
@@ -146,25 +156,57 @@ impl ContactInput {
 ## `error`
 
 ```rust,ignore
-pub const FIELD_ERROR_PREFIX: &str = "field_errors:";
+pub const FIELD_ERROR_PREFIX:   &str = "field_errors:";
+pub const CONTACT_ERROR_PREFIX: &str = "contact_error:";
 
-pub struct ContactFieldErrors { pub name, email, subject, message: Option<String> }
+pub enum ContactField { Name, Email, Subject, Message }
+
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum FieldErrorCode { Required, Length { min: usize, max: usize }, Format, LineBreaks }
+
+#[serde(untagged)]
+pub enum FieldError { Code(FieldErrorCode), Text(String) }
+
+pub struct ContactFieldErrors { pub name, email, subject, message: Option<FieldError> }
 impl ContactFieldErrors {
     pub fn is_empty(&self) -> bool;
     pub fn to_json(&self) -> String;
+    pub fn get(&self, field: ContactField) -> Option<&FieldError>;
     pub fn from_error_str(s: &str) -> Option<Self>;    // finds the sentinel anywhere
     pub fn from_server_fn_error<E>(err: &ServerFnError<E>) -> Option<Self>;  // matches the Args variant
     pub fn into_server_fn_message(self) -> String;
+}
+
+#[serde(rename_all = "snake_case")]
+pub enum ContactErrorCode { TokenInvalid, NotConfigured, DeliveryFailed, Unexpected }
+impl ContactErrorCode {
+    pub fn as_str(self) -> &'static str;
+    pub fn from_str_code(s: &str) -> Option<Self>;
+    pub fn into_server_fn_message(self) -> String;
+    pub fn from_server_fn_error<E>(err: &ServerFnError<E>) -> Option<Self>;  // Args or ServerError
 }
 
 pub enum ContactDeliveryError { Configuration(String), Transport(String), MessageBuild(String), Internal(String) }
 pub enum ContactValidationError { InvalidInput(String), HoneypotTriggered }
 ```
 
-`ContactFieldErrors` is safe to show; the two enums are server-side only.
+The server sends codes, never visitor-facing text; the component renders
+them through `ContactErrorLabels`.  `FieldError` is `serde(untagged)`, so a
+`0.3` server's pre-rendered sentences still parse as `Text` and are shown
+unchanged.
+
 A client should use `from_server_fn_error`, which matches the error variant
 rather than its displayed text; `from_error_str` is the fallback for callers
-holding only a string.
+holding only a string.  `ContactDeliveryError` and `ContactValidationError`
+are server-side only.
+
+Wire examples:
+
+```text
+field_errors:{"email":{"kind":"format"},"name":{"kind":"length","min":1,"max":80}}
+contact_error:token_invalid
+contact_error:delivery_failed
+```
 
 ## `delivery`
 

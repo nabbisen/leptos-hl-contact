@@ -4,7 +4,7 @@ use leptos::prelude::*;
 
 use crate::{
     config::{ContactFormClasses, ContactFormLabels, ContactFormOptions},
-    error::ContactFieldErrors,
+    error::{ContactErrorCode, ContactField, ContactFieldErrors},
     server::SubmitContact,
 };
 
@@ -141,14 +141,18 @@ pub fn ContactForm(
         })
     });
 
-    // Every error that carries no field errors — the token failure and every
-    // `ServerError` — shows the generic banner instead.
+    // Every error that carries no field errors shows the generic banner: a
+    // recognised `contact_error:` code renders its own label, anything else
+    // falls back to `labels.error`.
     let generic_error = Memo::new(move |_| {
         value.with(|v| match v {
             Some(Err(e))
                 if ContactFieldErrors::from_server_fn_error(e).is_none_or(|f| f.is_empty()) =>
             {
-                Some(labels.with_value(|l| l.error.clone()))
+                Some(match ContactErrorCode::from_server_fn_error(e) {
+                    Some(code) => labels.with_value(|l| l.errors.code_text(code)),
+                    None => labels.with_value(|l| l.error.clone()),
+                })
             }
             _ => None,
         })
@@ -245,7 +249,7 @@ pub fn ContactForm(
                             <FieldError
                                 input_id="contact-name"
                                 class=ec.clone()
-                                message=Signal::derive(move || field_errors.with(|f| f.name.clone()))
+                                message=Signal::derive(move || field_errors.with(|f| f.name.as_ref().map(|e| labels.with_value(|l| l.errors.field_text(ContactField::Name, e)))))
                             />
                         </div>
 
@@ -267,7 +271,7 @@ pub fn ContactForm(
                             <FieldError
                                 input_id="contact-email"
                                 class=ec.clone()
-                                message=Signal::derive(move || field_errors.with(|f| f.email.clone()))
+                                message=Signal::derive(move || field_errors.with(|f| f.email.as_ref().map(|e| labels.with_value(|l| l.errors.field_text(ContactField::Email, e)))))
                             />
                         </div>
 
@@ -289,7 +293,7 @@ pub fn ContactForm(
                                 <FieldError
                                     input_id="contact-subject"
                                     class=ec.clone()
-                                    message=Signal::derive(move || field_errors.with(|f| f.subject.clone()))
+                                    message=Signal::derive(move || field_errors.with(|f| f.subject.as_ref().map(|e| labels.with_value(|l| l.errors.field_text(ContactField::Subject, e)))))
                                 />
                             </div>
                         })}
@@ -311,7 +315,7 @@ pub fn ContactForm(
                             <FieldError
                                 input_id="contact-message"
                                 class=ec.clone()
-                                message=Signal::derive(move || field_errors.with(|f| f.message.clone()))
+                                message=Signal::derive(move || field_errors.with(|f| f.message.as_ref().map(|e| labels.with_value(|l| l.errors.field_text(ContactField::Message, e)))))
                             />
                         </div>
 
