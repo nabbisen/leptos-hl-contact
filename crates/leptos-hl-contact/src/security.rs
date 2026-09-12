@@ -1,12 +1,8 @@
-// security.rs — Security utilities and documentation for leptos-hl-contact.
+// security.rs — Security utilities for leptos-hl-contact.
 //
-// This module does not export runtime functionality in the MVP.  Its purpose
-// is to:
-//
-//   1. Centralise security-related helper functions that may be called from
-//      multiple modules (e.g. header-injection sanitisation).
-//   2. Serve as an anchor for security documentation in rustdoc.
-//   3. Provide a home for future CSRF helpers and rate-limit guides.
+// This module holds defence-in-depth helpers shared by other modules (for
+// example header-injection sanitisation); the anti-automation token lives in
+// `csrf`.
 
 // ---------------------------------------------------------------------------
 // Header injection helpers

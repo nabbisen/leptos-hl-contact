@@ -23,18 +23,21 @@
 //! | `islands`      | Enables Leptos Islands architecture.            |
 //! | `smtp-lettre`  | Enables the SMTP delivery adapter.             |
 //! | `axum-helpers` | Enables Axum-specific integration helpers.     |
+//! | `csrf`         | Stateless HMAC-SHA256 anti-automation token; `submit_contact` requires `CsrfConfigContext` (fail-closed). |
 //!
 //! ## Quick start
 //!
-//! See the
+//! See
+//! [`examples/axum-with-security`](https://github.com/nabbisen/leptos-hl-contact/tree/main/examples/axum-with-security)
+//! for complete production wiring, and
 //! [`examples/axum-basic`](https://github.com/nabbisen/leptos-hl-contact/tree/main/examples/axum-basic)
-//! directory for a complete working example.
+//! for a local-development skeleton.
 //!
 //! ## Security
 //!
 //! SMTP credentials and the recipient address live **only on the server**.
 //! They are never serialised to WASM or returned to the client.
-//! See the [security documentation](https://github.com/nabbisen/leptos-hl-contact/blob/main/docs/src/security.md).
+//! See the [security documentation](https://github.com/nabbisen/leptos-hl-contact/blob/main/docs/src/security/README.md).
 
 pub mod config;
 pub mod delivery;

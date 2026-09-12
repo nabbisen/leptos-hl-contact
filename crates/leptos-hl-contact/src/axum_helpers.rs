@@ -42,7 +42,7 @@ use crate::delivery::ContactDeliveryContext;
 /// let d2 = Arc::clone(&delivery);
 ///
 /// let app = axum::Router::new()
-///     .route("/api/*fn_name", post(move |req| {
+///     .route("/api/{*fn_name}", post(move |req| {
 ///         let d = Arc::clone(&d1);
 ///         handle_server_fns_with_context(move || provide_contact_delivery(Arc::clone(&d)), req)
 ///     }))
@@ -79,7 +79,7 @@ pub fn provide_contact_delivery(delivery: ContactDeliveryContext) {
 /// let ctx = delivery_context_fn(delivery);
 ///
 /// let app = axum::Router::new()
-///     .route("/api/*fn_name", post({
+///     .route("/api/{*fn_name}", post({
 ///         let ctx = ctx.clone();
 ///         move |req| handle_server_fns_with_context(ctx.clone(), req)
 ///     }))

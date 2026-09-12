@@ -1,6 +1,35 @@
 # Changelog
 
-## [0.3.3] — Unreleased
+## [Unreleased]
+
+No version assigned; the owner decides the release number.
+
+### Documentation
+
+- Documentation book restructured into sections (Getting Started, Guides,
+  Security, Reference, Help, Development) with a persona-oriented
+  `SUMMARY.md`; `README.md` synced to the six-section structure.
+- Planning baseline added: `ROADMAP.md` milestones, `rfcs/` index and state
+  folders, `docs/src/development/requirements.md` and
+  `docs/src/development/external-design.md`.
+- `docs/book.toml`: removed the `git-repository-icon` key rejected by mdBook
+  0.5; the book builds with the default icon.
+- Crate rustdoc corrected (RFC 001, handoff 05): the crate-level feature table
+  now lists `csrf`; the security link points at `docs/src/security/README.md`;
+  the quick-start paragraph distinguishes the production and local-development
+  examples; the `security.rs` and `delivery.rs` header comments are current;
+  the `csrf` module no longer describes its token as "single-use" or as a CSRF
+  control on its own; the `axum_helpers` rustdoc examples use the Axum 0.8
+  route form `"/api/{*fn_name}"`.
+- Release records: every tagged version `0.2.0`–`0.3.3` now carries its tag
+  date instead of an "Unreleased" label, and the previously undocumented
+  `0.2.1` and `0.2.3` releases have entries.
+
+> Entries for RFC 001 handoffs 01–04 (CI gates, example route and CI job,
+> field-error rendering, length units and ceiling) are not present yet: that
+> work has not been implemented at the time of writing.
+
+## [0.3.3] — 2026-05-09
 
 ### Fixed
 
@@ -36,7 +65,7 @@
 - `docs/src/faq.md`: added Q&A on `ContactFormOptions` vs `ContactServerPolicy`
   and on enforcing `require_subject` server-side.
 
-## [0.3.2] — Unreleased
+## [0.3.2] — 2026-05-09
 
 ### Fixed
 
@@ -53,7 +82,7 @@
   the "manifest has no documentation, homepage or repository" warning during
   `cargo package`.
 
-## [0.3.1] — Unreleased
+## [0.3.1] — 2026-05-09
 
 ### Security (Critical)
 
@@ -106,7 +135,7 @@
 - `docs/src/security.md` Origin validation example updated to URL-parsed
   strict comparison.
 
-## [0.3.0] — Unreleased
+## [0.3.0] — 2026-05-09
 
 ### Added
 
@@ -136,7 +165,21 @@
 
 - Near-term roadmap items fully completed (v0.2.x + v0.3.0).
 
-## [0.2.2] — Unreleased
+## [0.2.3] — 2026-05-09
+
+### Changed
+
+- Dependency freshness check (`cargo outdated`); no version bumps required.
+- Documentation rewrite: `README.md`, `docs/book.toml`, `docs/src/SUMMARY.md`,
+  `introduction.md`, `quick-start.md`, `api-reference.md`, `architecture.md`,
+  `troubleshooting.md`, and a new `faq.md`.
+
+> **Record note (2026-09-12):** the items listed under `[0.2.2]` below describe
+> this documentation work and the dependency check as well.  They shipped in
+> `0.2.3`; only the `crates/core` → `crates/leptos-hl-contact` directory rename
+> shipped in `0.2.2`.  The earlier entry is left unedited as a historical record.
+
+## [0.2.2] — 2026-05-05
 
 ### Changed
 
@@ -157,7 +200,20 @@
   and release process.
 - `docs/book.toml` updated with full mdBook HTML output configuration.
 
-## [0.2.0] — Unreleased
+## [0.2.1] — 2026-05-05
+
+### Changed
+
+- Test modules moved out of the implementation files into
+  `src/<module>/tests.rs` per the project's Rust testing rule.
+- `src/delivery/mod.rs` renamed to `src/delivery.rs` (Rust 2018+ module style).
+- Crate directory moved from `leptos-hl-contact-crate/` to `crates/core/`.
+
+### Fixed
+
+- Build error and compiler warnings introduced in `0.2.0`.
+
+## [0.2.0] — 2026-05-05
 
 ### Added
 

@@ -1,4 +1,4 @@
-// csrf.rs — Stateless HMAC-SHA256 CSRF token helper.
+// csrf.rs — Stateless HMAC-SHA256 anti-automation token helper (feature `csrf`).
 //
 // Feature: `csrf`
 //
@@ -40,7 +40,7 @@ type HmacSha256 = Hmac<Sha256>;
 // CsrfConfig
 // ---------------------------------------------------------------------------
 
-/// Configuration for the CSRF token helper.
+/// Configuration for the anti-automation token helper (feature `csrf`).
 ///
 /// Provide this as `Arc<CsrfConfig>` via Leptos context in **both**:
 /// - the SSR renderer closure
@@ -97,7 +97,11 @@ impl CsrfConfig {
 // CsrfToken
 // ---------------------------------------------------------------------------
 
-/// A single-use CSRF token value, ready to embed in an HTML form.
+/// A signed, time-limited token value, ready to embed in an HTML form.
+///
+/// It is valid until it expires and is not bound to the visitor's browser;
+/// Origin validation is the CSRF control.  See the
+/// [security documentation](https://github.com/nabbisen/leptos-hl-contact/blob/main/docs/src/security/csrf.md).
 ///
 /// Provide this via Leptos context in the **SSR renderer closure only** (not
 /// in the server-function handler closure — each context is request-scoped).

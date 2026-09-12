@@ -1,4 +1,4 @@
-// delivery/mod.rs — ContactDelivery trait and shared delivery infrastructure.
+// delivery.rs — ContactDelivery trait and shared delivery infrastructure.
 //
 // All delivery code is server-side only (`ssr` feature gate).  Import this
 // module only from `#[server]` functions or other SSR-only code paths.
