@@ -114,16 +114,16 @@ crate's boundaries.  [Architecture](./architecture.md) describes internals.
 | FR-UI-01 | The form MUST present `name`, `email`, `message` as required fields and `subject` as an optional field that the integrator can hide or make required | MUST | Met |
 | FR-UI-02 | Every visitor-visible string rendered by the component MUST be overridable by the integrator | MUST | Met (see FR-I18N-02 for server-originated strings) |
 | FR-UI-03 | Every structural element MUST expose a CSS class hook; the crate MUST NOT ship mandatory CSS | MUST | Met |
-| FR-UI-04 | The form MUST expose these states: idle, pending, success, field-error, generic-error | MUST | Partial (P-10: inputs cleared on error) |
+| FR-UI-04 | The form MUST expose these states: idle, pending, success, field-error, generic-error | MUST | Met (RFC 002 handoff 02) |
 | FR-UI-05 | While pending, the submit button MUST be disabled, announce busy state, and change its text | MUST | Met |
 | FR-UI-06 | On success the form MUST be replaced by a success message announced politely to assistive technology | MUST | Met with JS; Gap without JS † (P-13) |
-| FR-UI-07 | On a validation failure the visitor's typed input MUST be preserved | MUST | Gap † (P-10) |
+| FR-UI-07 | On a validation failure the visitor's typed input MUST be preserved | MUST | Met (verified in the browser; regression guard) |
 | FR-UI-08 | Each failed field MUST show its error message adjacent to the field | MUST | Met (M1, handoff 001-03) |
 | FR-UI-09 | Delivery and configuration failures MUST show one generic message and MUST NOT reveal internal detail | MUST | Met |
 | FR-UI-10 | The honeypot field MUST be invisible to sighted visitors, hidden from assistive technology, excluded from tab order, and excluded from autofill | MUST | Met |
 | FR-UI-11 | Integrator options MUST include: show subject, require subject (UI), maximum message length (UI) | MUST | Met |
-| FR-UI-12 | When an anti-forgery token is configured the form MUST carry it in a hidden field, and the field MUST remain valid for the lifetime of the rendered form, including after client-side re-renders | MUST | Partial † (P-11) |
-| FR-UI-13 | After a failed submission, focus SHOULD move to the first invalid field or to an error summary | SHOULD | Gap (P-16) |
+| FR-UI-12 | When an anti-forgery token is configured the form MUST carry it in a hidden field, and the field MUST remain valid for the lifetime of the rendered form, including after client-side re-renders | MUST | Met for SSR-then-hydrate (RFC 002 handoff 02); client-side navigation case Planned (RFC 004) |
+| FR-UI-13 | After a failed submission, focus SHOULD move to the first invalid field or to an error summary | SHOULD | Met (`focus_first_error`) |
 
 ### 5.2 Submission processing (FR-SUB)
 
@@ -348,11 +348,9 @@ input the browser accepted.
 
 | Requirement | Status | Roadmap item |
 |-------------|--------|--------------|
-| FR-UI-04, FR-UI-07 | Gap † | P-10 |
 | NFR-TEST-02, NFR-TEST-03 | Gap | P-15 |
-| FR-UI-12 | Partial † | P-11 |
+| FR-UI-12 (client-side navigation) | Planned | RFC 004 |
 | FR-UI-06, FR-PE-03 | Gap † | P-13 |
-| FR-UI-13 | Gap | P-16 |
 | FR-ABUSE-02 | Planned | P-12 / RFC 004 |
 | FR-ABUSE-10..12 | Planned | P-21 / RFC 005 |
 | FR-ABUSE-13 | Planned | P-12 / RFC 004 |
@@ -386,5 +384,6 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-12 | Draft 4 | RFC 002 handoff 02: FR-UI-04, FR-UI-07, FR-UI-12 (SSR+hydrate), FR-UI-13 set to Met |
 | 2026-09-12 | Draft 3 | M1 (RFC 001) implemented and approved: statuses for FR-UI-08, FR-SUB-06/07, FR-VAL-07/08, FR-CFG-01, FR-A11Y-03, NFR-DOC-01..03, NFR-TEST-01, NFR-REL-02 set to Met |
 | 2026-09-12 | Draft 2 | Anti-abuse theme: FR-ABUSE-10 to FR-ABUSE-14 added, non-goal narrowed, NFR-PRIV-02 widened, open question 3 resolved |
