@@ -126,12 +126,23 @@ pub fn success_redirect(path: impl Into<String>) -> ContactSuccessRedirect {
 ///
 /// The cookie carries the token's nonce, never the token or the secret, and
 /// is always `HttpOnly` and `SameSite=Lax`: a cross-site form cannot read it
-/// and the browser does not send it on a cross-site POST, which is what turns
-/// the token into a genuine double-submit CSRF control.
+/// and the browser does not send it on a cross-site POST.
+///
+/// At the defaults the cookie is sent as `__Host-hl_contact_ft`.  Browsers
+/// refuse to store a `__Host-` cookie that names a `Domain`, so a sibling
+/// subdomain cannot plant a value of its own choosing.  The prefix is added
+/// only when `secure` is `true` and `path` is `/`, which are the conditions
+/// the prefix itself requires.
+///
+/// This is defence in depth.  Origin validation remains the control that
+/// rejects cross-site POSTs.
 #[cfg(feature = "form-token")]
 #[derive(Clone, Debug)]
 pub struct FormTokenCookie {
-    /// Cookie name.  Defaults to `hl_contact_ft`.
+    /// Cookie name, without any prefix.  Defaults to `hl_contact_ft`.
+    ///
+    /// `__Host-` is prepended automatically when `secure` is `true` and
+    /// `path` is `/`.
     pub name: String,
     /// Add the `Secure` attribute.  Defaults to `true`; set `false` only to
     /// develop over plain HTTP.
@@ -151,6 +162,22 @@ impl Default for FormTokenCookie {
     }
 }
 
+/// The name the cookie is actually written and read under.
+///
+/// `__Host-` is legal only on a `Secure` cookie at `Path=/` with no `Domain`;
+/// we never send `Domain`, so the other two decide.  Writing and reading both
+/// go through here, so the two can never disagree.
+#[cfg(feature = "form-token")]
+fn effective_name(cookie: &FormTokenCookie) -> String {
+    const HOST_PREFIX: &str = "__Host-";
+
+    if cookie.secure && cookie.path == "/" && !cookie.name.starts_with(HOST_PREFIX) {
+        format!("{HOST_PREFIX}{}", cookie.name)
+    } else {
+        cookie.name.clone()
+    }
+}
+
 /// Build the `Set-Cookie` value for `nonce`.
 ///
 /// Separated from the request handling so the exact string is testable.
@@ -158,7 +185,10 @@ impl Default for FormTokenCookie {
 fn set_cookie_value(nonce: &str, cookie: &FormTokenCookie, max_age: u64) -> String {
     let mut v = format!(
         "{}={}; HttpOnly; SameSite=Lax; Path={}; Max-Age={}",
-        cookie.name, nonce, cookie.path, max_age
+        effective_name(cookie),
+        nonce,
+        cookie.path,
+        max_age
     );
     if cookie.secure {
         v.push_str("; Secure");
@@ -215,7 +245,7 @@ pub fn provide_form_token_with_cookie(config: &FormTokenContext, cookie: &FormTo
 
     // A cookie that is absent, truncated or not hex is not trusted: the
     // helper mints a nonce instead of signing whatever arrived.
-    let token = request_cookie(&parts, &cookie.name)
+    let token = request_cookie(&parts, &effective_name(cookie))
         .and_then(|nonce| issue_form_token_with_nonce(config, &nonce))
         .unwrap_or_else(|| issue_form_token(config));
 
@@ -242,7 +272,7 @@ pub fn provide_form_token_binding(cookie: &FormTokenCookie) {
     use leptos::context::{provide_context, use_context};
 
     let value = use_context::<axum::http::request::Parts>()
-        .and_then(|parts| request_cookie(&parts, &cookie.name));
+        .and_then(|parts| request_cookie(&parts, &effective_name(cookie)));
 
     provide_context(FormTokenBinding(value));
 }

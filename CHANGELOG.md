@@ -31,9 +31,15 @@ No version assigned; the owner decides the release number.
 - **Cookie binding.**  `Binding::Cookie` ties the token to the browser that
   was issued it: the token's nonce — never the token, never the secret — is
   also written to an `HttpOnly`, `SameSite=Lax` cookie, and verification
-  requires both halves to agree.  That makes the token a genuine
-  double-submit CSRF control, independent of the Origin check.  Opt-in;
+  requires both halves to agree.  That adds a second check against
+  cross-site submissions; it is defence in depth, and Origin validation
+  remains the control that rejects cross-site POSTs.  Opt-in;
   `Binding::None` remains the default.
+- **The binding cookie is `__Host-hl_contact_ft` at the defaults.**
+  Browsers refuse a `__Host-` cookie that names a `Domain`, so a sibling
+  subdomain cannot plant a value of its choosing.  The prefix is added only
+  when `secure` is `true` and `path` is `/`, as the prefix requires; the
+  local-HTTP override keeps the plain name.
 - `axum_helpers::FormTokenCookie`, `provide_form_token_with_cookie` and
   `provide_form_token_binding` wire it in the one context closure.  Issuing
   happens on `GET` only, so a submission never overwrites the cookie it is

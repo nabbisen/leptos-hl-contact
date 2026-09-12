@@ -13,13 +13,16 @@ anything else.  No session store, no database.
 | At least `min_age_secs` passed between the page render and the submission | yes | yes |
 | The token was issued to the browser that is now submitting | **no** | yes |
 | The token cannot be reused | **no** — any token is valid until it expires | **no** |
-| Cross-site POSTs are rejected | **no** — use [Origin validation](./hardening.md#origin--referer-validation) | yes |
+| Cross-site POSTs are rejected | **no** — use [Origin validation](./hardening.md#origin--referer-validation) | as defence in depth only — see below |
 
-With `Binding::None` the token is an anti-automation measure only, and the
-control that rejects cross-site POSTs is the [Origin
-check](./hardening.md#origin--referer-validation).  Turn binding on and the
-token becomes a genuine double-submit CSRF control in its own right; keep the
-Origin check as well, because two independent controls fail independently.
+**[Origin validation](./hardening.md#origin--referer-validation) remains the
+control that rejects cross-site POSTs, with or without binding.**  With
+`Binding::None` the token is an anti-automation measure.  With
+`Binding::Cookie` it becomes a second, independent check against cross-site
+submissions — defence in depth, not a replacement: keep the Origin check on.
+Two controls fail independently, and binding has a limit the Origin check
+does not, described under [What binding cannot
+stop](#what-binding-cannot-stop).
 
 ## Cookie binding
 
@@ -32,6 +35,8 @@ both halves to agree:
 - **`SameSite=Lax`** means the browser does not send the cookie on a
   cross-site POST at all, so a forged submission arrives without it and
   fails with `BindingMissing`.
+- **The `__Host-` prefix** means a sibling subdomain cannot plant a cookie
+  of its own choosing — see below.
 
 With Axum, two helpers do the work inside the one context closure:
 
@@ -44,7 +49,7 @@ use leptos_hl_contact::{
 let token_config: FormTokenContext = Arc::new(
     FormTokenConfig::new(secret).with_binding(Binding::Cookie),
 );
-let token_cookie = FormTokenCookie::default();   // hl_contact_ft, Secure, Path=/
+let token_cookie = FormTokenCookie::default();   // __Host-hl_contact_ft, Secure, Path=/
 
 // In the closure passed to `leptos_routes_with_context`:
 provide_context::<FormTokenContext>(Arc::clone(&token_config));
@@ -71,6 +76,38 @@ into a token; the helper mints a new nonce instead.
 `FormTokenCookie::secure` defaults to `true`.  A `Secure` cookie is never
 sent back over plain HTTP, so set it to `false` — and only — when developing
 against `http://localhost`.
+
+### The `__Host-` prefix
+
+At the defaults the cookie is sent as `__Host-hl_contact_ft`.  Browsers
+refuse to store a `__Host-` cookie that carries a `Domain` attribute, and
+that refusal is what stops **cookie tossing**: without it, anyone who
+controls `anything.example.com` could set `hl_contact_ft` with
+`Domain=.example.com; SameSite=None; Secure`, pair it with a token they
+fetched in their own browser for the same nonce, and have the victim's
+browser submit both.  The binding check would pass.
+
+The prefix is applied only when the cookie's own attributes allow it —
+`secure` is `true` and `path` is `/` — because a browser silently drops a
+`__Host-` cookie that lacks either.  So:
+
+- Production defaults: `__Host-hl_contact_ft`, protected.
+- `secure: false` for local HTTP: plain `hl_contact_ft`, which is fine on
+  `localhost` and must never reach production.
+- A `path` other than `/`: plain name, and **no protection against a
+  subdomain**.  Keep the default unless you have a reason.
+
+Whatever you set, `name` is given without the prefix; it is added for you.
+
+### What binding cannot stop
+
+Binding rests on an attacker being unable to put a chosen value in the
+victim's cookie.  The prefix closes the subdomain route at the defaults,
+but not every route: a response-header injection on your own origin, or a
+deployment where the prefix does not apply, reopens it.  That is why the
+Origin check stays on.  Binding also does nothing against a script or bot
+that simply loads the page and submits from its own browser — that is the
+minimum age's and the rate limit's job.
 
 Any other framework can use binding by providing
 [`FormTokenBinding`](https://docs.rs/leptos-hl-contact/latest/leptos_hl_contact/form_token/struct.FormTokenBinding.html)

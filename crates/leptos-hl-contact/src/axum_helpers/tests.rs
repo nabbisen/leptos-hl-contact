@@ -78,7 +78,7 @@ mod cookie_binding {
         let c = FormTokenCookie::default();
         assert_eq!(
             set_cookie_value("deadbeef", &c, 3600),
-            "hl_contact_ft=deadbeef; HttpOnly; SameSite=Lax; Path=/; Max-Age=3600; Secure"
+            "__Host-hl_contact_ft=deadbeef; HttpOnly; SameSite=Lax; Path=/; Max-Age=3600; Secure"
         );
     }
 
@@ -225,6 +225,87 @@ mod cookie_binding {
     }
 
     // -----------------------------------------------------------------------
+    // The `__Host-` prefix (review C2)
+    // -----------------------------------------------------------------------
+
+    /// At the defaults the cookie is `Secure` on `/` with no `Domain`, which is
+    /// exactly what `__Host-` requires, so a sibling subdomain cannot toss one.
+    #[test]
+    fn the_prefix_is_applied_at_the_defaults() {
+        let cookie = FormTokenCookie::default();
+        assert_eq!(effective_name(&cookie), "__Host-hl_contact_ft");
+        assert!(set_cookie_value("ab", &cookie, 60).starts_with("__Host-hl_contact_ft=ab;"));
+    }
+
+    /// A browser refuses a `__Host-` cookie without `Secure`, so the local-HTTP
+    /// override must keep the bare name or the cookie is silently dropped.
+    #[test]
+    fn the_prefix_is_not_applied_without_secure() {
+        let cookie = FormTokenCookie {
+            secure: false,
+            ..Default::default()
+        };
+        assert_eq!(effective_name(&cookie), "hl_contact_ft");
+    }
+
+    #[test]
+    fn the_prefix_is_not_applied_off_the_root_path() {
+        let cookie = FormTokenCookie {
+            path: "/contact".into(),
+            ..Default::default()
+        };
+        assert_eq!(effective_name(&cookie), "hl_contact_ft");
+    }
+
+    #[test]
+    fn a_name_that_already_has_the_prefix_is_not_doubled() {
+        let cookie = FormTokenCookie {
+            name: "__Host-custom".into(),
+            ..Default::default()
+        };
+        assert_eq!(effective_name(&cookie), "__Host-custom");
+    }
+
+    /// Write and read must agree: a cookie set under the prefixed name is the
+    /// one the binding reads back.
+    #[test]
+    fn the_binding_is_read_under_the_prefixed_name() {
+        use crate::form_token::FormTokenBinding;
+        use leptos::context::{provide_context, use_context};
+
+        let cookie = FormTokenCookie::default();
+        let written = set_cookie_value("deadbeef", &cookie, 60);
+        let pair = written.split(';').next().unwrap().to_owned();
+
+        in_scope(|| {
+            provide_context(parts_with(axum::http::Method::POST, Some(&pair)));
+            provide_form_token_binding(&cookie);
+            assert_eq!(
+                use_context::<FormTokenBinding>().unwrap().0.as_deref(),
+                Some("deadbeef")
+            );
+        });
+    }
+
+    /// The attack C2 closes: a subdomain can plant the *bare* name with
+    /// `Domain=.example.com`, but not the prefixed one.  The bare name must
+    /// therefore be ignored whenever the prefix is in force.
+    #[test]
+    fn a_bare_name_is_ignored_while_the_prefix_is_in_force() {
+        use crate::form_token::FormTokenBinding;
+        use leptos::context::{provide_context, use_context};
+
+        in_scope(|| {
+            provide_context(parts_with(
+                axum::http::Method::POST,
+                Some("hl_contact_ft=00eaaaa84b55005200eaaaa84b550052"),
+            ));
+            provide_form_token_binding(&FormTokenCookie::default());
+            assert_eq!(use_context::<FormTokenBinding>().unwrap().0, None);
+        });
+    }
+
+    // -----------------------------------------------------------------------
     // Nonce stability (RFC 004 D3, as amended)
     // -----------------------------------------------------------------------
 
@@ -256,7 +337,7 @@ mod cookie_binding {
         let existing = "00eaaaa84b55005200eaaaa84b550052";
 
         assert_eq!(
-            issued_nonce(&config, Some(&format!("hl_contact_ft={existing}"))),
+            issued_nonce(&config, Some(&format!("__Host-hl_contact_ft={existing}"))),
             existing
         );
     }
@@ -268,7 +349,7 @@ mod cookie_binding {
         let existing = "00eaaaa84b55005200eaaaa84b550052";
         let value = set_cookie_value(existing, &FormTokenCookie::default(), 3600);
 
-        assert!(value.starts_with(&format!("hl_contact_ft={existing};")));
+        assert!(value.starts_with(&format!("__Host-hl_contact_ft={existing};")));
         assert!(value.contains("Max-Age=3600"));
     }
 
@@ -297,7 +378,7 @@ mod cookie_binding {
             "00eaaaa84b55005200eaaaa84b5500522", // one over
             "zzeaaaa84b55005200eaaaa84b550052",  // right length, not hex
         ] {
-            let nonce = issued_nonce(&config, Some(&format!("hl_contact_ft={bad}")));
+            let nonce = issued_nonce(&config, Some(&format!("__Host-hl_contact_ft={bad}")));
             assert_ne!(nonce, bad, "{bad:?} must not become the nonce");
             assert_eq!(nonce.len(), 32);
         }
@@ -312,7 +393,7 @@ mod cookie_binding {
         // First visit: nothing to reuse.
         let first = issued_nonce(&config, None);
         // The browser now sends it back, on this page and on every other.
-        let header = format!("hl_contact_ft={first}");
+        let header = format!("__Host-hl_contact_ft={first}");
         let second = issued_nonce(&config, Some(&header));
         let third = issued_nonce(&config, Some(&header));
 
@@ -369,7 +450,7 @@ mod cookie_binding {
         in_scope(|| {
             provide_context(parts_with(
                 axum::http::Method::POST,
-                Some("a=1; hl_contact_ft=deadbeef; b=2"),
+                Some("a=1; __Host-hl_contact_ft=deadbeef; b=2"),
             ));
             provide_form_token_binding(&FormTokenCookie::default());
             let b = use_context::<FormTokenBinding>().expect("binding provided");

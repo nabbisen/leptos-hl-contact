@@ -259,7 +259,7 @@ pub fn success_redirect(path: impl Into<String>) -> ContactSuccessRedirect;
 
 // With the `form-token` feature as well:
 pub struct FormTokenCookie {
-    pub name: String,   // default "hl_contact_ft"
+    pub name: String,   // default "hl_contact_ft"; sent as "__Host-hl_contact_ft"
     pub secure: bool,   // default true
     pub path: String,   // default "/"
 }
@@ -272,7 +272,9 @@ pub fn provide_form_token_binding(cookie: &FormTokenCookie);
 because it is startup configuration.
 
 `provide_form_token_with_cookie` acts on `GET` requests only, and reuses the
-nonce from an existing cookie so the value is stable per browser.  Both
+nonce from an existing cookie so the value is stable per browser.  The
+`__Host-` prefix is added to `name` when `secure` is `true` and `path` is
+`/`, and both helpers read and write under that same effective name.  Both
 helpers belong in the one context closure:
 [Cookie binding](../security/form-token.md#cookie-binding).
 

@@ -137,13 +137,16 @@ async fn main() {
         )
         .into_bytes();
 
-    // One-hour TTL and a two-second minimum age by default; cookie binding
-    // makes the token a genuine double-submit CSRF control.
+    // One-hour TTL and a two-second minimum age by default.  Cookie binding
+    // adds a second check against cross-site submissions; the Origin check
+    // below remains the control that rejects them.
     let token_config: FormTokenContext =
         Arc::new(FormTokenConfig::new(token_secret).with_binding(Binding::Cookie));
 
-    // `Secure` is right for production.  Set FORM_TOKEN_COOKIE_SECURE=false to
-    // develop over plain HTTP, where a Secure cookie is never sent back.
+    // `Secure` is right for production, and with it the cookie is named
+    // `__Host-hl_contact_ft`, which a subdomain cannot plant.  Set
+    // FORM_TOKEN_COOKIE_SECURE=false to develop over plain HTTP, where a
+    // Secure cookie is never sent back; the prefix is then dropped too.
     let token_cookie = FormTokenCookie {
         secure: std::env::var("FORM_TOKEN_COOKIE_SECURE")
             .map(|v| v != "false")

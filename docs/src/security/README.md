@@ -38,16 +38,16 @@ Cheap checks first, so expensive ones rarely run:
 ## About the token
 
 The `form-token` feature issues a stateless HMAC-SHA256 token per page render and
-verifies it on submit.  It is **not bound to the visitor's browser** (no
-cookie or session), so on its own it does not stop a cross-site request:
-an attacker can fetch a token and place it in a form on another site.  For
-an unauthenticated contact form the practical harm of that is small, and
-what the token does well is force bots to fetch a page first.  The control
-that actually rejects cross-site POSTs is the Origin / Referer check.
+verifies it on submit.  By default it is **not bound to the visitor's
+browser**, so on its own it does not stop a cross-site request: an attacker
+can fetch a token and place it in a form on another site.  What it does well
+is force bots to fetch a page first and wait before submitting.
 
-Whether to bind the token to a cookie or rename the feature is a roadmap
-decision (P-12).  Nothing about the current behaviour is hidden: read
-[Form Token](./form-token.md) for the exact guarantees.
+`Binding::Cookie` ties the token to an `HttpOnly`, `SameSite=Lax`,
+`__Host-`-prefixed cookie, which makes it a second check against cross-site
+submissions.  It is defence in depth: **the control that rejects cross-site
+POSTs is the Origin / Referer check, with or without binding.**  Read
+[Form Token](./form-token.md) for the exact guarantees and their limits.
 
 ## Pages in this section
 
