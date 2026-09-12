@@ -72,7 +72,7 @@ per-field errors visible.
 | P-06 | RFC directory scaffolding per RFC-000 5-folder variant: `rfcs/README.md` index and state folders | Medium | governance | done 2026-09-12 with this roadmap update |
 | P-07 | `ContactFormOptions.max_message_len` and `ContactServerPolicy.max_message_len` are documented as "must not exceed 4000" but nothing enforces or clamps it | Low | fix | verified |
 | P-08 | `docs/book.toml` `git-repository-icon` rejected by mdbook 0.5 in every tried form — **done 2026-09-12**: key removed, default icon used; book builds | Low | docs | verified |
-| P-09 | Both examples use the Axum 0.7 wildcard `"/api/*fn_name"`; Axum 0.8 panics at router construction ("Path segments must not start with `*`"), so neither example starts.  Change to `"/api/{*fn_name}"`; examples are outside the workspace so CI never built them — add a CI job that at least `cargo check`s both | **High** | fix + CI | verified (axum 0.8.9 source) |
+| P-09 | Examples panicked at startup on the Axum 0.7 wildcard syntax — **done** in handoff 001-02, approved 2026-09-12 (`16a32a9`, `e15ede3`); examples now compiled by a CI matrix job; `axum-with-security` additionally served with connection info so the rate limiter's peer-address fallback works (it had answered 500 to every header-less request) | **High** | fix + CI | verified |
 
 ### M2 — Form robustness and anti-abuse redesign (proposed release: 0.4.0, minor)
 
