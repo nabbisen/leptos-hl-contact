@@ -11,6 +11,7 @@ that explains it.
 | ☐ | Rate limiting on POST, keyed by real client IP | [Hardening](../security/hardening.md#rate-limiting) |
 | ☐ | Origin / Referer strictly validated on POST — **this is the CSRF control** | [Hardening](../security/hardening.md#origin--referer-validation) |
 | ☐ | `form-token` feature enabled with a 32-byte random `FORM_TOKEN_SECRET`; config and token provided in the context closure | [Form Token](../security/form-token.md) |
+| ☐ | Cookie binding on (`Binding::Cookie`) with `Secure` left at its default; the contact page not cached | [Cookie binding](../security/form-token.md#cookie-binding) |
 | ☐ | Reverse proxy sets and validates `X-Forwarded-For` | [Hardening](../security/hardening.md#rate-limiting) |
 | ☐ | SMTP credentials loaded from environment or a secret store, never source | [Hardening](../security/hardening.md#secrets) |
 | ☐ | `SmtpTlsMode::StartTls` or `Tls`, never `DangerousPlaintext` | [Delivery Backends](../guides/delivery-backends.md) |

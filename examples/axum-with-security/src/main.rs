@@ -47,8 +47,11 @@ use tower_governor::{
 use url::Url;
 #[cfg(feature = "ssr")]
 use leptos_hl_contact::{
-    axum_helpers::{delivery_context_fn, success_redirect},
-    form_token::{FormTokenConfig, FormTokenContext, issue_form_token},
+    axum_helpers::{
+        FormTokenCookie, delivery_context_fn, provide_form_token_binding,
+        provide_form_token_with_cookie, success_redirect,
+    },
+    form_token::{Binding, FormTokenConfig, FormTokenContext},
     delivery::{ContactDeliveryContext, noop::NoopDelivery},
 };
 
@@ -134,8 +137,19 @@ async fn main() {
         )
         .into_bytes();
 
-    // Defaults: one-hour TTL, two-second minimum age, no cookie binding.
-    let token_config: FormTokenContext = Arc::new(FormTokenConfig::new(token_secret));
+    // One-hour TTL and a two-second minimum age by default; cookie binding
+    // makes the token a genuine double-submit CSRF control.
+    let token_config: FormTokenContext =
+        Arc::new(FormTokenConfig::new(token_secret).with_binding(Binding::Cookie));
+
+    // `Secure` is right for production.  Set FORM_TOKEN_COOKIE_SECURE=false to
+    // develop over plain HTTP, where a Secure cookie is never sent back.
+    let token_cookie = FormTokenCookie {
+        secure: std::env::var("FORM_TOKEN_COOKIE_SECURE")
+            .map(|v| v != "false")
+            .unwrap_or(true),
+        ..Default::default()
+    };
 
     // ------------------------------------------------------------------
     // Delivery backend
@@ -192,9 +206,10 @@ async fn main() {
             move || {
                 ctx.clone()();
                 provide_context::<FormTokenContext>(Arc::clone(&token_config));
-                // Unused on server-function requests, which read the submitted
-                // token rather than issuing one.
-                provide_context(issue_form_token(&token_config));
+                // Issues a token and sets its cookie on page renders only;
+                // reads the cookie back on every request.
+                provide_form_token_with_cookie(&token_config, &token_cookie);
+                provide_form_token_binding(&token_cookie);
                 provide_context(redirect.clone());
             },
             {

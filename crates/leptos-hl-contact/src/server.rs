@@ -84,7 +84,9 @@ pub async fn submit_contact(
         // 1. Form token — fail-closed when the `form-token` feature is on.
         #[cfg(feature = "form-token")]
         {
-            use crate::form_token::{FormTokenContext, FormTokenError, verify_form_token};
+            use crate::form_token::{
+                Binding, FormTokenBinding, FormTokenContext, FormTokenError, verify_form_token,
+            };
             let Some(config) = use_context::<FormTokenContext>() else {
                 tracing::error!(
                     "form-token feature is enabled but FormTokenContext is not provided \
@@ -99,7 +101,14 @@ pub async fn submit_contact(
                 .as_deref()
                 .or(csrf_token.as_deref())
                 .unwrap_or("");
-            if let Err(e) = verify_form_token(submitted, None, &config) {
+            // Only `Binding::Cookie` consults it; an absent context and
+            // `FormTokenBinding(None)` mean the same thing.
+            let bound = if config.binding == Binding::Cookie {
+                use_context::<FormTokenBinding>().and_then(|b| b.0)
+            } else {
+                None
+            };
+            if let Err(e) = verify_form_token(submitted, bound.as_deref(), &config) {
                 tracing::warn!(error = ?e, "form token rejected");
                 let code = match e {
                     // Retryable: the same token is valid a moment later, so

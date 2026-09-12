@@ -11,6 +11,8 @@
 
 use std::sync::Arc;
 
+#[cfg(feature = "form-token")]
+use crate::form_token::{FormTokenBinding, FormTokenContext, issue_form_token};
 use crate::{config::ContactSuccessRedirect, delivery::ContactDeliveryContext};
 
 // ---------------------------------------------------------------------------
@@ -112,6 +114,127 @@ pub fn success_redirect(path: impl Into<String>) -> ContactSuccessRedirect {
     let path = path.into();
     ContactSuccessRedirect::new(path.clone(), leptos_axum::redirect)
         .unwrap_or_else(|e| panic!("success_redirect({path:?}): {e}"))
+}
+
+// ---------------------------------------------------------------------------
+// Cookie binding — compiled only when `form-token` is active.
+// ---------------------------------------------------------------------------
+
+/// How the form token's binding cookie is written.
+///
+/// The cookie carries the token's nonce, never the token or the secret, and
+/// is always `HttpOnly` and `SameSite=Lax`: a cross-site form cannot read it
+/// and the browser does not send it on a cross-site POST, which is what turns
+/// the token into a genuine double-submit CSRF control.
+#[cfg(feature = "form-token")]
+#[derive(Clone, Debug)]
+pub struct FormTokenCookie {
+    /// Cookie name.  Defaults to `hl_contact_ft`.
+    pub name: String,
+    /// Add the `Secure` attribute.  Defaults to `true`; set `false` only to
+    /// develop over plain HTTP.
+    pub secure: bool,
+    /// Cookie path.  Defaults to `/`.
+    pub path: String,
+}
+
+#[cfg(feature = "form-token")]
+impl Default for FormTokenCookie {
+    fn default() -> Self {
+        Self {
+            name: "hl_contact_ft".into(),
+            secure: true,
+            path: "/".into(),
+        }
+    }
+}
+
+/// Build the `Set-Cookie` value for `nonce`.
+///
+/// Separated from the request handling so the exact string is testable.
+#[cfg(feature = "form-token")]
+fn set_cookie_value(nonce: &str, cookie: &FormTokenCookie, max_age: u64) -> String {
+    let mut v = format!(
+        "{}={}; HttpOnly; SameSite=Lax; Path={}; Max-Age={}",
+        cookie.name, nonce, cookie.path, max_age
+    );
+    if cookie.secure {
+        v.push_str("; Secure");
+    }
+    v
+}
+
+/// The nonce is the token's middle segment.
+#[cfg(feature = "form-token")]
+fn token_nonce(token: &str) -> Option<&str> {
+    token.split('|').nth(1)
+}
+
+/// Find one cookie's value in a `Cookie` header.
+///
+/// Matches the whole name, so `hl_contact_ft2` never satisfies a lookup for
+/// `hl_contact_ft`.  The first match wins.
+#[cfg(feature = "form-token")]
+fn cookie_value(header: &str, name: &str) -> Option<String> {
+    header.split(';').find_map(|pair| {
+        let (k, v) = pair.split_once('=')?;
+        (k.trim() == name).then(|| v.trim().to_owned())
+    })
+}
+
+/// Issue a token for a page render and set its binding cookie.
+///
+/// Call this inside the closure passed to `leptos_routes_with_context`.  It
+/// does nothing unless the request is a `GET`: the same closure serves page
+/// renders and server functions (see the Axum Integration guide), and a POST
+/// response must not overwrite the cookie the submitted form was bound to.
+///
+/// Provides [`FormToken`] so `ContactForm` can render the hidden field, and
+/// appends a `Set-Cookie` header carrying the token's nonce.
+#[cfg(feature = "form-token")]
+pub fn provide_form_token_with_cookie(config: &FormTokenContext, cookie: &FormTokenCookie) {
+    use leptos::context::{provide_context, use_context};
+
+    let Some(parts) = use_context::<axum::http::request::Parts>() else {
+        return;
+    };
+    if parts.method != axum::http::Method::GET {
+        return;
+    }
+
+    let token = issue_form_token(config);
+
+    if let Some(nonce) = token_nonce(&token.0)
+        && let Some(res) = use_context::<leptos_axum::ResponseOptions>()
+        && let Ok(value) =
+            axum::http::HeaderValue::from_str(&set_cookie_value(nonce, cookie, config.ttl_secs))
+    {
+        // Append, so a cookie set elsewhere in the response survives.
+        res.append_header(axum::http::header::SET_COOKIE, value);
+    }
+
+    provide_context(token);
+}
+
+/// Read the binding cookie from the request and provide it as
+/// [`FormTokenBinding`].
+///
+/// Call this inside the same context closure.  A missing request, header or
+/// cookie all yield `FormTokenBinding(None)`, which a `Binding::Cookie`
+/// configuration rejects as `BindingMissing`.
+#[cfg(feature = "form-token")]
+pub fn provide_form_token_binding(cookie: &FormTokenCookie) {
+    use leptos::context::{provide_context, use_context};
+
+    let value = use_context::<axum::http::request::Parts>().and_then(|parts| {
+        parts
+            .headers
+            .get(axum::http::header::COOKIE)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|h| cookie_value(h, &cookie.name))
+    });
+
+    provide_context(FormTokenBinding(value));
 }
 
 // ---------------------------------------------------------------------------

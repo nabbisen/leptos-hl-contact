@@ -27,8 +27,17 @@ No version assigned; the owner decides the release number.
   ("Please wait a moment and try again.") for that case, so it is
   distinguishable from a forged token and translatable like every other
   message.
-- `FormTokenError`, which reports *why* a token failed, and `Binding`, whose
-  `Cookie` variant is wired for a later handoff.
+- `FormTokenError`, which reports *why* a token failed.
+- **Cookie binding.**  `Binding::Cookie` ties the token to the browser that
+  was issued it: the token's nonce — never the token, never the secret — is
+  also written to an `HttpOnly`, `SameSite=Lax` cookie, and verification
+  requires both halves to agree.  That makes the token a genuine
+  double-submit CSRF control, independent of the Origin check.  Opt-in;
+  `Binding::None` remains the default.
+- `axum_helpers::FormTokenCookie`, `provide_form_token_with_cookie` and
+  `provide_form_token_binding` wire it in the one context closure.  Issuing
+  happens on `GET` only, so a submission never overwrites the cookie it is
+  bound to.  Any other framework can provide `FormTokenBinding` itself.
 - `FormTokenConfig` builders `with_ttl`, `with_min_age`, `with_binding`.
 
 ### Migration

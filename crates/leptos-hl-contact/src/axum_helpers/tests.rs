@@ -11,3 +11,278 @@ fn delivery_context_fn_is_clone() {
     // Should be cloneable (required by both Axum handler sites).
     let _ctx2 = ctx.clone();
 }
+
+// ---------------------------------------------------------------------------
+// Cookie binding — compiled only with the token itself.
+// ---------------------------------------------------------------------------
+
+#[cfg(feature = "form-token")]
+mod cookie_binding {
+    use crate::axum_helpers::*;
+
+    #[test]
+    fn cookie_value_finds_the_named_cookie() {
+        let header = "session=abc; hl_contact_ft=deadbeef; theme=dark";
+        assert_eq!(
+            cookie_value(header, "hl_contact_ft"),
+            Some("deadbeef".into())
+        );
+    }
+
+    #[test]
+    fn cookie_value_handles_a_single_cookie_and_odd_spacing() {
+        assert_eq!(
+            cookie_value("hl_contact_ft=deadbeef", "hl_contact_ft"),
+            Some("deadbeef".into())
+        );
+        assert_eq!(
+            cookie_value("  hl_contact_ft =  deadbeef  ; x=1", "hl_contact_ft"),
+            Some("deadbeef".into())
+        );
+    }
+
+    /// A prefix match would let `hl_contact_ft2` satisfy a lookup for
+    /// `hl_contact_ft`, so an attacker who can set any cookie could supply the
+    /// binding value.  The name must match whole.
+    #[test]
+    fn cookie_value_rejects_prefix_matches() {
+        let header = "hl_contact_ft2=attacker; other=1";
+        assert_eq!(cookie_value(header, "hl_contact_ft"), None);
+
+        let header = "xhl_contact_ft=attacker";
+        assert_eq!(cookie_value(header, "hl_contact_ft"), None);
+    }
+
+    #[test]
+    fn cookie_value_is_none_when_absent_or_malformed() {
+        assert_eq!(
+            cookie_value("session=abc; theme=dark", "hl_contact_ft"),
+            None
+        );
+        assert_eq!(cookie_value("", "hl_contact_ft"), None);
+        assert_eq!(cookie_value("no-equals-sign", "hl_contact_ft"), None);
+    }
+
+    #[test]
+    fn cookie_value_takes_the_first_of_duplicates() {
+        let header = "hl_contact_ft=first; hl_contact_ft=second";
+        assert_eq!(cookie_value(header, "hl_contact_ft"), Some("first".into()));
+    }
+
+    // ---------------------------------------------------------------------------
+    // Set-Cookie construction
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn set_cookie_value_has_every_required_attribute() {
+        let c = FormTokenCookie::default();
+        assert_eq!(
+            set_cookie_value("deadbeef", &c, 3600),
+            "hl_contact_ft=deadbeef; HttpOnly; SameSite=Lax; Path=/; Max-Age=3600; Secure"
+        );
+    }
+
+    #[test]
+    fn set_cookie_value_omits_secure_when_asked() {
+        let c = FormTokenCookie {
+            secure: false,
+            ..Default::default()
+        };
+        let v = set_cookie_value("deadbeef", &c, 60);
+        assert_eq!(
+            v,
+            "hl_contact_ft=deadbeef; HttpOnly; SameSite=Lax; Path=/; Max-Age=60"
+        );
+        assert!(!v.contains("Secure"));
+    }
+
+    /// `HttpOnly` keeps the value out of scripts and `SameSite=Lax` keeps the
+    /// browser from sending it on a cross-site POST.  Either one missing would
+    /// void the CSRF property, so they are asserted directly.
+    #[test]
+    fn set_cookie_value_is_never_script_readable_or_cross_site() {
+        for secure in [true, false] {
+            let c = FormTokenCookie {
+                secure,
+                ..Default::default()
+            };
+            let v = set_cookie_value("deadbeef", &c, 3600);
+            assert!(v.contains("HttpOnly"), "{v}");
+            assert!(v.contains("SameSite=Lax"), "{v}");
+            assert!(!v.contains("SameSite=None"), "{v}");
+        }
+    }
+
+    #[test]
+    fn set_cookie_value_honours_a_custom_name_and_path() {
+        let c = FormTokenCookie {
+            name: "custom".into(),
+            secure: true,
+            path: "/contact".into(),
+        };
+        assert_eq!(
+            set_cookie_value("nonce", &c, 120),
+            "custom=nonce; HttpOnly; SameSite=Lax; Path=/contact; Max-Age=120; Secure"
+        );
+    }
+
+    #[test]
+    fn cookie_defaults_are_the_documented_ones() {
+        let c = FormTokenCookie::default();
+        assert_eq!(c.name, "hl_contact_ft");
+        assert!(c.secure);
+        assert_eq!(c.path, "/");
+    }
+
+    // ---------------------------------------------------------------------------
+    // The nonce is what goes in the cookie — never the token or the secret
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn token_nonce_is_the_middle_segment() {
+        assert_eq!(token_nonce("1700000000|abc123|deadbeef"), Some("abc123"));
+        assert_eq!(token_nonce("no-pipes"), None);
+    }
+
+    #[test]
+    fn the_cookie_carries_only_the_nonce() {
+        use crate::form_token::{FormTokenConfig, issue_form_token};
+
+        let config = FormTokenConfig::new(b"a-secret-key-at-least-32-bytes-long".to_vec());
+        let token = issue_form_token(&config);
+        let nonce = token_nonce(&token.0).unwrap();
+
+        let v = set_cookie_value(nonce, &FormTokenCookie::default(), config.ttl_secs);
+        assert!(v.contains(nonce));
+        assert!(
+            !v.contains(&token.0),
+            "the whole token must not be in the cookie"
+        );
+        assert!(
+            !v.contains("a-secret-key"),
+            "the secret must never reach the cookie"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // GET-only issuance
+    // ---------------------------------------------------------------------------
+
+    /// Build a `Parts` with the given method, as a request would carry.
+    fn parts_with(method: axum::http::Method, cookie: Option<&str>) -> axum::http::request::Parts {
+        let mut b = axum::http::Request::builder().method(method).uri("/");
+        if let Some(c) = cookie {
+            b = b.header(axum::http::header::COOKIE, c);
+        }
+        b.body(()).unwrap().into_parts().0
+    }
+
+    fn in_scope<T>(f: impl FnOnce() -> T) -> T {
+        let owner = leptos::reactive::owner::Owner::new();
+        owner.set();
+        let out = f();
+        drop(owner);
+        out
+    }
+
+    /// One closure serves page renders and server functions alike (RFC 007), so
+    /// issuing on a POST would overwrite the cookie the submitted form is bound
+    /// to — turning every second submission into a `BindingMismatch`.
+    #[test]
+    fn issuing_is_a_no_op_for_a_post() {
+        use crate::form_token::{FormToken, FormTokenConfig};
+        use leptos::context::{provide_context, use_context};
+
+        let config: FormTokenContext = Arc::new(FormTokenConfig::new(
+            b"a-secret-key-at-least-32-bytes".to_vec(),
+        ));
+
+        in_scope(|| {
+            provide_context(parts_with(axum::http::Method::POST, None));
+            provide_form_token_with_cookie(&config, &FormTokenCookie::default());
+            assert!(
+                use_context::<FormToken>().is_none(),
+                "a POST must not issue a token"
+            );
+        });
+    }
+
+    #[test]
+    fn issuing_happens_for_a_get() {
+        use crate::form_token::{FormToken, FormTokenConfig};
+        use leptos::context::{provide_context, use_context};
+
+        let config: FormTokenContext = Arc::new(FormTokenConfig::new(
+            b"a-secret-key-at-least-32-bytes".to_vec(),
+        ));
+
+        in_scope(|| {
+            provide_context(parts_with(axum::http::Method::GET, None));
+            provide_form_token_with_cookie(&config, &FormTokenCookie::default());
+            let token = use_context::<FormToken>().expect("a GET issues a token");
+            assert_eq!(token.0.split('|').count(), 3);
+        });
+    }
+
+    /// Without a request in context there is nothing to decide on, so nothing is
+    /// issued rather than a token being handed out blindly.
+    #[test]
+    fn issuing_is_a_no_op_without_request_parts() {
+        use crate::form_token::{FormToken, FormTokenConfig};
+        use leptos::context::use_context;
+
+        let config: FormTokenContext = Arc::new(FormTokenConfig::new(
+            b"a-secret-key-at-least-32-bytes".to_vec(),
+        ));
+
+        in_scope(|| {
+            provide_form_token_with_cookie(&config, &FormTokenCookie::default());
+            assert!(use_context::<FormToken>().is_none());
+        });
+    }
+
+    // ---------------------------------------------------------------------------
+    // Binding from the request
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    fn binding_is_read_from_the_cookie_header() {
+        use crate::form_token::FormTokenBinding;
+        use leptos::context::{provide_context, use_context};
+
+        in_scope(|| {
+            provide_context(parts_with(
+                axum::http::Method::POST,
+                Some("a=1; hl_contact_ft=deadbeef; b=2"),
+            ));
+            provide_form_token_binding(&FormTokenCookie::default());
+            let b = use_context::<FormTokenBinding>().expect("binding provided");
+            assert_eq!(b.0.as_deref(), Some("deadbeef"));
+        });
+    }
+
+    /// An absent cookie, an absent header and an absent request all mean the same
+    /// thing: nothing arrived, so `Binding::Cookie` rejects the submission.
+    #[test]
+    fn binding_is_none_when_nothing_arrived() {
+        use crate::form_token::FormTokenBinding;
+        use leptos::context::{provide_context, use_context};
+
+        in_scope(|| {
+            provide_context(parts_with(axum::http::Method::POST, Some("other=1")));
+            provide_form_token_binding(&FormTokenCookie::default());
+            assert!(use_context::<FormTokenBinding>().unwrap().0.is_none());
+        });
+
+        in_scope(|| {
+            provide_context(parts_with(axum::http::Method::POST, None));
+            provide_form_token_binding(&FormTokenCookie::default());
+            assert!(use_context::<FormTokenBinding>().unwrap().0.is_none());
+        });
+
+        in_scope(|| {
+            provide_form_token_binding(&FormTokenCookie::default());
+            assert!(use_context::<FormTokenBinding>().unwrap().0.is_none());
+        });
+    }
+}

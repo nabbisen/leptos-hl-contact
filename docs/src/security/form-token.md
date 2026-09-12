@@ -15,9 +15,60 @@ anything else.  No session store, no database.
 | The token cannot be reused | **no** — any token is valid until it expires | **no** |
 | Cross-site POSTs are rejected | **no** — use [Origin validation](./hardening.md#origin--referer-validation) | yes |
 
-`Binding::Cookie` is not yet implemented; it lands in a later handoff of
-RFC 004.  Until then the token is an anti-automation measure, and the
-control that actually rejects cross-site POSTs is the Origin check.
+With `Binding::None` the token is an anti-automation measure only, and the
+control that rejects cross-site POSTs is the [Origin
+check](./hardening.md#origin--referer-validation).  Turn binding on and the
+token becomes a genuine double-submit CSRF control in its own right; keep the
+Origin check as well, because two independent controls fail independently.
+
+## Cookie binding
+
+The token's nonce — never the token, never the secret — is also written to a
+cookie that is `HttpOnly` and `SameSite=Lax`.  Verification then requires
+both halves to agree:
+
+- **`HttpOnly`** means no script can read the value, so a cross-site page
+  cannot copy it into a forged form.
+- **`SameSite=Lax`** means the browser does not send the cookie on a
+  cross-site POST at all, so a forged submission arrives without it and
+  fails with `BindingMissing`.
+
+With Axum, two helpers do the work inside the one context closure:
+
+```rust,ignore
+use leptos_hl_contact::{
+    axum_helpers::{FormTokenCookie, provide_form_token_binding, provide_form_token_with_cookie},
+    form_token::{Binding, FormTokenConfig, FormTokenContext},
+};
+
+let token_config: FormTokenContext = Arc::new(
+    FormTokenConfig::new(secret).with_binding(Binding::Cookie),
+);
+let token_cookie = FormTokenCookie::default();   // hl_contact_ft, Secure, Path=/
+
+// In the closure passed to `leptos_routes_with_context`:
+provide_context::<FormTokenContext>(Arc::clone(&token_config));
+provide_form_token_with_cookie(&token_config, &token_cookie);
+provide_form_token_binding(&token_cookie);
+```
+
+`provide_form_token_with_cookie` issues a token and sets the cookie **only on
+`GET`**.  That matters: one closure serves page renders and server functions
+alike, so issuing on a POST would overwrite the cookie the submitted form is
+bound to and break the next submission.
+
+`FormTokenCookie::secure` defaults to `true`.  A `Secure` cookie is never
+sent back over plain HTTP, so set it to `false` — and only — when developing
+against `http://localhost`.
+
+Any other framework can use binding by providing
+[`FormTokenBinding`](https://docs.rs/leptos-hl-contact/latest/leptos_hl_contact/form_token/struct.FormTokenBinding.html)
+itself; the core never parses cookies.
+
+> **Do not cache the contact page.**  Each render sets a fresh cookie paired
+> with a fresh token.  A reverse proxy or CDN that caches the page, or strips
+> `Set-Cookie` from a cached response, serves one visitor's token to another
+> and every submission fails.  Send `Cache-Control: no-store` for that route.
 
 ## The minimum age
 

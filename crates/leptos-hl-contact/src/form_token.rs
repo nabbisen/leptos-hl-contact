@@ -49,10 +49,12 @@ pub enum Binding {
     /// The token's nonce must also arrive in a cookie, which makes a
     /// cross-site submission fail.
     ///
-    /// Requires the cookie helpers in `axum_helpers`, which arrive with this
-    /// feature's second handoff.  Until then nothing supplies the bound value
-    /// and every submission fails with `BindingMissing`; leave the default
-    /// until the helpers exist.
+    /// With Axum, wire it with
+    /// [`provide_form_token_with_cookie`](crate::axum_helpers::provide_form_token_with_cookie)
+    /// and
+    /// [`provide_form_token_binding`](crate::axum_helpers::provide_form_token_binding).
+    /// Any other framework must supply the cookie value itself through
+    /// [`FormTokenBinding`].
     Cookie,
 }
 
@@ -288,6 +290,26 @@ pub fn verify_form_token(
 
     Ok(())
 }
+
+// ---------------------------------------------------------------------------
+// FormTokenBinding
+// ---------------------------------------------------------------------------
+
+/// The value the token is bound to, as it arrived with this request.
+///
+/// With [`Binding::Cookie`] this is the cookie's contents — the token's
+/// nonce.  Provide it via Leptos context in the context closure;
+/// `submit_contact` reads it and passes it to [`verify_form_token`].
+///
+/// `FormTokenBinding(None)` and an absent context are the same thing: no
+/// bound value arrived, so a `Binding::Cookie` submission fails with
+/// [`FormTokenError::BindingMissing`].
+///
+/// With Axum,
+/// [`provide_form_token_binding`](crate::axum_helpers::provide_form_token_binding)
+/// builds this from the request's `Cookie` header.
+#[derive(Clone, Debug)]
+pub struct FormTokenBinding(pub Option<String>);
 
 // ---------------------------------------------------------------------------
 // FormTokenContext

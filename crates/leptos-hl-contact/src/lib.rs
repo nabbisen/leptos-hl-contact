@@ -84,6 +84,6 @@ pub use server::submit_contact;
 
 #[cfg(feature = "form-token")]
 pub use form_token::{
-    Binding, FormToken, FormTokenConfig, FormTokenContext, FormTokenError, issue_form_token,
-    verify_form_token,
+    Binding, FormToken, FormTokenBinding, FormTokenConfig, FormTokenContext, FormTokenError,
+    issue_form_token, verify_form_token,
 };

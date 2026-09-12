@@ -10,6 +10,7 @@ to `leptos_routes_with_context`:
 | `ContactDeliveryContext` | required — `submit_contact` delivers through it |
 | `FormTokenContext` (`form-token` feature) | required — token verification, fail-closed without it |
 | `FormToken` (`form-token` feature) | required — one fresh token per page render; unused on server-function requests |
+| `FormTokenBinding` (`form-token` feature) | required for `Binding::Cookie` — the cookie as it arrived |
 | `ContactServerPolicy` | optional — server-side limits |
 | `ContactSuccessRedirect` | required for the success redirect |
 
@@ -66,13 +67,20 @@ With the `form-token` feature, a server policy and a success page:
 use leptos::context::provide_context;
 use leptos_hl_contact::{
     ContactServerPolicy,
-    axum_helpers::success_redirect,
-    form_token::{FormTokenConfig, FormTokenContext, issue_form_token},
+    axum_helpers::{
+        FormTokenCookie, provide_form_token_binding, provide_form_token_with_cookie,
+        success_redirect,
+    },
+    form_token::{Binding, FormTokenConfig, FormTokenContext},
 };
 
-let token_config: FormTokenContext = Arc::new(FormTokenConfig::new(
-    std::env::var("FORM_TOKEN_SECRET").expect("FORM_TOKEN_SECRET").into_bytes(),
-));
+let token_config: FormTokenContext = Arc::new(
+    FormTokenConfig::new(
+        std::env::var("FORM_TOKEN_SECRET").expect("FORM_TOKEN_SECRET").into_bytes(),
+    )
+    .with_binding(Binding::Cookie),
+);
+let token_cookie = FormTokenCookie::default();
 let policy = ContactServerPolicy { require_subject: true, max_message_len: 2000 };
 // Built before the router so an invalid path panics at boot.
 let redirect = success_redirect("/thanks");
@@ -81,14 +89,20 @@ let app = Router::new()
     .leptos_routes_with_context(&leptos_options, routes, move || {
         ctx.clone()();
         provide_context::<FormTokenContext>(Arc::clone(&token_config));
-        // Unused on server-function requests, which read the submitted token
-        // rather than issuing one.
-        provide_context(issue_form_token(&token_config));
+        // Issues the token and sets its cookie on GET only.
+        provide_form_token_with_cookie(&token_config, &token_cookie);
+        // Reads that cookie back on the submission.
+        provide_form_token_binding(&token_cookie);
         provide_context(policy.clone());
         provide_context(redirect.clone());
     }, App)
     .with_state(leptos_options);
 ```
+
+Both token helpers need the `form-token` feature alongside `axum-helpers`.
+Without binding, replace them with
+`provide_context(issue_form_token(&token_config))` — see
+[Form Token](../security/form-token.md#cookie-binding) for the trade-off.
 
 ### Advanced: excluding a server function
 
