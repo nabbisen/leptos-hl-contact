@@ -184,6 +184,20 @@ gains the optional row.  Examples: `axum-with-security` gains Turnstile
 with test keys behind `CHALLENGE_PROVIDER` / `CHALLENGE_SITE_KEY` /
 `CHALLENGE_SECRET` env vars, off when unset.
 
+## Amendment 2026-09-13 — hydration and client-side navigation
+
+Written before RFC 002, 004 and 007 established how the form behaves under
+hydration and client-side navigation.  Three consequences for D1, carried
+into handoff 02:
+
+- The `<noscript>` message is rendered with `inner_html`: with scripting on,
+  the HTML parser keeps `<noscript>` content as text, so hydrating child
+  views there would fail.
+- Vendor scripts scan for their widget class once, on load; a form reached by
+  client-side navigation may need explicit rendering.  Evidence decides.
+- A vendor script is inserted only when not already present, so returning to
+  the form does not load it twice.
+
 ## Alternatives considered
 
 | Alternative | Why not |

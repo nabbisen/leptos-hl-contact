@@ -74,9 +74,16 @@ absent.
    Leptos' `ActionForm` returns early when `default_prevented()` is set,
    so the first submit is cancelled and the second, with the token,
    proceeds; verify this against the installed Leptos version and note it.
-4. **No-JS.**  When `no_js == Reject`, render
-   `<noscript><p class=classes.error role="alert">{labels.errors.challenge_requires_js}</p></noscript>`
-   right after the widget element.
+4. **No-JS.**  When `no_js == Reject`, render a `<noscript>` right after the
+   widget element containing `<p class="{classes.error}" role="alert">{labels.errors.challenge_requires_js}</p>`.
+   **Render its content with `inner_html`, not as child views** (amended
+   2026-09-13).  With scripting enabled the browser's HTML parser keeps
+   `<noscript>` content as a single text node, so hydration walking an
+   expected `<p>` child would find text and fail.  tachys does not walk the
+   children of an element whose content is `inner_html`, and leaves it alone
+   when hydrating from the server (`html/element/inner_html.rs`).  The label
+   and the class are integrator text inside raw HTML, so escape both
+   (`&`, `<`, `>`, `"`) with a small private helper and unit-test it.
 5. **Escaping.**  All attribute values go through Leptos attributes (auto
    escaped).  The inline script is the only raw insertion; it may contain
    only the validated `site_key` and `action`.
@@ -113,10 +120,48 @@ Additive; new elements only with the prop.  CSP: document in handoff 03.
 
 ## Known risks
 
-The v3 flow depends on `requestSubmit` (not in very old browsers) and on
-`ActionForm` honouring `defaultPrevented`; if the latter is false, stop
-and report before inventing a workaround.
+- **`ActionForm` and `defaultPrevented`** — confirmed by the architect:
+  Leptos 0.8.20 `form.rs` returns early when `default_prevented()` is set, so
+  the v3 script's cancelled first submit is honoured.  `requestSubmit` is not
+  available in very old browsers; document it.
+- **Vendor implicit rendering and client-side navigation** (added
+  2026-09-13).  All three vendors scan the page for their widget class when
+  their script first loads.  A form reached by client-side navigation adds the
+  widget element after that scan, so it may never render.  Test it (evidence
+  item 3).  If it does not render, switch to each vendor's explicit rendering
+  (`?render=explicit` plus `turnstile.render` / `hcaptcha.render` /
+  `grecaptcha.render` on the element, called from a client effect under the
+  `all(feature = "hydrate", not(feature = "ssr"))` gate); do not work around
+  it with a page reload.
+- **The vendor script loaded twice.**  `load_script` renders a `<script>` on
+  every mount, so client-side navigation back to the form inserts it again.
+  Vendors warn or fail on a second load.  Render the script only if a
+  `<script>` with the same `src` is not already in the document, checked in
+  the browser; the server render always includes it.
+- **The v3 inline script under client-side rendering.**  An element created
+  with `document.createElement` executes when inserted, and
+  `document.currentScript` is set while it runs, but `closest('form')` needs
+  the form to be connected by then.  Verify it in evidence item 3; if the
+  form is not yet an ancestor at execution time, move the listener
+  installation into the client effect instead of the inline script.
 
 ## Required evidence
 
-Gate outputs; tests; network panel screenshot.
+Gate outputs; tests; and, in headless Chromium over CDP on a freshly built
+bundle with Turnstile test key `1x00000000000000000000AA`:
+
+1. Load the form directly: the widget renders, a submit carries
+   `cf-turnstile-response` in the request body, **no hydration error** in
+   the console.
+2. With JavaScript disabled: the `<noscript>` message is shown as a
+   paragraph.
+3. Load another page first, navigate to the form client-side, submit: the
+   widget renders, the token is in the body, and the vendor script appears
+   **once** in the document.  Then navigate away and back, and show it is
+   still once.
+4. reCAPTCHA v3 with Google's test key: the first submit is cancelled, a
+   token is fetched, the second submit carries it — on a direct load and
+   after client-side navigation.
+
+Vendor endpoints are external; if the environment cannot reach them, say so
+and record what was and was not shown, as for the `__Host-` refusal.
