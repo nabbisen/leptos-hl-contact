@@ -61,10 +61,40 @@ impl ContactFieldErrors {
 
     /// Deserialise from the JSON string embedded in a `ServerFnError` message.
     ///
-    /// Returns `None` when the string is not a `ContactFieldErrors` payload.
+    /// The sentinel is located anywhere in `s`, not only at the start: the
+    /// framework's `Display` for `ServerFnError::Args` prefixes the payload
+    /// with `"error deserializing server function arguments: "`, so a caller
+    /// holding the displayed string never sees the sentinel first.
+    ///
+    /// Returns `None` when the sentinel is absent or the text after it is not
+    /// valid `ContactFieldErrors` JSON.
+    ///
+    /// Prefer [`from_server_fn_error`](Self::from_server_fn_error) when the
+    /// error value itself is available; this function is the fallback for
+    /// callers that hold only a string.
     pub fn from_error_str(s: &str) -> Option<Self> {
-        let json = s.strip_prefix(FIELD_ERROR_PREFIX)?;
+        let at = s.find(FIELD_ERROR_PREFIX)?;
+        let json = &s[at + FIELD_ERROR_PREFIX.len()..];
         serde_json::from_str(json).ok()
+    }
+
+    /// Extract a field-error payload from a server-function error.
+    ///
+    /// This is the intended way for a client to detect one.  Only the
+    /// [`Args`](leptos::server_fn::error::ServerFnError::Args) variant can
+    /// carry a payload; every other variant — including an `Args` holding
+    /// plain text such as the token-failure message — yields `None` and
+    /// belongs on the generic-error path.
+    ///
+    /// Matching the variant means the check never depends on the framework's
+    /// English `Display` text.
+    pub fn from_server_fn_error<E>(
+        err: &leptos::server_fn::error::ServerFnError<E>,
+    ) -> Option<Self> {
+        match err {
+            leptos::server_fn::error::ServerFnError::Args(s) => Self::from_error_str(s),
+            _ => None,
+        }
     }
 
     /// Encode this value into a `ServerFnError::Args` message string.

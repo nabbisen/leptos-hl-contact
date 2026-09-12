@@ -16,6 +16,12 @@ No version assigned; the owner decides the release number.
   example ever bound a port.
 - Example manifests were at `0.3.2` while the workspace was `0.3.3`; both
   now match.
+- Per-field validation errors render beside their field again, in both the
+  WASM and no-JavaScript paths.  The component tested the error's displayed
+  text with `starts_with`, but the framework prefixes `ServerFnError::Args`
+  with `"error deserializing server function arguments: "`, so the test was
+  always false and every validation failure fell through to the generic
+  banner.  The component now matches the error variant instead.
 - `axum-with-security` serves with
   `into_make_service_with_connect_info::<SocketAddr>()`, so
   `tower_governor`'s `SmartIpKeyExtractor` can fall back to the peer address.
@@ -27,6 +33,11 @@ No version assigned; the owner decides the release number.
 - CI job `examples`, a matrix over both example directories running
   `cargo check`.  The examples are excluded from the workspace, so the crate
   gates never compiled them.
+- `ContactFieldErrors::from_server_fn_error`, the intended way for a client
+  to detect a field-error payload: it matches the `Args` variant instead of
+  inspecting the framework's displayed text.  `from_error_str` stays as the
+  fallback for callers holding only a string and now locates the sentinel
+  anywhere within it rather than only at the start.
 
 ### Documentation
 

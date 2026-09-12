@@ -4,7 +4,7 @@ use leptos::prelude::*;
 
 use crate::{
     config::{ContactFormClasses, ContactFormLabels, ContactFormOptions},
-    error::{ContactFieldErrors, FIELD_ERROR_PREFIX},
+    error::ContactFieldErrors,
     server::SubmitContact,
 };
 
@@ -119,32 +119,28 @@ pub fn ContactForm(
     // True when the last submission succeeded.
     let succeeded = move || value.with(|v| matches!(v, Some(Ok(()))));
 
-    // Parse field-level errors from the ServerFnError payload.
+    // Parse field-level errors from the ServerFnError payload.  Matching the
+    // `Args` variant keeps this independent of the framework's display text.
     let field_errors = move || {
         value.with(|v| match v {
-            Some(Err(e)) => {
-                let s = e.to_string();
-                if s.starts_with(FIELD_ERROR_PREFIX) {
-                    ContactFieldErrors::from_error_str(&s).unwrap_or_default()
-                } else {
-                    ContactFieldErrors::default()
-                }
-            }
+            Some(Err(e)) => ContactFieldErrors::from_server_fn_error(e)
+                .filter(|fe| !fe.is_empty())
+                .unwrap_or_default(),
             _ => ContactFieldErrors::default(),
         })
     };
 
-    // Generic delivery-failure message (non-field errors only).
+    // Generic banner: every error that does not carry field errors, which
+    // includes the token-failure message and every `ServerError`.
     let generic_error = move || {
         value.with(|v| match v {
             Some(Err(e)) => {
-                let s = e.to_string();
-                if s.starts_with(FIELD_ERROR_PREFIX) {
+                let has_field_errors =
+                    ContactFieldErrors::from_server_fn_error(e).is_some_and(|fe| !fe.is_empty());
+                if has_field_errors {
                     String::new() // handled per-field
-                } else if !s.is_empty() {
-                    labels.with_value(|l| l.error.clone())
                 } else {
-                    String::new()
+                    labels.with_value(|l| l.error.clone())
                 }
             }
             _ => String::new(),

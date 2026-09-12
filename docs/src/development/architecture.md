@@ -77,13 +77,21 @@ browser ── POST /api/submit_contact (form-encoded) ──▶ submit_contact
 
 ```text
 ServerFnError::Args("field_errors:{json}")
-   → framework Display: "error deserializing server function arguments: field_errors:{json}"
-   → component locates the sentinel → ContactFieldErrors → FieldError beside each input
-   (0.3.3 defect: the component uses starts_with and misses the sentinel — P-02)
+   → component matches the Args variant → ContactFieldErrors::from_server_fn_error
+   → ContactFieldErrors → FieldError beside each input
 
+ServerFnError::Args("Invalid or expired security token…")   no payload
 ServerFnError::ServerError("…generic…")
    → generic banner with labels.error
 ```
+
+The component matches the `Args` variant rather than testing the error's
+displayed text, which the framework prefixes with
+`"error deserializing server function arguments: "`.  An `Args` error whose
+message carries no sentinel — the token failure, for instance — yields
+`None` and takes the banner path, so the check never depends on the
+framework's English wording.  `from_error_str` remains available for callers
+that hold only a string and locates the sentinel anywhere within it.
 
 The sentinel keeps a single error type on the wire.  Roadmap item P-14
 replaces the English texts inside the JSON with codes.
