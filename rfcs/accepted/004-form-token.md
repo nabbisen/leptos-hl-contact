@@ -1,7 +1,9 @@
 # RFC 004 — Form token: rename, minimum age, cookie binding, client acquisition
 
-**Status.** Proposed — 2026-09-12.  Contains a security-boundary change
-(cookie binding) and a public rename; **owner acceptance required**.
+**Status.** Accepted — proposed and accepted by the owner on 2026-09-12,
+including the rename, `min_age_secs = 2`, and the hidden-field rename in
+0.5.0 with both names accepted server-side for one minor.
+**Handoffs.** [`../handoffs/004-form-token/README.md`](../handoffs/004-form-token/README.md)
 **Tracks.** Roadmap M3 item P-12 (extended).  Requirements FR-ABUSE-02
 (Decision), FR-ABUSE-03, FR-ABUSE-04, FR-ABUSE-13 (minimum age), FR-UI-12
 (client-side navigation case).  External Design §5.3, §5.4.
@@ -212,12 +214,11 @@ Three handoffs: (1) rename with aliases and minimum age; (2) cookie
 binding in `axum-helpers`; (3) client acquisition and refresh.  (2) and
 (3) are independent after (1).
 
-## Open questions for the owner
+## Owner decisions
 
-1. Default `min_age_secs`: 2 (recommended) or 3.
-2. Accept the field rename (`csrf_token` → `form_token`) as a DOM contract
-   change in 0.5.0, given both names are accepted server-side for one
-   minor.
+1. Default `min_age_secs` is **2** (decided 2026-09-12).
+2. The hidden-field rename `csrf_token` → `form_token` in 0.5.0 is
+   **accepted**, both names accepted server-side for one minor.
 
 ## Release implications
 

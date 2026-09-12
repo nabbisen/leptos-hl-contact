@@ -163,7 +163,7 @@ input the browser accepted.
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
 | FR-ABUSE-01 | A honeypot MUST be built in and enabled without configuration | MUST | Met |
-| FR-ABUSE-02 | The crate MUST either provide a request-forgery control that is effective on its own, or MUST state unambiguously that application-level Origin validation is the CSRF control and describe the built-in token as an anti-automation measure.  The current token is not bound to the visitor and can be replayed within its TTL | MUST | Decision (P-12) |
+| FR-ABUSE-02 | The crate MUST either provide a request-forgery control that is effective on its own, or MUST state unambiguously that application-level Origin validation is the CSRF control and describe the built-in token as an anti-automation measure.  The current token is not bound to the visitor and can be replayed within its TTL | MUST | Planned (RFC 004: rename to form token; opt-in cookie binding gives the double-submit property) |
 | FR-ABUSE-03 | Token verification MUST use constant-time comparison, MUST enforce a TTL, and MUST tolerate bounded clock skew | MUST | Met |
 | FR-ABUSE-04 | When the `csrf` feature is enabled and its configuration is missing, submissions MUST be rejected (fail-closed) with a logged `error` | MUST | Met |
 | FR-ABUSE-05 | Rate limiting is an application responsibility; the crate MUST document it and ship a working example | MUST | Met |
@@ -355,7 +355,7 @@ input the browser accepted.
 | FR-UI-13 | Gap | P-16 |
 | FR-VAL-07, FR-SUB-07 | Partial | P-04 |
 | FR-VAL-08 | Partial | P-07 |
-| FR-ABUSE-02 | Decision | P-12 |
+| FR-ABUSE-02 | Planned | P-12 / RFC 004 |
 | FR-ABUSE-10..12 | Planned | P-21 / RFC 005 |
 | FR-ABUSE-13 | Planned | P-12 / RFC 004 |
 | FR-ABUSE-14 | Planned | P-25 / RFC 006 |
@@ -373,10 +373,8 @@ input the browser accepted.
 
 ## 9. Open questions for the owner
 
-1. **Anti-forgery token (FR-ABUSE-02).** Bind the token to the visitor,
-   reposition it as an anti-automation "form token", or remove it?
-   Options and the architect's recommendation are in
-   [External Design §5.4](./external-design.md).
+1. ~~**Anti-forgery token (FR-ABUSE-02).**~~ Decided 2026-09-12 (RFC 004):
+   form token with minimum age; cookie binding opt-in in `axum-helpers`.
 2. **Target platforms (NFR-PORT-02).** Is Cloudflare Workers a supported
    target?  If yes, a fetch-based delivery adapter becomes a requirement.
 3. ~~**Turnstile adapter.**~~ Decided 2026-09-12: challenge providers are in

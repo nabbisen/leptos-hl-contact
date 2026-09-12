@@ -15,8 +15,8 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Priority |
 |----|-------|----------|
-| — | *(none yet)* | |
-
+| 005 | [Challenge providers: Turnstile, hCaptcha, reCAPTCHA](./proposed/005-challenge-providers.md) | High (M3) — owner acceptance required |
+| 006 | [Pre-delivery filter hook](./proposed/006-contact-filter.md) | Medium (M3) |
 
 ## Accepted
 
@@ -24,6 +24,8 @@ Planned topics that do not yet have a file are listed in
 |----|-------|---------|
 | 001 | [Milestone M1: green baseline](./accepted/001-m1-green-baseline.md) | [handoffs/001-m1-green-baseline/](./handoffs/001-m1-green-baseline/README.md) |
 | 002 | [Form state model](./accepted/002-form-state-model.md) | [handoffs/002-form-state-model/](./handoffs/002-form-state-model/README.md) |
+| 003 | [Error codes and localisable server messages](./accepted/003-error-codes.md) | [handoffs/003-error-codes/](./handoffs/003-error-codes/README.md) |
+| 004 | [Form token: rename, minimum age, cookie binding, client acquisition](./accepted/004-form-token.md) | [handoffs/004-form-token/](./handoffs/004-form-token/README.md) |
 
 ## Implemented
 
@@ -46,6 +48,4 @@ Derived from the roadmap milestones; each becomes a numbered RFC in
 |--------------|-------|
 | P-15 | Test strategy |
 | P-20 | Multi-language label presets |
-| P-21 | Challenge providers: Turnstile, hCaptcha, reCAPTCHA v2/v3 (RFC 005) |
-| P-25 | Pre-delivery filter hook (RFC 006) |
 | P-22 / P-23 | HTTP-API delivery adapters and runtime portability |

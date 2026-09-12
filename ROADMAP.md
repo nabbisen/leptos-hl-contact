@@ -85,7 +85,7 @@ handoff is written.
 | P-11 | Hidden `csrf_token` field becomes empty after that client-side rebuild because `CsrfToken` context exists only during SSR; the second submit then fails with "reload the page" | **High** | RFC (with P-10) | inferred; tachys confirmed to keep SSR attribute on first hydration only |
 | P-12 | Anti-forgery token redesign: the token is not bound to the visitor and is replayable within its TTL, so it does not prevent cross-site forgery on its own; decide between cookie binding, session binding, or repositioning it as an anti-automation "form token" with the Origin check as the documented CSRF control | **High** | RFC | verified by design reading |
 | P-13 | Progressive-enhancement contract: without JavaScript the framework redirects back to the Referer, errors are surfaced via `__err`, but a successful submit shows no confirmation | Medium | RFC (with P-10) | inferred from `server_fn` / `leptos_server` source |
-| P-14 | Localisable server-originated messages: validation, policy, token and configuration messages are English strings composed on the server and cannot be overridden through `ContactFormLabels`; move to error codes mapped to text on the client | Medium | [RFC 003](./rfcs/proposed/003-error-codes.md) | verified |
+| P-14 | Localisable server-originated messages: validation, policy, token and configuration messages are English strings composed on the server and cannot be overridden through `ContactFormLabels`; move to error codes mapped to text on the client | Medium | [RFC 003](./rfcs/accepted/003-error-codes.md) | verified |
 | P-15 | Test strategy: integration tests for `submit_contact` (CSRF fail-closed, policy, honeypot, delivery error), component render tests, no-JS flow; current server tests only check string sentinels | Medium | RFC / handoff | verified |
 | P-16 | Focus management after a failed submission (move focus to first invalid field or error summary) | Low | RFC (with P-10) | design gap |
 
@@ -103,9 +103,9 @@ RFCs are written in this order; each needs acceptance before its handoff.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
-| P-12 | Anti-forgery token redesign **plus token minimum age**: decide binding (cookie / session) or reposition as anti-automation "form token" and rename; reject submissions younger than a configurable number of seconds since the page render (JS-free bot signal); resolve the client-side-navigation case where a form created in the browser has no SSR token (new finding 2026-09-12) | **High** | [RFC 004](./rfcs/proposed/004-form-token.md) | verified by design reading |
-| P-21 | Challenge providers: `challenge` prop renders the widget and a hidden token field inside the form; `ChallengeVerifier` trait; built-in Turnstile, hCaptcha, reCAPTCHA v2/v3 behind `challenge-http`; fail-closed; no-JS policy per owner decision; vendor test keys in CI; verify-endpoint timeout and outage behaviour defined | **High** | RFC 005 | decided |
-| P-25 | Pre-delivery filter hook: `ContactFilter` trait returning accept / reject / silent-drop for a validated submission, for content heuristics or third-party spam services | Medium | RFC 006 | new 2026-09-12 |
+| P-12 | Anti-forgery token redesign **plus token minimum age**: decide binding (cookie / session) or reposition as anti-automation "form token" and rename; reject submissions younger than a configurable number of seconds since the page render (JS-free bot signal); resolve the client-side-navigation case where a form created in the browser has no SSR token (new finding 2026-09-12) | **High** | [RFC 004](./rfcs/accepted/004-form-token.md) | verified by design reading |
+| P-21 | Challenge providers: `challenge` prop renders the widget and a hidden token field inside the form; `ChallengeVerifier` trait; built-in Turnstile, hCaptcha, reCAPTCHA v2/v3 behind `challenge-http`; fail-closed; no-JS policy per owner decision; vendor test keys in CI; verify-endpoint timeout and outage behaviour defined | **High** | [RFC 005](./rfcs/proposed/005-challenge-providers.md) | decided |
+| P-25 | Pre-delivery filter hook: `ContactFilter` trait returning accept / reject / silent-drop for a validated submission, for content heuristics or third-party spam services | Medium | [RFC 006](./rfcs/proposed/006-contact-filter.md) | new 2026-09-12 |
 
 ### M4 — Reach (proposed release: 0.6.x)
 
@@ -134,9 +134,9 @@ RFCs are written in this order; each needs acceptance before its handoff.
 ## Decisions required from the owner
 
 1. Approve or amend the M1 / M2 / M3 structure and the proposed priorities.
-2. Direction for P-12 (anti-forgery token): options and a recommendation are in
-   [External Design §5.4](./docs/src/development/external-design.md).  Owner
-   note 2026-09-12: to be settled in RFC 004 together with token minimum age.
+2. ~~Direction for P-12 (anti-forgery token).~~ Decided 2026-09-12 in RFC 004:
+   rename to form token, minimum age 2 s, opt-in cookie binding, client
+   acquisition; hidden field renamed in 0.5.0.
 3. Target platforms (P-23): is Cloudflare Workers in scope for this crate?
 4. ~~Whether a bundled Turnstile adapter (P-21) is in scope.~~ Decided 2026-09-12: in scope, see M3.
 5. Version numbers: the architect proposes 0.3.4 for M1 and 0.4.0 for M2; the

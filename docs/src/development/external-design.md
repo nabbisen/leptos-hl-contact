@@ -433,10 +433,11 @@ is "anti-automation", not "CSRF protection".
 | C. Reposition and rename | Keep the token as an anti-automation "form token"; document Origin validation as the CSRF control; rename feature/API in a minor release with deprecation aliases | Honest, cheap, keeps the useful bot friction | Rename churn |
 | D. Remove | Drop the feature | Simplest | Loses useful bot friction |
 
-**Architect recommendation.** C now (documentation and naming truthfulness
-belong in M1/M2), with A offered as an opt-in inside `axum-helpers` in the
-same RFC so Axum users get a genuine CSRF property without sessions.  Final
-decision is the owner's.
+**Decision (owner, 2026-09-12, RFC 004).** C and A together: the feature is
+renamed *form token* with deprecated aliases for one minor; a minimum age of
+two seconds is enforced; cookie binding is available as an opt-in in
+`axum-helpers`; a form created in the browser acquires a token from a server
+function.
 
 ### 5.5 Data classification and retention
 
@@ -523,7 +524,7 @@ The project rule is "less is more".  Applied here:
 
 | ID | Topic | Options | Architect recommendation | Decides |
 |----|-------|---------|--------------------------|---------|
-| P-12 | Anti-forgery token | A cookie binding / B session / C reposition + rename / D remove | C, plus A as opt-in in `axum-helpers` | owner |
+| P-12 | Anti-forgery token | — | **Decided 2026-09-12:** C + A, see §5.4 and RFC 004 | — |
 | P-10/11/13/16 | Form state model | (i) keep single closure, stash inputs in signals; (ii) build form once, react only in error/success regions; (iii) controlled inputs | (ii): smallest change that satisfies FR-UI-07, FR-UI-12 and keeps no-JS identical | architect via RFC |
 | P-13 | No-JS success signal | (i) redirect to an integrator-configured success page; (ii) marker query read at SSR; (iii) cookie; (iv) document limitation | (i): framework-neutral contract, no URL parsing in the component, integrator owns the page | architect via RFC 002 |
 | P-14 | Error codes | (i) codes in existing JSON members; (ii) new JSON shape with version key | (i) with dual-accept period | architect via RFC |
