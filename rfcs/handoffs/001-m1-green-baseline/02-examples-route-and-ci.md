@@ -56,9 +56,9 @@ say `version = "0.3.2"` while the workspace is `0.3.3`.
    "differences".  If the fix would need a change in the crate, stop and
    report instead.
 5. **CI job.**  Add to `.github/workflows/ci.yml` a job `examples` that
-   installs the same toolchain as `check` and runs, for each example
-   directory, `cargo-1.91 check` with `working-directory` set to that
-   directory.  Keep it a separate job so a slow example build does not
+   installs the same toolchain as `check` (after handoff 01 this is
+   `dtolnay/rust-toolchain@1.91`) and runs, for each example directory,
+   `cargo check` with `working-directory` set to that directory.  Keep it a separate job so a slow example build does not
    delay the crate gates.  `check` is enough; do not run them.
 
 ## Required tests
