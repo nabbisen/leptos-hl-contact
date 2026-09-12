@@ -1,6 +1,6 @@
 # Handoff 01 — Hydrated example
 
-**RFC.** [002](../../accepted/002-form-state-model.md), design D4.
+**RFC.** [002](../../done/002-form-state-model.md), design D4.
 **Requirements.** NFR-DOC-01, NFR-TEST-01.
 
 ## Purpose

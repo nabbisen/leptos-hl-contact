@@ -1,6 +1,6 @@
 # Handoffs — RFC 003, Error codes and localisable server messages
 
-Companion to [RFC 003](../../accepted/003-error-codes.md).  Shared rules,
+Companion to [RFC 003](../../done/003-error-codes.md).  Shared rules,
 gates, and review-request format:
 [`../001-m1-green-baseline/README.md`](../001-m1-green-baseline/README.md).
 Review requests go to `.git-exclude/review-request/003-error-codes/`.

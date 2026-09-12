@@ -1,6 +1,6 @@
 # Handoff 01 — One closure: docs, examples, rustdoc
 
-**RFC.** [007](../../accepted/007-one-context-closure.md) D1, D3.
+**RFC.** [007](../../done/007-one-context-closure.md) D1, D3.
 **Requirements.** FR-CFG-02, NFR-DOC-01.
 
 ## Purpose

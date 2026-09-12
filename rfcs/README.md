@@ -21,12 +21,9 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Handoff |
 |----|-------|---------|
-| 002 | [Form state model](./accepted/002-form-state-model.md) | [handoffs/002-form-state-model/](./handoffs/002-form-state-model/README.md) |
-| 003 | [Error codes and localisable server messages](./accepted/003-error-codes.md) | [handoffs/003-error-codes/](./handoffs/003-error-codes/README.md) |
 | 004 | [Form token: rename, minimum age, cookie binding, client acquisition](./accepted/004-form-token.md) | [handoffs/004-form-token/](./handoffs/004-form-token/README.md) |
 | 005 | [Challenge providers: Turnstile, hCaptcha, reCAPTCHA](./accepted/005-challenge-providers.md) | [handoffs/005-challenge-providers/](./handoffs/005-challenge-providers/README.md) |
 | 006 | [Pre-delivery filter hook](./accepted/006-contact-filter.md) | [handoffs/006-contact-filter/](./handoffs/006-contact-filter/README.md) |
-| 007 | [One context closure for Axum](./accepted/007-one-context-closure.md) | [handoffs/007-one-context-closure/](./handoffs/007-one-context-closure/README.md) |
 
 ## Implemented
 
@@ -34,6 +31,9 @@ Planned topics that do not yet have a file are listed in
 |----|-------|------------|
 | 000 | [RFC lifecycle policy](./done/000-rfc-lifecycle-policy.md) | 0.3.3 (commit `8d29d5a`) |
 | 001 | [Milestone M1: green baseline](./done/001-m1-green-baseline.md) | 0.3.4 (2026-09-12) — [handoffs](./handoffs/001-m1-green-baseline/README.md) |
+| 002 | [Form state model](./done/002-form-state-model.md) | 0.4.0 (2026-09-13) — [handoffs](./handoffs/002-form-state-model/README.md) |
+| 003 | [Error codes and localisable server messages](./done/003-error-codes.md) | 0.4.0 (2026-09-13) — [handoffs](./handoffs/003-error-codes/README.md) |
+| 007 | [One context closure for Axum](./done/007-one-context-closure.md) | 0.4.0 (2026-09-13) — [handoffs](./handoffs/007-one-context-closure/README.md) |
 
 ## Archive
 

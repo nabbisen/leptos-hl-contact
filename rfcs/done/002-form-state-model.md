@@ -1,6 +1,6 @@
 # RFC 002 — Form state model
 
-**Status.** Accepted — proposed and accepted by the owner on 2026-09-12.
+**Status.** Implemented (0.4.0) — released 2026-09-13, tag `0.4.0` on commit `c9a3f53`.  Accepted 2026-09-12; three handoffs approved 2026-09-12/13.
 **Handoffs.** [`../handoffs/002-form-state-model/README.md`](../handoffs/002-form-state-model/README.md)
 **Tracks.** Roadmap M2 items P-10 (input preserved on error), P-11 (token
 survives re-render), P-13 (no-JS success signal), P-16 (focus after

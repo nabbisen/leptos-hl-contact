@@ -98,6 +98,13 @@ cargo leptos build
 ls -l target/site/pkg     # every file must be newer than your edit
 ```
 
+**A build with narrower features can poison a later `--all-features` run.**
+If `cargo test --all-features` reports a doctest failing with "found an item
+that was configured out ... gated behind the `smtp-lettre` feature", the
+crate's artefacts were last written by a build with a narrower feature set.
+`cargo clean -p leptos-hl-contact` and re-run; CI never sees this because it
+builds from scratch.  Do not read it as a defect until you have cleaned.
+
 **Rebuild the example with `cargo leptos build`, not `cargo build`.** After
 editing an example, a plain `cargo build` refreshes the binary but not the
 generated bundle, and the two then disagree about the WASM filename: the

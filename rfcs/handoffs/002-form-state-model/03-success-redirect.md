@@ -1,6 +1,6 @@
 # Handoff 03 — Success redirect
 
-**RFC.** [002](../../accepted/002-form-state-model.md), design D3.
+**RFC.** [002](../../done/002-form-state-model.md), design D3.
 **Requirements.** FR-UI-06, FR-PE-03.  **External Design.** §4.1.4.
 **Depends on.** Handoffs 01 and 02 of this RFC.
 

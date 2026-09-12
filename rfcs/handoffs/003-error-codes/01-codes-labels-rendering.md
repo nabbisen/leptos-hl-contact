@@ -1,6 +1,6 @@
 # Handoff 01 — Codes on the wire, labels on the client
 
-**RFC.** [003](../../accepted/003-error-codes.md), all of D1–D4.
+**RFC.** [003](../../done/003-error-codes.md), all of D1–D4.
 **Requirements.** FR-I18N-02, FR-SUB-06, FR-UI-08, FR-UI-09.
 
 ## Purpose

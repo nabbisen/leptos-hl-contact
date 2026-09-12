@@ -1,6 +1,6 @@
 # Handoff 02 — `Required` for empty values, and three notes
 
-**RFC.** [003](../../accepted/003-error-codes.md), D2 (amended by the
+**RFC.** [003](../../done/003-error-codes.md), D2 (amended by the
 handoff 01 review).
 **Roadmap.** P-29.  **Requirements.** FR-I18N-02, FR-SUB-06, FR-UI-08.
 **Depends on.** Handoff 01, approved 2026-09-13.

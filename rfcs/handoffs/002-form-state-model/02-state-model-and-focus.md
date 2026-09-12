@@ -1,6 +1,6 @@
 # Handoff 02 — Build once, react in place, focus after error
 
-**RFC.** [002](../../accepted/002-form-state-model.md), designs D1, D2.
+**RFC.** [002](../../done/002-form-state-model.md), designs D1, D2.
 **Requirements.** FR-UI-04, FR-UI-07, FR-UI-12, FR-UI-13, FR-A11Y-03.
 **External Design.** §4.1.2 DOM contract (must not change), §4.1.3 state model.
 **Depends on.** RFC 001 handoff 03; handoff 01 of this RFC for browser evidence.

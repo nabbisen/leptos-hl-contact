@@ -1,6 +1,6 @@
 # RFC 003 — Error codes and localisable server messages
 
-**Status.** Accepted — proposed and accepted by the owner on 2026-09-12.
+**Status.** Implemented (0.4.0) — released 2026-09-13, tag `0.4.0` on commit `c9a3f53`.  Accepted 2026-09-12; two handoffs approved 2026-09-13.
 **Handoffs.** [`../handoffs/003-error-codes/README.md`](../handoffs/003-error-codes/README.md)
 **Tracks.** Roadmap M2 item P-14.  Requirements FR-I18N-02 (MUST, Gap),
 FR-SUB-06, FR-UI-08.  External Design §4.2.3 target form, §6.

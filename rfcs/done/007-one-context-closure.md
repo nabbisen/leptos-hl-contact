@@ -1,6 +1,6 @@
 # RFC 007 — One context closure for Axum
 
-**Status.** Accepted — written and accepted by the architect on 2026-09-12
+**Status.** Implemented (0.4.0) — released 2026-09-13, tag `0.4.0` on commit `c9a3f53`.  Written and accepted by the architect on 2026-09-12
 as a correction of integration guidance (no security boundary or public
 API change); owner informed in the RFC 002 handoff 03 review.
 **Tracks.** Roadmap P-28.  Requirements FR-CFG-02, NFR-DOC-01.  External

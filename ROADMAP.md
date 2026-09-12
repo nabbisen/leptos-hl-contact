@@ -63,6 +63,17 @@ confirmed during implementation.
 Documents produced from this review: [Requirements](./docs/src/development/requirements.md)
 and [External Design](./docs/src/development/external-design.md).
 
+### 0.4.0 — Milestone M2 (2026-09-13)
+
+- [x] Form built once: the anti-automation token survives a failed submission (P-10, P-11)
+- [x] Focus moves to the first invalid field (P-16)
+- [x] Success page confirms with or without JavaScript (P-13)
+- [x] Error codes on the wire; every message localisable (P-14, P-29)
+- [x] One context closure for Axum; the manual server-fn route was never reached (P-28)
+- [x] The security example ships a WASM client, so hydration is testable
+- [x] RFC 002, RFC 003, RFC 007 → `rfcs/done/`
+- [x] Ships with no known issues listed — a first for the project
+
 ### M1 — Green baseline — **released as 0.3.4 on 2026-09-12** (tag `0.3.4`, crates.io)
 
 Tracked by [RFC 001](./rfcs/done/001-m1-green-baseline.md); handoffs in
@@ -90,19 +101,19 @@ handoff is written.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
-| P-10 | Form subtree rebuilt on every action-value change — **done** in handoff 002-02 (`d97e078`): the form is built once and only error and success regions react.  Typed input was never lost (tachys rebuilds in place); it is now a regression guard | **High** | [RFC 002](./rfcs/accepted/002-form-state-model.md) | verified in the browser by the architect |
-| P-11 | Hidden token emptied by the client-side rebuild — **done** in handoff 002-02: the token survives any number of failed submissions (SSR-then-hydrate case).  The client-side-navigation case moves to RFC 004 | **High** | [RFC 002](./rfcs/accepted/002-form-state-model.md) | verified in the browser by the architect |
+| P-10 | Form subtree rebuilt on every action-value change — **done** in handoff 002-02 (`d97e078`): the form is built once and only error and success regions react.  Typed input was never lost (tachys rebuilds in place); it is now a regression guard | **High** | [RFC 002](./rfcs/done/002-form-state-model.md) | verified in the browser by the architect |
+| P-11 | Hidden token emptied by the client-side rebuild — **done** in handoff 002-02: the token survives any number of failed submissions (SSR-then-hydrate case).  The client-side-navigation case moves to RFC 004 | **High** | [RFC 002](./rfcs/done/002-form-state-model.md) | verified in the browser by the architect |
 | P-12 | Anti-forgery token redesign: the token is not bound to the visitor and is replayable within its TTL, so it does not prevent cross-site forgery on its own; decide between cookie binding, session binding, or repositioning it as an anti-automation "form token" with the Origin check as the documented CSRF control | **High** | RFC | verified by design reading |
-| P-13 | No success confirmation without JavaScript — **done** in handoff 002-03 (`fa3a970`): `ContactSuccessRedirect` + `axum_helpers::success_redirect`; every successful submission goes to the configured page in both modes; unconfigured case unchanged and documented | Medium | [RFC 002](./rfcs/accepted/002-form-state-model.md) | no-JS 302 reproduced by the architect |
+| P-13 | No success confirmation without JavaScript — **done** in handoff 002-03 (`fa3a970`): `ContactSuccessRedirect` + `axum_helpers::success_redirect`; every successful submission goes to the configured page in both modes; unconfigured case unchanged and documented | Medium | [RFC 002](./rfcs/done/002-form-state-model.md) | no-JS 302 reproduced by the architect |
 | P-27 | ~~Per-field errors do not render under hydration~~ — **withdrawn 2026-09-12**: reported by handoff 002-01, not reproducible by the architect on a clean client build (decode path verified natively, instrumented and clean hydrated runs both render the field error); attributed to a stale WASM bundle.  Handoff 02 begins with a clean rebuild and a regression check | — | withdrawn | verified in the browser |
-| P-14 | Server-composed messages were English and unlocalisable — **done** in RFC 003 handoff 01 (`aaca97c`), approved 2026-09-13: codes on the wire, `ContactErrorLabels` on the client; verified with a Japanese label set on both the hydrated and no-JS paths | Medium | [RFC 003](./rfcs/accepted/003-error-codes.md) | verified by the architect |
+| P-14 | Server-composed messages were English and unlocalisable — **done** in RFC 003 handoff 01 (`aaca97c`), approved 2026-09-13: codes on the wire, `ContactErrorLabels` on the client; verified with a Japanese label set on both the hydrated and no-JS paths | Medium | [RFC 003](./rfcs/done/003-error-codes.md) | verified by the architect |
 | P-15 | Test strategy: integration tests for `submit_contact` (CSRF fail-closed, policy, honeypot, delivery error), component render tests, no-JS flow; current server tests only check string sentinels | Medium | RFC / handoff | verified |
-| P-16 | Focus management after a failed submission — **done** in handoff 002-02: `focus_first_error` option, default on | Low | [RFC 002](./rfcs/accepted/002-form-state-model.md) | verified in the browser |
-| P-28 | "Two context sites" guidance was wrong — **done** in RFC 007 handoff 01 (`804b0db`), approved 2026-09-13 with one correction: the manual route is gone from both examples and nine pages; the context closure is the single site | **High** | [RFC 007](./rfcs/accepted/007-one-context-closure.md) | verified by the architect |
+| P-16 | Focus management after a failed submission — **done** in handoff 002-02: `focus_first_error` option, default on | Low | [RFC 002](./rfcs/done/002-form-state-model.md) | verified in the browser |
+| P-28 | "Two context sites" guidance was wrong — **done** in RFC 007 handoff 01 (`804b0db`), approved 2026-09-13 with one correction: the manual route is gone from both examples and nine pages; the context closure is the single site | **High** | [RFC 007](./rfcs/done/007-one-context-closure.md) | verified by the architect |
 
-### M3 — Anti-abuse (proposed release: 0.5.0, minor) — **theme authorized 2026-09-12**
+### M3 — Anti-abuse (proposed release: 0.5.0, minor) — **authorized 2026-09-12; in progress from 2026-09-13**
 
-Owner decisions of 2026-09-12: theme approved and positioned | P-29 | Blank required field rendered the length message — **done** in RFC 003 handoff 02 (`5c61968`, `ea534b4`), approved 2026-09-13; the field mapping is now exhaustive over `ContactField`, verified by probe | Medium | [RFC 003](./rfcs/accepted/003-error-codes.md) handoff 02 | verified by the architect |
+Owner decisions of 2026-09-12: theme approved and positioned | P-29 | Blank required field rendered the length message — **done** in RFC 003 handoff 02 (`5c61968`, `ea534b4`), approved 2026-09-13; the field mapping is now exhaustive over `ContactField`, verified by probe | Medium | [RFC 003](./rfcs/done/003-error-codes.md) handoff 02 | verified by the architect |
 directly
 after M2; first-release providers are Cloudflare Turnstile, hCaptcha,
 reCAPTCHA v2 and v3 (not Enterprise); when a challenge is enabled,

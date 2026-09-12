@@ -1,6 +1,6 @@
 # Handoffs — RFC 002, Form state model
 
-Companion execution documents for [RFC 002](../../accepted/002-form-state-model.md).
+Companion execution documents for [RFC 002](../../done/002-form-state-model.md).
 The shared rules, gates, and review-request format in
 [`../001-m1-green-baseline/README.md`](../001-m1-green-baseline/README.md)
 apply unchanged; review requests go to `.git-exclude/review-request/002-form-state/<NN>-<slug>.md`.
