@@ -192,6 +192,27 @@ The property is unchanged: the nonce binds the token to the browser, an
 attacker can neither read it (`HttpOnly`, cross-origin) nor have it sent
 (`SameSite=Lax`), and replay within the TTL was already accepted as T6.
 
+## Amendment 2026-09-13 (2) — the `__Host-` prefix
+
+Reviewing C1 exposed what the binding rests on: an attacker cannot set the
+victim's cookie.  That fails against cookie tossing from a subdomain, which
+can set the cookie with a `Domain` attribute and `SameSite=None` so it is
+sent on a cross-site POST; the attacker supplies a token they obtained for
+that same nonce.  Signing the cookie value does not help, because the pair
+they use is legitimately issued.
+
+The defence is the `__Host-` cookie prefix, which browsers refuse to store
+when a `Domain` attribute is present.  The crate's default cookie already
+meets its conditions (`Secure`, `Path=/`, no `Domain`), so the prefix is
+applied whenever those two attributes allow it and omitted otherwise — the
+local-HTTP override keeps the plain name, since `__Host-` requires `Secure`.
+
+The architect declined this in the handoff 01 review on the grounds that
+switching the cookie's name between environments was a worse footgun than
+the hardening was worth.  That judgement was made without this attack in
+view and is reversed here.  Origin validation remains the control that
+rejects cross-site POSTs; binding is defence in depth.
+
 ## Alternatives considered
 
 | Alternative | Why not |

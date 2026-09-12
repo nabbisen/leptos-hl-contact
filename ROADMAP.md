@@ -114,6 +114,7 @@ handoff is written.
 ### M3 — Anti-abuse (proposed release: 0.5.0, minor) — **authorized 2026-09-12; in progress from 2026-09-13**
 
 Owner decisions of 2026-09-12: theme approved and positioned | P-29 | Blank required field rendered the length message — **done** in RFC 003 handoff 02 (`5c61968`, `ea534b4`), approved 2026-09-13; the field mapping is now exhaustive over `ContactField`, verified by probe | Medium | [RFC 003](./rfcs/done/003-error-codes.md) handoff 02 | verified by the architect |
+| P-30 | Cookie binding rests on an attacker being unable to set the victim's cookie, which subdomain cookie tossing defeats.  Closed for the common case by the `__Host-` prefix (RFC 004 handoff 02, correction C2); a deployment that must run the cookie without `Secure` or off path `/` keeps the weaker guarantee, and Origin validation remains the primary control | **High** | [RFC 004](./rfcs/accepted/004-form-token.md) handoff 02 | analysed 2026-09-13 |
 directly
 after M2; first-release providers are Cloudflare Turnstile, hCaptcha,
 reCAPTCHA v2 and v3 (not Enterprise); when a challenge is enabled,

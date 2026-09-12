@@ -68,6 +68,14 @@ has: read the request cookie first, and when it is present and well formed
 mints a new one.  Rationale, required tests and required evidence are in
 `.git-exclude/reviewed/004-form-token/02-cookie-binding.md`.
 
+## Corrections C2 and C3 required by review (2026-09-13)
+
+C2: apply the `__Host-` cookie-name prefix when `secure` is true and `path`
+is `/`, deriving the effective name in one place used by both helpers, with
+the tests and the documentation sentences named in
+`.git-exclude/reviewed/004-form-token/02-cookie-binding-c1.md`.
+C3: add `RUSTDOCFLAGS: -D warnings` to the `doc` step in CI.
+
 ## Required tests
 
 `axum_helpers/tests.rs`: `cookie_value` finds the value among several
