@@ -82,6 +82,31 @@ Both examples use `NoopDelivery`; switch to `LettreSmtpDelivery` and point it
 at MailHog to see real messages
 ([Delivery Backends](../guides/delivery-backends.md#testing-delivery-locally)).
 
+### Testing hydrated behaviour in a browser
+
+Two rules, both learned the hard way:
+
+**Rebuild the client bundle first, every time.** `cargo clean -p` does not
+remove `target/site/pkg`, and a stale `.wasm` will happily serve code from
+before your change — once making it look as though a fixed defect was still
+present. Delete the outputs and rebuild, then check the timestamps:
+
+```bash
+cd examples/axum-with-security
+rm -rf target/front target/site
+cargo leptos build
+ls -l target/site/pkg     # every file must be newer than your edit
+```
+
+**Set `form.noValidate` before testing server-side validation.** The form
+carries `required` and `type="email"`, so the browser blocks a submit with a
+deliberately invalid value and the request never reaches the server — the
+test then proves nothing:
+
+```js
+document.querySelector('form').noValidate = true;
+```
+
 ## Building this book
 
 ```bash

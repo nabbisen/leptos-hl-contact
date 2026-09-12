@@ -140,6 +140,10 @@ pub struct ContactFormOptions {
     /// value with [`effective_max_message_len`](Self::effective_max_message_len).
     /// Defaults to [`MESSAGE_MAX_LEN`].
     pub max_message_len: usize,
+
+    /// After a failed submission, move keyboard focus to the first invalid
+    /// input.  Client-side only.  Defaults to `true`.
+    pub focus_first_error: bool,
 }
 
 impl Default for ContactFormOptions {
@@ -148,6 +152,7 @@ impl Default for ContactFormOptions {
             show_subject: true,
             require_subject: false,
             max_message_len: MESSAGE_MAX_LEN,
+            focus_first_error: true,
         }
     }
 }

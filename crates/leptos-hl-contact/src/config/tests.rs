@@ -23,6 +23,11 @@ fn options_default_shows_subject() {
 }
 
 #[test]
+fn options_default_focuses_first_error() {
+    assert!(ContactFormOptions::default().focus_first_error);
+}
+
+#[test]
 fn options_effective_len_is_clamped() {
     let over = ContactFormOptions {
         max_message_len: 9_999,

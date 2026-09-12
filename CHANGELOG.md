@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased]
+
+No version assigned; the owner decides the release number.
+
+### Fixed
+
+- The hidden anti-automation token survives a failed submission in the
+  browser.  The form subtree was rebuilt whenever the action's value changed,
+  and the rebuild rewrote the hidden field from the client, where no token
+  context exists — so the next submit failed with "Invalid or expired
+  security token. Please reload the page."  The `<form>` and its inputs are
+  now created once: only the success region, the generic-error region, and
+  each field's error paragraph and ARIA attributes react.
+
+### Added
+
+- `ContactFormOptions::focus_first_error` (default `true`): after a failed
+  submission, keyboard focus moves to the first invalid input.  Client-side
+  only.  `ContactFormOptions` gains a field; construct it with
+  `..Default::default()` to stay source-compatible.
+
 ## [0.3.4] — 2026-09-12
 
 ### Fixed

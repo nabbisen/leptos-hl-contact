@@ -65,11 +65,19 @@ Translating the form is covered in [Localization](./localization.md).
 use leptos_hl_contact::ContactFormOptions;
 
 let options = ContactFormOptions {
-    show_subject:    true,   // render the subject field
-    require_subject: false,  // mark it required in the UI (no effect if hidden)
-    max_message_len: 4000,   // textarea maxlength; clamped to 4 000
+    show_subject:      true,   // render the subject field
+    require_subject:   false,  // mark it required in the UI (no effect if hidden)
+    max_message_len:   4000,   // textarea maxlength; clamped to 4 000
+    focus_first_error: true,   // focus the first invalid input after a failure
 };
 ```
+
+| Field | Default | Effect |
+|-------|---------|--------|
+| `show_subject` | `true` | Render the subject field |
+| `require_subject` | `false` | Mark the subject required in the UI |
+| `max_message_len` | `4000` | `maxlength` on the textarea |
+| `focus_first_error` | `true` | After a failed submission, move keyboard focus to the first invalid input.  Client-side only; set `false` if your page manages focus itself |
 
 These control the browser only.  Anyone can POST to the server function
 directly, so options are **not** a security boundary.

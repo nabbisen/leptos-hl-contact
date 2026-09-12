@@ -20,27 +20,32 @@ use crate::csrf::CsrfToken;
 ///
 /// `input_id` is the `id` of the sibling `<input>` — callers must set
 /// `aria-describedby="{input_id}-error"` on that element.
+///
+/// `message` is a signal so the paragraph appears and disappears in place;
+/// the surrounding form is built once and never rebuilt.
 #[component]
 fn FieldError(
     /// The `id` of the associated input; the error element id is `{input_id}-error`.
     input_id: &'static str,
     /// CSS class applied to the error paragraph.
     class: String,
-    /// The error message to display.  When empty, the element is not rendered.
-    message: Option<String>,
+    /// The error message to display.  When `None`, the element is not rendered.
+    message: Signal<Option<String>>,
 ) -> impl IntoView {
-    message.map(|msg| {
-        view! {
-            <p
-                id=format!("{input_id}-error")
-                class=class
-                role="alert"
-                aria-live="polite"
-            >
-                {msg}
-            </p>
-        }
-    })
+    move || {
+        message.get().map(|msg| {
+            view! {
+                <p
+                    id=format!("{input_id}-error")
+                    class=class.clone()
+                    role="alert"
+                    aria-live="polite"
+                >
+                    {msg}
+                </p>
+            }
+        })
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -60,12 +65,23 @@ fn FieldError(
 /// | `labels`  | [`ContactFormLabels`]   | No       | English text |
 /// | `options` | [`ContactFormOptions`]  | No       | show subject |
 ///
+/// # State model
+///
+/// The `<form>` and its inputs are created once and kept across submissions.
+/// Only the success region, the generic-error region, and each field's error
+/// paragraph and ARIA attributes react to the action's value.  Keeping the
+/// form itself out of the reactive closure is what preserves the hidden
+/// anti-automation token, which the server renders once and the client cannot
+/// regenerate.
+///
 /// # Accessibility
 ///
 /// - Every input has an associated `<label>`.
 /// - Required fields carry `aria-required="true"`.
 /// - Fields with errors carry `aria-invalid="true"` and
 ///   `aria-describedby="{id}-error"`.
+/// - After a failed submission focus moves to the first invalid input, unless
+///   [`ContactFormOptions::focus_first_error`] is `false`.
 /// - The honeypot field is hidden from sighted users and screen readers.
 /// - Success and error messages use `role="status"` and `role="alert"`.
 /// - The submit button is disabled while a submission is in flight.
@@ -97,61 +113,84 @@ pub fn ContactForm(
     options: ContactFormOptions,
 ) -> impl IntoView {
     let submit_action = ServerAction::<SubmitContact>::new();
-
-    // Read CSRF token from Leptos context (provided per SSR render when the
-    // `csrf` feature is enabled and `CsrfConfigContext` is configured).
-    // Stored in StoredValue so the reactive closure is FnMut (not FnOnce).
-    #[cfg(feature = "csrf")]
-    let csrf_token_value = StoredValue::new(
-        leptos::context::use_context::<CsrfToken>()
-            .map(|t| t.0.clone())
-            .unwrap_or_default(),
-    );
-    #[cfg(not(feature = "csrf"))]
-    let csrf_token_value = StoredValue::new(String::new());
     let pending = submit_action.pending();
     let value = submit_action.value();
+
+    // Read the token once, at creation.  SSR has it in context; the browser
+    // does not, and the SSR-rendered attribute survives hydration because the
+    // form is never rebuilt.
+    #[cfg(feature = "csrf")]
+    let csrf_token_value: String = leptos::context::use_context::<CsrfToken>()
+        .map(|t| t.0.clone())
+        .unwrap_or_default();
+    #[cfg(not(feature = "csrf"))]
+    let csrf_token_value: String = String::new();
 
     let classes = StoredValue::new(classes);
     let labels = StoredValue::new(labels);
     let options = StoredValue::new(options);
 
-    // True when the last submission succeeded.
-    let succeeded = move || value.with(|v| matches!(v, Some(Ok(()))));
+    // ---- derived state -----------------------------------------------------
 
-    // Parse field-level errors from the ServerFnError payload.  Matching the
-    // `Args` variant keeps this independent of the framework's display text.
-    let field_errors = move || {
+    let succeeded = Memo::new(move |_| value.with(|v| matches!(v, Some(Ok(())))));
+
+    let field_errors = Memo::new(move |_| {
         value.with(|v| match v {
-            Some(Err(e)) => ContactFieldErrors::from_server_fn_error(e)
-                .filter(|fe| !fe.is_empty())
-                .unwrap_or_default(),
+            Some(Err(e)) => ContactFieldErrors::from_server_fn_error(e).unwrap_or_default(),
             _ => ContactFieldErrors::default(),
         })
-    };
+    });
 
-    // Generic banner: every error that does not carry field errors, which
-    // includes the token-failure message and every `ServerError`.
-    let generic_error = move || {
+    // Every error that carries no field errors — the token failure and every
+    // `ServerError` — shows the generic banner instead.
+    let generic_error = Memo::new(move |_| {
         value.with(|v| match v {
-            Some(Err(e)) => {
-                let has_field_errors =
-                    ContactFieldErrors::from_server_fn_error(e).is_some_and(|fe| !fe.is_empty());
-                if has_field_errors {
-                    String::new() // handled per-field
-                } else {
-                    labels.with_value(|l| l.error.clone())
+            Some(Err(e))
+                if ContactFieldErrors::from_server_fn_error(e).is_none_or(|f| f.is_empty()) =>
+            {
+                Some(labels.with_value(|l| l.error.clone()))
+            }
+            _ => None,
+        })
+    });
+
+    // ---- focus the first invalid input (client only) -----------------------
+
+    // `not(ssr)` as well as `hydrate`: a real client build has `ssr` off, but
+    // `--all-features` (tests, rustdoc) turns both on, and this effect must
+    // never run where there is no DOM.
+    #[cfg(all(feature = "hydrate", not(feature = "ssr")))]
+    if options.with_value(|o| o.focus_first_error) {
+        Effect::new(move |_| {
+            let first = field_errors.with(|f| {
+                [
+                    ("contact-name", f.name.is_some()),
+                    ("contact-email", f.email.is_some()),
+                    ("contact-subject", f.subject.is_some()),
+                    ("contact-message", f.message.is_some()),
+                ]
+                .into_iter()
+                .find(|(_, has)| *has)
+                .map(|(id, _)| id)
+            });
+            if let Some(id) = first
+                && let Some(el) = document().get_element_by_id(id)
+            {
+                use leptos::wasm_bindgen::JsCast;
+                if let Ok(el) = el.dyn_into::<leptos::web_sys::HtmlElement>() {
+                    let _ = el.focus();
                 }
             }
-            _ => String::new(),
-        })
-    };
+        });
+    }
+
+    // ---- markup ------------------------------------------------------------
 
     view! {
         <div class=move || classes.with_value(|c| c.root.clone())>
 
             // Success message
-            {move || succeeded().then(|| {
+            {move || succeeded.get().then(|| {
                 let sc = classes.with_value(|c| c.success.clone());
                 let sm = labels.with_value(|l| l.success.clone());
                 view! {
@@ -161,37 +200,29 @@ pub fn ContactForm(
 
             // Generic delivery-failure error (not a field validation error)
             {move || {
-                let msg = generic_error();
-                (!msg.is_empty()).then(|| {
-                    let ec = classes.with_value(|c| c.error.clone());
-                    view! {
-                        <div class=ec role="alert" aria-live="assertive">{msg}</div>
-                    }
+                let ec = classes.with_value(|c| c.error.clone());
+                generic_error.get().map(|msg| view! {
+                    <div class=ec role="alert" aria-live="assertive">{msg}</div>
                 })
             }}
 
-            // Form — hidden after successful submission.
-            {move || (!succeeded()).then(|| {
-                let fc  = classes.with_value(|c| c.field.clone());
-                let lc  = classes.with_value(|c| c.label.clone());
-                let ic  = classes.with_value(|c| c.input.clone());
-                let tac = classes.with_value(|c| c.textarea.clone());
-                let bc  = classes.with_value(|c| c.button.clone());
-                let ec  = classes.with_value(|c| c.error.clone());
-
-                let l_name    = labels.with_value(|l| l.name.clone());
-                let l_email   = labels.with_value(|l| l.email.clone());
-                let l_subject = labels.with_value(|l| l.subject.clone());
-                let l_message = labels.with_value(|l| l.message.clone());
-                let l_submit  = labels.with_value(|l| l.submit.clone());
-                let l_sending = labels.with_value(|l| l.sending.clone());
-                let l_honey   = labels.with_value(|l| l.honeypot_label.clone());
-
-                let show_subject    = options.with_value(|o| o.show_subject);
+            // Form — built once, hidden after a successful submission.
+            {move || (!succeeded.get()).then(|| {
+                // Read once per build of the form.  This closure depends only
+                // on `succeeded`, so a validation error never re-runs it.
+                let (fc, lc, ic, tac, bc, ec) = classes.with_value(|c| (
+                    c.field.clone(), c.label.clone(), c.input.clone(),
+                    c.textarea.clone(), c.button.clone(), c.error.clone(),
+                ));
+                let (l_name, l_email, l_subject, l_message, l_submit, l_sending, l_honey) =
+                    labels.with_value(|l| (
+                        l.name.clone(), l.email.clone(), l.subject.clone(), l.message.clone(),
+                        l.submit.clone(), l.sending.clone(), l.honeypot_label.clone(),
+                    ));
+                let show_subject = options.with_value(|o| o.show_subject);
                 let require_subject = options.with_value(|o| o.require_subject);
-                let max_msg_len     = options.with_value(|o| o.effective_max_message_len());
-
-                let fe = field_errors();
+                let max_msg_len = options.with_value(|o| o.effective_max_message_len());
+                let csrf_token_value = csrf_token_value.clone();
 
                 view! {
                     <ActionForm action=submit_action>
@@ -208,10 +239,14 @@ pub fn ContactForm(
                                 maxlength="80"
                                 autocomplete="name"
                                 aria-required="true"
-                                aria-invalid=fe.name.as_ref().map(|_| "true")
-                                aria-describedby=fe.name.as_ref().map(|_| "contact-name-error")
+                                aria-invalid=move || field_errors.with(|f| f.name.is_some()).then_some("true")
+                                aria-describedby=move || field_errors.with(|f| f.name.is_some()).then_some("contact-name-error")
                             />
-                            <FieldError input_id="contact-name" class=ec.clone() message=fe.name />
+                            <FieldError
+                                input_id="contact-name"
+                                class=ec.clone()
+                                message=Signal::derive(move || field_errors.with(|f| f.name.clone()))
+                            />
                         </div>
 
                         // Email
@@ -226,10 +261,14 @@ pub fn ContactForm(
                                 maxlength="254"
                                 autocomplete="email"
                                 aria-required="true"
-                                aria-invalid=fe.email.as_ref().map(|_| "true")
-                                aria-describedby=fe.email.as_ref().map(|_| "contact-email-error")
+                                aria-invalid=move || field_errors.with(|f| f.email.is_some()).then_some("true")
+                                aria-describedby=move || field_errors.with(|f| f.email.is_some()).then_some("contact-email-error")
                             />
-                            <FieldError input_id="contact-email" class=ec.clone() message=fe.email />
+                            <FieldError
+                                input_id="contact-email"
+                                class=ec.clone()
+                                message=Signal::derive(move || field_errors.with(|f| f.email.clone()))
+                            />
                         </div>
 
                         // Subject (conditional)
@@ -244,10 +283,14 @@ pub fn ContactForm(
                                     maxlength="120"
                                     required=require_subject
                                     aria-required=if require_subject { "true" } else { "false" }
-                                    aria-invalid=fe.subject.as_ref().map(|_| "true")
-                                    aria-describedby=fe.subject.as_ref().map(|_| "contact-subject-error")
+                                    aria-invalid=move || field_errors.with(|f| f.subject.is_some()).then_some("true")
+                                    aria-describedby=move || field_errors.with(|f| f.subject.is_some()).then_some("contact-subject-error")
                                 />
-                                <FieldError input_id="contact-subject" class=ec.clone() message=fe.subject />
+                                <FieldError
+                                    input_id="contact-subject"
+                                    class=ec.clone()
+                                    message=Signal::derive(move || field_errors.with(|f| f.subject.clone()))
+                                />
                             </div>
                         })}
 
@@ -262,22 +305,26 @@ pub fn ContactForm(
                                 maxlength=max_msg_len.to_string()
                                 rows="6"
                                 aria-required="true"
-                                aria-invalid=fe.message.as_ref().map(|_| "true")
-                                aria-describedby=fe.message.as_ref().map(|_| "contact-message-error")
+                                aria-invalid=move || field_errors.with(|f| f.message.is_some()).then_some("true")
+                                aria-describedby=move || field_errors.with(|f| f.message.is_some()).then_some("contact-message-error")
                             />
-                            <FieldError input_id="contact-message" class=ec.clone() message=fe.message />
+                            <FieldError
+                                input_id="contact-message"
+                                class=ec.clone()
+                                message=Signal::derive(move || field_errors.with(|f| f.message.clone()))
+                            />
                         </div>
 
-                        // CSRF token — hidden field; populated server-side.
-                        // Empty when the `csrf` feature is disabled or CsrfConfigContext
-                        // is not provided.
+                        // Anti-automation token — hidden field, rendered by SSR.
+                        // Empty when the `csrf` feature is disabled or
+                        // CsrfConfigContext is not provided.
                         <input
                             type="hidden"
                             name="csrf_token"
-                            value=csrf_token_value.get_value()
+                            value=csrf_token_value
                         />
 
-                                                // Honeypot — visually hidden; excluded from assistive tech.
+                        // Honeypot — visually hidden; excluded from assistive tech.
                         <div
                             aria-hidden="true"
                             style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden"
@@ -293,7 +340,7 @@ pub fn ContactForm(
                         </div>
 
                         // Submit button
-                        <div class=fc>
+                        <div class=fc.clone()>
                             <button
                                 type="submit"
                                 class=bc
@@ -311,3 +358,10 @@ pub fn ContactForm(
         </div>
     }
 }
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(all(test, feature = "ssr"))]
+mod tests;

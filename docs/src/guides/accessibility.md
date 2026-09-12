@@ -12,6 +12,7 @@ guarantees:
 | Success | `role="status"` + `aria-live="polite"` |
 | Generic error | `role="alert"` + `aria-live="assertive"` |
 | Honeypot | Wrapper is `aria-hidden="true"`; the input has `tabindex="-1"` and sits off-screen |
+| Focus | After a failed submission focus moves to the first invalid input, so a keyboard or screen-reader user lands on the field to correct.  Set `focus_first_error: false` in [`ContactFormOptions`](./customization.md#contactformoptions) to disable it |
 | Keyboard | Native `<input>`, `<textarea>`, `<button>` only; focus outlines untouched |
 | Colour | None shipped; state is always conveyed in text |
 

@@ -32,7 +32,7 @@ pub const FIELD_ERROR_PREFIX: &str = "field_errors:";
 ///
 /// Messages are generic ("required", "too long", "invalid email") — they
 /// never echo user input back or reveal internal stack traces.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ContactFieldErrors {
     /// Error for the `name` field.
     pub name: Option<String>,

@@ -179,13 +179,15 @@ Supporting several instances would require an id-prefix prop; not planned.
 | idle | form | — | Met |
 | pending | form, button disabled, text = `labels.sending` | `aria-busy` | Met |
 | success | success message only | polite | Met with JS; no-JS Gap (P-13) |
-| field-error | form, message under each failed field | polite alert per field | Met (M1, handoff 001-03); input still wiped on re-render (P-10, RFC 002) |
+| field-error | form, message under each failed field | polite alert per field | Met (JS); no-JS reload loses input by design |
 | generic-error | form + banner with `labels.error` | assertive | Met |
 
 Design rule: the form element and its inputs MUST be created once and kept
-across result changes; only the error and success regions react.  The
-hidden token MUST be captured from the SSR-rendered DOM or from state that
-survives re-renders (target for P-10/P-11).
+across result changes; only the error and success regions react.  Met since
+RFC 002 handoff 02: the form closure depends on the success state alone, so
+a validation error rebuilds nothing and the SSR-rendered hidden token
+survives (P-11 closed).  Per-field errors and their ARIA attributes react
+through individual attribute closures.
 
 #### 4.1.4 Behaviour with and without JavaScript
 
