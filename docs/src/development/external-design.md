@@ -58,7 +58,7 @@
 |---------|-------|-------------|
 | Form markup, states, ARIA | ✅ | styles only |
 | Server-side validation, honeypot, policy | ✅ | — |
-| Anti-forgery token issue and verify (`csrf`) | ✅ | provide secret and contexts |
+| Form token issue and verify (`form-token`) | ✅ | provide secret and the context |
 | Origin / Referer validation | documents + example | ✅ middleware |
 | Rate limiting | documents + example | ✅ middleware |
 | Request body limit | documents + example | ✅ layer |
@@ -76,7 +76,7 @@
 1. Add the crate to the server binary with `ssr` plus the backends and
    helpers wanted, and to the WASM binary with `hydrate`.
 2. Construct a delivery backend and wrap it as `Arc<dyn ContactDelivery>`.
-3. (Optional) Construct `CsrfConfig` from a secret and a TTL; construct
+3. (Optional) Construct `FormTokenConfig` from a secret; construct
    `ContactServerPolicy`.
 4. Provide the context values in the context closure (§2.2).
 5. Add application-level layers: body limit, rate limit, origin check.
@@ -90,8 +90,8 @@ All values are provided in the single closure passed to
 | Context value | Type | Provided in the context closure | If missing |
 |---------------|------|---------------------------------|------------|
 | Delivery backend | `ContactDeliveryContext` = `Arc<dyn ContactDelivery>` | **required** | `error` log; generic "not configured" message [FR-SUB-08] |
-| Token config (`csrf`) | `CsrfConfigContext` = `Arc<CsrfConfig>` | **required** | fail-closed: `error` log; generic "security not configured" message [FR-ABUSE-04] |
-| Per-request token (`csrf`) | `CsrfToken` | **required**, freshly generated per request; read only by page renders | form renders an empty hidden field; every submit fails verification |
+| Token config (`form-token`) | `FormTokenContext` = `Arc<FormTokenConfig>` | **required** | fail-closed: `error` log; generic "security not configured" message [FR-ABUSE-04] |
+| Per-request token (`form-token`) | `FormToken` | **required**, freshly generated per request; read only by page renders | form renders an empty hidden field; every submit fails verification |
 | Server policy | `ContactServerPolicy` | optional | validator limits apply (4 000 chars, subject optional) |
 | Success redirect | `ContactSuccessRedirect` | required for the redirect | inline success with JS; page reload without it |
 
@@ -157,7 +157,7 @@ The following identifiers and attributes are **public API** [NFR-COMPAT-05].
 | subject `<input>` (if shown) | `contact-subject` | `subject` | `type=text maxlength=120`; `required`/`aria-required` follow `require_subject` | `input` |
 | message `<textarea>` | `contact-message` | `message` | `required maxlength=<options> rows=6 aria-required=true` | `textarea` |
 | field error `<p>` | `<input-id>-error` | — | `role="alert" aria-live="polite"` | `error` |
-| token `<input>` | — | `csrf_token` | `type=hidden` | — |
+| token `<input>` | — | `form_token` | `type=hidden` | — |  *(0.5.0: renamed from `csrf_token`, which the server still accepts for one minor)*
 | honeypot wrapper `<div>` | — | — | `aria-hidden=true`, off-screen inline style | — |
 | honeypot `<input>` | `contact-website` | `website` | `type=text tabindex=-1 autocomplete=off` | — |
 | submit `<button>` | — | — | `type=submit`; `disabled` and `aria-busy` while pending | `button` |
@@ -230,7 +230,7 @@ through individual attribute closures.
 | `subject` | no | trim; blank → absent; ≤ 120 chars; no CR/LF; may be required by policy |
 | `message` | yes | trim; 1–4 000 chars; policy may lower the ceiling |
 | `website` | must be empty | non-empty → honeypot: success response, no delivery |
-| `csrf_token` | when `csrf` enabled | verified before anything else; absent = invalid |
+| `form_token` | when `form-token` enabled | verified before anything else; absent = invalid.  `csrf_token` is accepted as the 0.4 spelling for one minor |
 
 Unknown fields are ignored by the deserialiser.  Field order is irrelevant.
 
@@ -359,7 +359,8 @@ because it is body content, not a header.
 | `islands` | — | Islands mode |
 | `smtp-lettre` | `ssr` | `delivery::smtp` |
 | `axum-helpers` | `ssr` | `axum_helpers` |
-| `csrf` | `ssr` | `csrf` module, token field verification |
+| `form-token` | `ssr` | `form_token` module, token field verification |
+| `csrf` | `form-token` | deprecated 0.4 alias; removed in the next minor |
 
 `default = []`.  Features are additive; enabling one never removes an API.
 
@@ -368,7 +369,7 @@ because it is body content, not a header.
 | Type | Fields | Secret | Notes |
 |------|--------|--------|-------|
 | `SmtpConfig` | host, port, username, password, from_address, to_address, subject_prefix, tls_mode | password (redacted in `Debug`) | never serialised |
-| `CsrfConfig` | secret_key (≥ 32 random bytes recommended), token_ttl_secs (default 3 600) | secret_key (redacted) | never serialised |
+| `FormTokenConfig` | secret_key (≥ 32 random bytes recommended), ttl_secs (default 3 600), min_age_secs (default 2), binding | secret_key (redacted) | never serialised |
 | `ContactServerPolicy` | require_subject, max_message_len | — | tighten-only |
 | `ContactFormOptions` | show_subject, require_subject, max_message_len | — | UI only, not a security boundary |
 
@@ -388,7 +389,7 @@ documentation use these names consistently so integrators can copy them:
 | `debug` | validation failed | `name_err`, `email_err`, `subject_err`, `message_err` (booleans) | none |
 | `warn` | CSRF token verification failed | — | none |
 | `debug` | token expired / future timestamp | `timestamp`, `now` | none |
-| `error` | `CsrfConfigContext` not provided | — | none |
+| `error` | `FormTokenContext` not provided | — | none |
 | `error` | `ContactDeliveryContext` not provided | — | none |
 | `error` | delivery failed | `error` (category + transport text) | none by contract; relays may echo addresses in SMTP replies, integrators SHOULD review log retention |
 | `info` | delivered via SMTP | — | none |
@@ -439,7 +440,7 @@ expensive checks run.
 3. Rate limit keyed by client IP (app layer).
 4. Origin / Referer strict match on POST (app middleware). **This is the
    CSRF control.**
-5. Form token (crate, `csrf` feature): proves the sender fetched a page
+5. Form token (crate, `form-token` feature): proves the sender fetched a page
    from this server within the TTL; **target** also enforces a minimum age
    since render (RFC 004).
 6. Honeypot (crate).
@@ -552,7 +553,7 @@ The project rule is "less is more".  Applied here:
 | New optional prop, new feature flag, new label field with a default | non-breaking |
 | Change to element ids, field names, class hook names, ARIA attributes | breaking (minor in 0.x, with migration note) |
 | Change to the error payload format | breaking unless the client accepts both forms for one minor release (§4.2.3) |
-| Rename of the `csrf` feature or API | breaking; ship deprecation aliases for one minor |
+| Rename of the `form-token` feature or API | breaking; ship deprecation aliases for one minor (done once in 0.5.0 for the `csrf` → `form-token` rename) |
 | MSRV bump | minor |
 | Defect fix that changes observable behaviour to match this document | patch |
 
@@ -596,6 +597,7 @@ The project rule is "less is more".  Applied here:
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial external design from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 5 | RFC 004 handoff 01: the token is named *form token* throughout; the hidden field is `form_token`; minimum age recorded |
 | 2026-09-13 | Draft 4 | 0.4.0 security audit: T16 added for the success redirect, the release's only new outward data flow |
 | 2026-09-12 | Draft 3 | M1 outcomes marked current (§4.1.3, §4.1.4, §4.2.3, §4.3, §6) |
 | 2026-09-12 | Draft 2 | Anti-abuse theme decisions folded in (§1.2, §5.3, §10); no-JS success target revised to a configured success page |

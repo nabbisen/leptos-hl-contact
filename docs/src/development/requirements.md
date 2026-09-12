@@ -101,7 +101,7 @@ crate's boundaries.  [Architecture](./architecture.md) describes internals.
 | **Context site** | A place where the hosting application must provide Leptos context.  With Axum there are two: the server-function handler and the SSR renderer |
 | **Fail-closed** | On missing or invalid security configuration the crate refuses the submission rather than proceeding unprotected |
 | **PII** | Personally identifiable information: visitor name, email, message body, IP address |
-| **Anti-forgery token** | The value carried in the hidden `csrf_token` field when the `csrf` feature is enabled |
+| **Form token** | The value carried in the hidden `form_token` field when the `form-token` feature is enabled.  Called the anti-forgery or CSRF token before 0.5.0 |
 
 ---
 
@@ -149,7 +149,7 @@ crate's boundaries.  [Architecture](./architecture.md) describes internals.
 | FR-VAL-03 | `subject` | When present: 1–120 characters; MUST NOT contain CR or LF.  Blank becomes absent | MUST | Met |
 | FR-VAL-04 | `message` | 1–4 000 characters after trimming | MUST | Met |
 | FR-VAL-05 | `website` (honeypot) | MUST be empty | MUST | Met |
-| FR-VAL-06 | `csrf_token` | When the `csrf` feature is enabled: MUST be present and verify | MUST | Met |
+| FR-VAL-06 | `form_token` | When the `form-token` feature is enabled: MUST be present, verify, and be at least `min_age_secs` old | MUST | Met (0.5.0) |
 | FR-VAL-07 | *all* | Length limits MUST be counted in characters consistently by the UI `maxlength`, the validator, and the server policy | MUST | Met (M1) |
 | FR-VAL-08 | `message` | 4 000 characters is the hard ceiling; UI options and server policy MUST NOT be able to raise it and SHOULD be clamped or rejected if they try | MUST | Met (M1: `MESSAGE_MAX_LEN`, clamped) |
 
@@ -165,7 +165,7 @@ input the browser accepted.
 | FR-ABUSE-01 | A honeypot MUST be built in and enabled without configuration | MUST | Met |
 | FR-ABUSE-02 | The crate MUST either provide a request-forgery control that is effective on its own, or MUST state unambiguously that application-level Origin validation is the CSRF control and describe the built-in token as an anti-automation measure.  The current token is not bound to the visitor and can be replayed within its TTL | MUST | Planned (RFC 004: rename to form token; opt-in cookie binding gives the double-submit property) |
 | FR-ABUSE-03 | Token verification MUST use constant-time comparison, MUST enforce a TTL, and MUST tolerate bounded clock skew | MUST | Met |
-| FR-ABUSE-04 | When the `csrf` feature is enabled and its configuration is missing, submissions MUST be rejected (fail-closed) with a logged `error` | MUST | Met |
+| FR-ABUSE-04 | When the `form-token` feature is enabled and its configuration is missing, submissions MUST be rejected (fail-closed) with a logged `error` | MUST | Met |
 | FR-ABUSE-05 | Rate limiting is an application responsibility; the crate MUST document it and ship a working example | MUST | Met |
 | FR-ABUSE-06 | Origin / Referer validation is an application responsibility; the crate MUST document a strict scheme+host+port comparison and ship a working example | MUST | Met |
 | FR-ABUSE-07 | A request body size limit is an application responsibility; the crate MUST document it and include it in examples | MUST | Met |
@@ -174,7 +174,7 @@ input the browser accepted.
 | FR-ABUSE-10 | The crate MUST offer opt-in challenge verification through one abstraction (`ChallengeVerifier`) with built-in providers Cloudflare Turnstile, hCaptcha, reCAPTCHA v2 and v3; the component renders the widget and the token field, the server function verifies before delivery | MUST | Planned (RFC 005) |
 | FR-ABUSE-11 | When a challenge is enabled, a submission without JavaScript MUST be rejected with a `<noscript>` explanation, fail-closed; an explicit opt-in MAY accept such submissions under honeypot-only protection | MUST | Planned (RFC 005); owner decision 2026-09-12 |
 | FR-ABUSE-12 | Challenge verification MUST fail closed on a missing secret, a failed verification, or an unreachable verify endpoint, MUST be time-bounded, and MUST log the reason without the token | MUST | Planned (RFC 005) |
-| FR-ABUSE-13 | The crate SHOULD reject a submission that arrives sooner than a configurable minimum age after the page render, using the issue time already carried by the form token | SHOULD | Planned (RFC 004) |
+| FR-ABUSE-13 | The crate SHOULD reject a submission that arrives sooner than a configurable minimum age after the page render, using the issue time already carried by the form token | SHOULD | Met (0.5.0, default two seconds) |
 | FR-ABUSE-14 | The crate SHOULD offer a pre-delivery filter hook (`ContactFilter`) returning accept, reject, or silent drop for a validated submission | SHOULD | Planned (RFC 006) |
 
 ### 5.5 Delivery (FR-DEL)
@@ -194,7 +194,7 @@ input the browser accepted.
 
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
-| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr`), `axum-helpers` (implies `ssr`), `csrf` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met (M1) |
+| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr`), `axum-helpers` (implies `ssr`), `form-token` (implies `ssr`; `csrf` is a deprecated alias).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met (M1) |
 | FR-CFG-02 | Required context values MUST be documented for the context closure, and helpers MUST exist for Axum | MUST | Met (RFC 007) |
 | FR-CFG-03 | Misconfiguration MUST surface loudly (startup panic in examples, `error` log in the crate) and MUST NOT fall back to an insecure default | MUST | Met |
 | FR-CFG-04 | Types holding secrets MUST redact them in `Debug` output | MUST | Met |
@@ -354,7 +354,6 @@ input the browser accepted.
 | FR-UI-12 (client-side navigation) | Planned | RFC 004 |
 | FR-ABUSE-02 | Planned | P-12 / RFC 004 |
 | FR-ABUSE-10..12 | Planned | P-21 / RFC 005 |
-| FR-ABUSE-13 | Planned | P-12 / RFC 004 |
 | FR-ABUSE-14 | Planned | P-25 / RFC 006 |
 | FR-DEL-08, NFR-PERF-03 | Gap | Future (queue adapter) |
 | FR-I18N-03 | Planned | P-20 |
@@ -384,6 +383,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 7 | RFC 004 handoff 01: form-token naming, FR-VAL-06 and FR-ABUSE-13 Met |
 | 2026-09-13 | Draft 6 | RFC 007 and RFC 003 handoff 01: FR-CFG-02 and FR-I18N-02 Met; the "two context sites" constraint corrected |
 | 2026-09-12 | Draft 5 | RFC 002 handoff 03: FR-UI-06, FR-PE-03 Met; FR-CFG-02 downgraded to Partial pending RFC 007 (one context closure) |
 | 2026-09-12 | Draft 4 | RFC 002 handoff 02: FR-UI-04, FR-UI-07, FR-UI-12 (SSR+hydrate), FR-UI-13 set to Met |

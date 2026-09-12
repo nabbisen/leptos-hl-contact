@@ -21,6 +21,11 @@ Core stays free of cookie parsing; no session concept; token format.
 
 ## Required implementation
 
+0. **First edit (added by the handoff 01 review).**  Delete the paragraph on
+   `Binding::Cookie` saying the helpers do not exist yet; this handoff makes
+   it untrue.  Nothing else in that rustdoc changes.
+
+
 1. **Core.**  `pub struct FormTokenBinding(pub Option<String>);` in
    `form_token.rs`.  In `submit_contact`, when the config has
    `Binding::Cookie`, read `use_context::<FormTokenBinding>()` and pass

@@ -31,10 +31,10 @@ conditions and security notes; behaviour is specified in
 ┌───────────────────────────────────────────────────────────┐
 │  ContactForm                                              │
 │    ContactFormClasses / Labels / Options   (props)        │  client + server
-│    CsrfToken                               (context, csrf)│
+│    FormToken                         (context, form-token) │
 ├───────────────────────────────────────────────────────────┤
 │  submit_contact                                           │
-│    verify_csrf_token   (csrf, CsrfConfigContext)          │
+│    verify_form_token   (form-token, FormTokenContext)     │
 │    → from_raw → check_honeypot → validate_fields          │  server only
 │    → ContactServerPolicy → ContactDeliveryContext         │
 ├───────────────────────────────────────────────────────────┤
@@ -57,14 +57,15 @@ conditions and security notes; behaviour is specified in
 | `delivery` | trait + `ContactDeliveryContext` | server |
 | `delivery::noop` | `NoopDelivery` | server |
 | `delivery::smtp` | `LettreSmtpDelivery`, `SmtpConfig`, `SmtpTlsMode` | `smtp-lettre` |
-| `csrf` | `CsrfConfig`, `CsrfToken`, `generate_csrf_token`, `verify_csrf_token` | `csrf` |
+| `form_token` | `FormTokenConfig`, `FormToken`, `issue_form_token`, `verify_form_token` | `form-token` |
+| `csrf` | deprecated 0.4 aliases, removed next minor | `form-token` |
 | `axum_helpers` | `provide_contact_delivery`, `delivery_context_fn` | `axum-helpers` |
 
 ## Request flow
 
 ```text
 browser ── POST /api/submit_contact (form-encoded) ──▶ submit_contact
-   verify_csrf_token            csrf feature; fail-closed if config missing
+   verify_form_token            form-token feature; fail-closed if config missing
    ContactInput::from_raw       trim; blank subject → None
    check_honeypot               non-empty website → Ok(()) without delivery
    validate_fields              ContactFieldErrors → ServerFnError::Args("field_errors:…")
