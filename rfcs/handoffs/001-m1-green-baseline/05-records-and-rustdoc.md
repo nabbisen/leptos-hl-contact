@@ -20,6 +20,14 @@ Make the release records and the crate-level rustdoc truthful.
 - `src/security.rs` header comment says the module "does not export
   runtime functionality in the MVP" and promises "future CSRF helpers".
 - `src/delivery.rs` header comment says `delivery/mod.rs`.
+- `src/csrf.rs` rustdoc calls `CsrfToken` "a single-use CSRF token" (line
+  100) and the module "CSRF token helper".  It is neither single-use nor a
+  CSRF control on its own (External Design §5.4).  Reported by the dev
+  team 2026-09-12; confirmed.
+- `src/axum_helpers.rs` rustdoc examples (lines 45 and 82) show the Axum
+  0.7 route `"/api/*fn_name"`; they are `ignore`-fenced so CI cannot
+  catch them.  Same defect class as P-09.  Reported by the dev team
+  2026-09-12; confirmed.
 
 ## Change scope
 
@@ -53,6 +61,18 @@ No source code, no tests, no documentation pages in `docs/src`.
    sentence: the module holds defence-in-depth helpers shared by other
    modules; CSRF lives in `csrf`.
 4. **`delivery.rs` header.**  `delivery/mod.rs` → `delivery.rs`.
+5. **`csrf.rs` rustdoc.**  Do not rename anything (RFC 004 does that in
+   0.5.0).  Change only the wording: line 100 becomes "A signed,
+   time-limited token value, ready to embed in an HTML form.  It is valid
+   until it expires and is not bound to the visitor's browser; Origin
+   validation is the CSRF control.  See the security documentation."
+   The module header line 1 and the `CsrfConfig` doc line 43 say
+   "anti-automation token helper (feature `csrf`)".  Log strings and
+   identifiers stay as they are.
+6. **`axum_helpers.rs` rustdoc.**  Both examples: `"/api/*fn_name"` →
+   `"/api/{*fn_name}"`.  Then run
+   `grep -rn '\*fn_name' crates/ docs/ examples/ README.md` and fix any
+   other occurrence outside `CHANGELOG.md`; paste the (empty) result.
 
 ## Required tests
 
@@ -64,6 +84,8 @@ None.  `cargo doc --all-features --no-deps` must produce no warnings.
   an entry with a date.
 - `cargo doc` clean; the rendered crate page lists six features.
 - `git grep -n "docs/src/security.md" -- '*.rs'` returns nothing.
+- `git grep -n 'single-use' -- '*.rs'` and `grep -rn '\*fn_name' crates/ docs/ examples/ README.md`
+  return nothing.
 
 ## Prohibited shortcuts
 

@@ -63,6 +63,14 @@ Token format; HMAC; TTL semantics; cookie binding and client acquisition
    Unreleased with a **Migration** subsection listing every old → new
    name.
 
+9. **`rand` 0.9.**  While `form_token.rs` is being rewritten, move the
+   crate's optional `rand` dependency from 0.8 to 0.9 (`rand::rng()`,
+   `RngCore::fill_bytes`), so the lock file no longer carries two `rand`
+   lines (the dev team noted 0.8.6 beside a transitive 0.9.4 on
+   2026-09-12).  `hmac` 0.13 / `sha2` 0.11 stay: the only `sha2` 0.10 in
+   the tree comes from a proc-macro dependency of Leptos and cannot be
+   unified from our side.
+
 ## Required tests
 
 `form_token/tests.rs`: every `FormTokenError` variant reachable from the

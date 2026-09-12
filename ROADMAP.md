@@ -115,7 +115,7 @@ All three RFCs (004, 005, 006) were accepted on 2026-09-12; handoffs exist for e
 | P-22 | HTTP-API delivery adapters: Resend, SendGrid, AWS SES (existing Future items) | TBD | RFC per adapter |
 | P-23 | Cloudflare Workers compatibility: `lettre` with tokio and native TLS cannot run on Workers; requires a fetch-based delivery adapter and a runtime-neutral core; owner decision on target platforms | TBD (owner decision) | RFC |
 | P-26 | Scheduled CI job running the `#[ignore]` live tests against challenge-vendor test keys; deferred by the owner on 2026-09-12 because it carries a cost; needs its own RFC | TBD (owner) | RFC |
-| P-24 | Dependency and CI hygiene: `rand` 0.8 → 0.9, consider `subtle` for constant-time comparison, CI matrix on MSRV 1.85 plus stable instead of Debian `rustc-1.91` only | Low | task |
+| P-24 | Dependency and CI hygiene: consider `subtle` for constant-time comparison; CI matrix on MSRV 1.85 plus stable instead of Debian `rustc-1.91` only.  Lock-file facts recorded 2026-09-12 (dev team): `rand` 0.8.6 beside transitive 0.9.4 — the bump to 0.9 is folded into RFC 004 handoff 01; `sha2` 0.10.9 beside our 0.11.0 comes only from Leptos' `wasm_split_macros` proc-macro and is not ours to unify | Low | task |
 
 ### Future (unscheduled)
 
