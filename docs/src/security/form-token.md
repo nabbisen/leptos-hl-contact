@@ -57,6 +57,17 @@ provide_form_token_binding(&token_cookie);
 alike, so issuing on a POST would overwrite the cookie the submitted form is
 bound to and break the next submission.
 
+**The cookie is per browser, not per page.**  When a request already carries
+one, that nonce is signed into the new token rather than a fresh one being
+minted, so the value survives across pages, across tabs and across a visit to
+any other route.  Several open copies of the form therefore all submit
+successfully, and so does a form left open while the visitor browsed
+elsewhere.  Only the token rotates per render — it carries its own timestamp,
+and the TTL and minimum age count from that render.
+
+A cookie that arrives truncated, over-long or not hexadecimal is never signed
+into a token; the helper mints a new nonce instead.
+
 `FormTokenCookie::secure` defaults to `true`.  A `Secure` cookie is never
 sent back over plain HTTP, so set it to `false` — and only — when developing
 against `http://localhost`.
@@ -100,7 +111,9 @@ each submit    submit_contact receives form_token
                  → any other Err  → contact_error:token_invalid
 ```
 
-Token format: `{unix_seconds}|{16-byte nonce hex}|{hmac_sha256 hex}`.
+Token format: `{unix_seconds}|{16-byte nonce hex}|{hmac_sha256 hex}`.  The
+timestamp is what makes a token fresh; the nonce is what ties it to a browser,
+and with `Binding::Cookie` it is deliberately stable for the cookie's life.
 Verification runs in this order: format, timestamp, future skew (60 s),
 expiry, minimum age, signature, binding.
 
@@ -191,5 +204,6 @@ when `form_token` is absent.
 ## API
 
 `FormTokenConfig`, `FormToken`, `FormTokenContext`, `FormTokenError`,
-`Binding`, `issue_form_token`, `verify_form_token` — see the
+`Binding`, `issue_form_token`, `issue_form_token_with_nonce`,
+`verify_form_token` — see the
 [API reference](../reference/api.md#form_token-module).

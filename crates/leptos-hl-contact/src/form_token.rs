@@ -35,6 +35,9 @@ type HmacSha256 = Hmac<Sha256>;
 /// Tolerance for a token whose timestamp is slightly ahead of this server.
 const ALLOWED_FUTURE_SKEW_SECS: u64 = 60;
 
+/// A nonce is 16 random bytes, hex-encoded.
+const NONCE_HEX_LEN: usize = 32;
+
 // ---------------------------------------------------------------------------
 // Binding
 // ---------------------------------------------------------------------------
@@ -206,19 +209,42 @@ pub struct FormToken(pub String);
 ///
 /// Panics if the system clock is before the Unix epoch.
 pub fn issue_form_token(config: &FormTokenConfig) -> FormToken {
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("system clock before Unix epoch")
-        .as_secs();
-
     let mut nonce_bytes = [0u8; 16];
     rand::rng().fill_bytes(&mut nonce_bytes);
-    let nonce_hex = hex::encode(nonce_bytes);
 
-    let signed_payload = format!("{timestamp}|{nonce_hex}");
-    let signature = sign(&signed_payload, &config.secret_key);
+    sign_token(&hex::encode(nonce_bytes), config)
+}
 
-    FormToken(format!("{signed_payload}|{signature}"))
+// ---------------------------------------------------------------------------
+// issue_form_token_with_nonce
+// ---------------------------------------------------------------------------
+
+/// Issue a fresh token carrying a nonce the browser already holds.
+///
+/// This exists for [`Binding::Cookie`].  The nonce is what ties a token to
+/// one browser, so it must stay **stable for as long as the cookie lives**:
+/// a fresh nonce on every render would overwrite the cookie and invalidate
+/// the token of every form the visitor already has open, in another tab or
+/// simply on a page they navigated back to.  Freshness is the timestamp's
+/// job, not the nonce's, and the timestamp is new on every call here.
+///
+/// Returns `None` unless `nonce` is exactly 32 hex characters, so a cookie
+/// value that was truncated, tampered with or written by something else is
+/// never signed into a token; mint a new one with [`issue_form_token`] in
+/// that case.
+///
+/// With Axum,
+/// [`provide_form_token_with_cookie`](crate::axum_helpers::provide_form_token_with_cookie)
+/// does all of this.  Reach for this function when wiring binding into
+/// another framework.
+///
+/// # Panics
+///
+/// Panics if the system clock is before the Unix epoch.
+pub fn issue_form_token_with_nonce(config: &FormTokenConfig, nonce: &str) -> Option<FormToken> {
+    let usable = nonce.len() == NONCE_HEX_LEN && nonce.bytes().all(|b| b.is_ascii_hexdigit());
+
+    usable.then(|| sign_token(nonce, config))
 }
 
 // ---------------------------------------------------------------------------
@@ -324,6 +350,19 @@ pub type FormTokenContext = Arc<FormTokenConfig>;
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+
+/// Stamp `nonce` with the current time and sign the pair.
+fn sign_token(nonce_hex: &str, config: &FormTokenConfig) -> FormToken {
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system clock before Unix epoch")
+        .as_secs();
+
+    let signed_payload = format!("{timestamp}|{nonce_hex}");
+    let signature = sign(&signed_payload, &config.secret_key);
+
+    FormToken(format!("{signed_payload}|{signature}"))
+}
 
 fn sign(payload: &str, key: &[u8]) -> String {
     let mut mac = HmacSha256::new_from_slice(key).expect("HMAC accepts any key length");

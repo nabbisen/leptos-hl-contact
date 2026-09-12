@@ -224,6 +224,122 @@ mod cookie_binding {
         });
     }
 
+    // -----------------------------------------------------------------------
+    // Nonce stability (RFC 004 D3, as amended)
+    // -----------------------------------------------------------------------
+
+    fn test_config() -> FormTokenContext {
+        Arc::new(crate::form_token::FormTokenConfig::new(
+            b"a-secret-key-at-least-32-bytes".to_vec(),
+        ))
+    }
+
+    /// Issue a token the way a page render does, for a request carrying
+    /// `cookie`, and return the token's nonce.
+    fn issued_nonce(config: &FormTokenContext, cookie: Option<&str>) -> String {
+        use leptos::context::{provide_context, use_context};
+
+        in_scope(|| {
+            provide_context(parts_with(axum::http::Method::GET, cookie));
+            provide_form_token_with_cookie(config, &FormTokenCookie::default());
+            let token = use_context::<crate::form_token::FormToken>().expect("a GET issues");
+            token_nonce(&token.0).expect("three segments").to_owned()
+        })
+    }
+
+    /// The cookie identifies the browser, so a render that already has one
+    /// signs *that* nonce.  Minting a fresh one would overwrite the cookie and
+    /// invalidate every form the visitor has open elsewhere.
+    #[test]
+    fn a_usable_cookie_is_reused_as_the_nonce() {
+        let config = test_config();
+        let existing = "00eaaaa84b55005200eaaaa84b550052";
+
+        assert_eq!(
+            issued_nonce(&config, Some(&format!("hl_contact_ft={existing}"))),
+            existing
+        );
+    }
+
+    /// The header goes out on every render even when the value is unchanged, so
+    /// `Max-Age` is refreshed while the visitor is active.
+    #[test]
+    fn the_cookie_is_re_sent_when_it_is_reused() {
+        let existing = "00eaaaa84b55005200eaaaa84b550052";
+        let value = set_cookie_value(existing, &FormTokenCookie::default(), 3600);
+
+        assert!(value.starts_with(&format!("hl_contact_ft={existing};")));
+        assert!(value.contains("Max-Age=3600"));
+    }
+
+    #[test]
+    fn no_cookie_mints_a_new_nonce() {
+        let config = test_config();
+        let first = issued_nonce(&config, None);
+        let second = issued_nonce(&config, None);
+
+        assert_eq!(first.len(), 32);
+        assert_ne!(
+            first, second,
+            "without a cookie to reuse, each render mints its own nonce"
+        );
+    }
+
+    /// A truncated, over-long or non-hex value is never signed into a token:
+    /// the helper mints instead of trusting whatever arrived.
+    #[test]
+    fn an_unusable_cookie_value_is_not_trusted() {
+        let config = test_config();
+
+        for bad in [
+            "",                                  // empty
+            "00eaaaa84b550052",                  // half length
+            "00eaaaa84b55005200eaaaa84b5500522", // one over
+            "zzeaaaa84b55005200eaaaa84b550052",  // right length, not hex
+        ] {
+            let nonce = issued_nonce(&config, Some(&format!("hl_contact_ft={bad}")));
+            assert_ne!(nonce, bad, "{bad:?} must not become the nonce");
+            assert_eq!(nonce.len(), 32);
+        }
+    }
+
+    /// The defect this correction fixes: two renders against one browser used
+    /// to yield two nonces, so only the newest form could submit.
+    #[test]
+    fn two_renders_for_one_browser_share_a_nonce() {
+        let config = test_config();
+
+        // First visit: nothing to reuse.
+        let first = issued_nonce(&config, None);
+        // The browser now sends it back, on this page and on every other.
+        let header = format!("hl_contact_ft={first}");
+        let second = issued_nonce(&config, Some(&header));
+        let third = issued_nonce(&config, Some(&header));
+
+        assert_eq!(first, second);
+        assert_eq!(first, third);
+    }
+
+    /// Reuse must not make the *token* stale: the timestamp is re-stamped, so
+    /// the TTL and the minimum age still count from this render.
+    #[test]
+    fn a_reused_nonce_still_yields_a_fresh_token() {
+        use crate::form_token::issue_form_token_with_nonce;
+
+        let config = crate::form_token::FormTokenConfig::new(b"a-secret-key".to_vec());
+        let nonce = "00eaaaa84b55005200eaaaa84b550052";
+
+        let token = issue_form_token_with_nonce(&config, nonce).expect("32 hex chars");
+        let issued: u64 = token.0.split('|').next().unwrap().parse().unwrap();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        assert!(now.saturating_sub(issued) <= 1, "stamped at issue time");
+        assert!(issue_form_token_with_nonce(&config, "too-short").is_none());
+    }
+
     /// Without a request in context there is nothing to decide on, so nothing is
     /// issued rather than a token being handed out blindly.
     #[test]

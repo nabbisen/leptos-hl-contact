@@ -6,7 +6,7 @@
 
 use crate::form_token::{FormToken, FormTokenConfig, FormTokenContext, verify_form_token};
 
-/// Renamed to [`FormTokenConfig`](crate::form_token::FormTokenConfig).
+/// Renamed to [`FormTokenConfig`].
 ///
 /// Note that a `CsrfConfig { secret_key, token_ttl_secs }` struct literal no
 /// longer compiles: the field is now `ttl_secs` and two more were added.
@@ -18,14 +18,14 @@ use crate::form_token::{FormToken, FormTokenConfig, FormTokenContext, verify_for
 )]
 pub type CsrfConfig = FormTokenConfig;
 
-/// Renamed to [`FormToken`](crate::form_token::FormToken).
+/// Renamed to [`FormToken`].
 #[deprecated(
     since = "0.5.0",
     note = "renamed to `form_token`; removed in the next minor"
 )]
 pub type CsrfToken = FormToken;
 
-/// Renamed to [`FormTokenContext`](crate::form_token::FormTokenContext).
+/// Renamed to [`FormTokenContext`].
 #[deprecated(
     since = "0.5.0",
     note = "renamed to `form_token`; removed in the next minor"
@@ -41,7 +41,7 @@ pub fn generate_csrf_token(config: &FormTokenConfig) -> FormToken {
     crate::form_token::issue_form_token(config)
 }
 
-/// Renamed to [`verify_form_token`](crate::form_token::verify_form_token),
+/// Renamed to [`verify_form_token`],
 /// which reports *why* a token failed.
 ///
 /// This wrapper passes no bound value and flattens the result to a `bool`, so

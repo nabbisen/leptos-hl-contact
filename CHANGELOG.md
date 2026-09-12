@@ -37,7 +37,13 @@ No version assigned; the owner decides the release number.
 - `axum_helpers::FormTokenCookie`, `provide_form_token_with_cookie` and
   `provide_form_token_binding` wire it in the one context closure.  Issuing
   happens on `GET` only, so a submission never overwrites the cookie it is
-  bound to.  Any other framework can provide `FormTokenBinding` itself.
+  bound to, and an existing cookie is reused rather than replaced, so the
+  value is stable per browser: several open forms all submit, and a form
+  left open while the visitor browsed elsewhere still works.  Any other
+  framework can provide `FormTokenBinding` itself.
+- `issue_form_token_with_nonce`, for wiring binding into a framework other
+  than Axum: it signs a nonce the browser already holds, and refuses
+  anything that is not 32 hex characters.
 - `FormTokenConfig` builders `with_ttl`, `with_min_age`, `with_binding`.
 
 ### Migration

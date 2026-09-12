@@ -12,7 +12,9 @@
 use std::sync::Arc;
 
 #[cfg(feature = "form-token")]
-use crate::form_token::{FormTokenBinding, FormTokenContext, issue_form_token};
+use crate::form_token::{
+    FormTokenBinding, FormTokenContext, issue_form_token, issue_form_token_with_nonce,
+};
 use crate::{config::ContactSuccessRedirect, delivery::ContactDeliveryContext};
 
 // ---------------------------------------------------------------------------
@@ -189,8 +191,17 @@ fn cookie_value(header: &str, name: &str) -> Option<String> {
 /// renders and server functions (see the Axum Integration guide), and a POST
 /// response must not overwrite the cookie the submitted form was bound to.
 ///
-/// Provides [`FormToken`] so `ContactForm` can render the hidden field, and
+/// Provides [`FormToken`](crate::form_token::FormToken) so `ContactForm` can
+/// render the hidden field, and
 /// appends a `Set-Cookie` header carrying the token's nonce.
+///
+/// The nonce is **reused** when the request already carries a usable cookie,
+/// and only minted when it does not.  The cookie identifies the browser, so
+/// it has to survive the visitor opening a second tab or walking to another
+/// page and back; a fresh nonce per render would overwrite it and invalidate
+/// every form already on screen.  The header is sent either way, which keeps
+/// `Max-Age` refreshed while the visitor browses.  The token itself is new on
+/// every render, with its own timestamp, TTL and minimum age.
 #[cfg(feature = "form-token")]
 pub fn provide_form_token_with_cookie(config: &FormTokenContext, cookie: &FormTokenCookie) {
     use leptos::context::{provide_context, use_context};
@@ -202,7 +213,11 @@ pub fn provide_form_token_with_cookie(config: &FormTokenContext, cookie: &FormTo
         return;
     }
 
-    let token = issue_form_token(config);
+    // A cookie that is absent, truncated or not hex is not trusted: the
+    // helper mints a nonce instead of signing whatever arrived.
+    let token = request_cookie(&parts, &cookie.name)
+        .and_then(|nonce| issue_form_token_with_nonce(config, &nonce))
+        .unwrap_or_else(|| issue_form_token(config));
 
     if let Some(nonce) = token_nonce(&token.0)
         && let Some(res) = use_context::<leptos_axum::ResponseOptions>()
@@ -226,15 +241,20 @@ pub fn provide_form_token_with_cookie(config: &FormTokenContext, cookie: &FormTo
 pub fn provide_form_token_binding(cookie: &FormTokenCookie) {
     use leptos::context::{provide_context, use_context};
 
-    let value = use_context::<axum::http::request::Parts>().and_then(|parts| {
-        parts
-            .headers
-            .get(axum::http::header::COOKIE)
-            .and_then(|v| v.to_str().ok())
-            .and_then(|h| cookie_value(h, &cookie.name))
-    });
+    let value = use_context::<axum::http::request::Parts>()
+        .and_then(|parts| request_cookie(&parts, &cookie.name));
 
     provide_context(FormTokenBinding(value));
+}
+
+/// The named cookie as it arrived on this request, if it did.
+#[cfg(feature = "form-token")]
+fn request_cookie(parts: &axum::http::request::Parts, name: &str) -> Option<String> {
+    parts
+        .headers
+        .get(axum::http::header::COOKIE)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|h| cookie_value(h, name))
 }
 
 // ---------------------------------------------------------------------------

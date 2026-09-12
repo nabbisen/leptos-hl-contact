@@ -14,8 +14,8 @@ examples.
 `ContactErrorLabels`, `ContactField`, `FieldError`, `FieldErrorCode`,
 `submit_contact`, and with the
 `form-token` feature `Binding`, `FormToken`, `FormTokenConfig`,
-`FormTokenContext`, `FormTokenError`, `issue_form_token`,
-`verify_form_token`.
+`FormTokenBinding`, `FormTokenContext`, `FormTokenError`,
+`issue_form_token`, `issue_form_token_with_nonce`, `verify_form_token`.
 
 ## `components`
 
@@ -256,11 +256,25 @@ pub fn sanitize_header_value(value: &str) -> String   // replaces each \r and \n
 pub fn provide_contact_delivery(delivery: ContactDeliveryContext);
 pub fn delivery_context_fn(delivery: ContactDeliveryContext) -> impl Fn() + Clone + Send + Sync + 'static;
 pub fn success_redirect(path: impl Into<String>) -> ContactSuccessRedirect;
+
+// With the `form-token` feature as well:
+pub struct FormTokenCookie {
+    pub name: String,   // default "hl_contact_ft"
+    pub secure: bool,   // default true
+    pub path: String,   // default "/"
+}
+pub fn provide_form_token_with_cookie(config: &FormTokenContext, cookie: &FormTokenCookie);
+pub fn provide_form_token_binding(cookie: &FormTokenCookie);
 ```
 
 `success_redirect` builds a `ContactSuccessRedirect` backed by
 `leptos_axum::redirect`.  It panics on a path that is not site-relative,
 because it is startup configuration.
+
+`provide_form_token_with_cookie` acts on `GET` requests only, and reuses the
+nonce from an existing cookie so the value is stable per browser.  Both
+helpers belong in the one context closure:
+[Cookie binding](../security/form-token.md#cookie-binding).
 
 ## `form_token` module
 
@@ -290,7 +304,10 @@ impl FormTokenConfig {
 pub struct FormToken(pub String);
 pub type FormTokenContext = Arc<FormTokenConfig>;
 
+pub struct FormTokenBinding(pub Option<String>);
+
 pub fn issue_form_token(config: &FormTokenConfig) -> FormToken;
+pub fn issue_form_token_with_nonce(config: &FormTokenConfig, nonce: &str) -> Option<FormToken>;
 pub fn verify_form_token(token: &str, bound_value: Option<&str>, config: &FormTokenConfig)
     -> Result<(), FormTokenError>;
 ```
