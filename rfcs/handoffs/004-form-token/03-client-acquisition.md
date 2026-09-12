@@ -71,6 +71,15 @@ token).
 - Any new client-side effect uses the `all(feature = "hydrate", not(feature
   = "ssr"))` gate established in RFC 002 handoff 02.
 
+## Corrections C1–C3 required by review (2026-09-13)
+
+C1: `token_refresh_secs` defaults to `None` and gates acquisition as well as
+refresh.  C2: the mounted token refreshes once immediately if overdue; fetched
+tokens are scheduled from their arrival on the client clock.  C3: CHANGELOG
+notes the two new `ContactFormOptions` fields and the off-by-default switch.
+Details, required evidence (including a clock-skew loop guard) in
+`.git-exclude/reviewed/004-form-token/03-client-acquisition.md`.
+
 ## Required tests
 
 `components/tests.rs` (SSR): the hidden input still carries the SSR token

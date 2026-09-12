@@ -213,6 +213,27 @@ the hardening was worth.  That judgement was made without this attack in
 view and is reversed here.  Origin validation remains the control that
 rejects cross-site POSTs; binding is defence in depth.
 
+## Amendment 2026-09-13 (3) — the browser is told, and never loops
+
+Review of handoff 03 found two consequences of D4 as written.
+
+1. The acquisition effect is compiled into every hydrate build, because the
+   browser build never has `form-token`.  With `token_refresh_secs` defaulting
+   to `Some(3540)`, every hydrated form on a server *without* form tokens —
+   the default — called a token endpoint that does not exist, once per
+   mount.  The client cannot learn the server's configuration, and a DOM
+   marker cannot reach the client-side-navigation case.  Corrected:
+   `token_refresh_secs` is the single client switch for acquisition *and*
+   refresh and defaults to `None`.  An integrator enabling form tokens sets
+   it to `ttl_secs - 60`.
+2. A token already past its refresh point was never refreshed, and the
+   naive fix loops: the delay compared a server timestamp with the client
+   clock, so a fast client clock would see every fetched token as overdue.
+   Corrected: the mounted token is due at issue time plus the interval and is
+   refreshed once immediately if already past; every token received from the
+   endpoint is due that interval after its **arrival**, on the client clock
+   alone.
+
 ## Alternatives considered
 
 | Alternative | Why not |
