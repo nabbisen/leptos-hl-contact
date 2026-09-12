@@ -26,3 +26,23 @@ jobs:
 
       - name: doc
         run: cargo doc --all-features --no-deps
+
+  # Examples are excluded from the workspace (see Cargo.toml), so the `check`
+  # job never compiles them.  Separate job so a slow example build does not
+  # delay the crate gates.
+  examples:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        example: [axum-basic, axum-with-security]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Rust 1.91
+        uses: dtolnay/rust-toolchain@1.91
+        with:
+          components: clippy, rustfmt
+
+      - name: check
+        run: cargo check
+        working-directory: examples/${{ matrix.example }}

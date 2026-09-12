@@ -52,7 +52,7 @@ async fn main() {
 
     let app = Router::new()
         .route(
-            "/api/*fn_name",
+            "/api/{*fn_name}",
             post({
                 let ctx = ctx.clone();
                 move |req: Request<Body>| {

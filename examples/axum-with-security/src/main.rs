@@ -172,7 +172,7 @@ async fn main() {
     let app = Router::new()
         // Server function handler: delivery context + CSRF config for verification.
         .route(
-            "/api/*fn_name",
+            "/api/{*fn_name}",
             post({
                 let ctx  = ctx.clone();
                 let csrf = Arc::clone(&csrf_for_server_fns);

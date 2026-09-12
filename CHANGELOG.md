@@ -7,6 +7,21 @@ No version assigned; the owner decides the release number.
 ### Fixed
 
 - CI gates green: rustfmt, clippy, doctest.
+- CI installs one matched 1.91 toolchain via `dtolnay/rust-toolchain`; the
+  previous `apt-get` step shipped no `clippy-1.91`, so the clippy step ran a
+  different compiler's clippy against 1.91-compiled dependencies and every
+  run failed.
+- Both examples start: `"/api/*fn_name"` → `"/api/{*fn_name}"`, the Axum 0.8
+  wildcard form.  The old form panicked at router construction, so neither
+  example ever bound a port.
+- Example manifests were at `0.3.2` while the workspace was `0.3.3`; both
+  now match.
+
+### Added
+
+- CI job `examples`, a matrix over both example directories running
+  `cargo check`.  The examples are excluded from the workspace, so the crate
+  gates never compiled them.
 
 ### Documentation
 
