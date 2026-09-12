@@ -171,7 +171,22 @@ impl ContactInput {
                 let Some(first) = errors.first() else {
                     continue;
                 };
-                let code = field_error_code(first);
+
+                // `validator` reports a blank required field as `length` with
+                // `min: 1`, indistinguishable from a value that is merely too
+                // short.  The two need different sentences, so the emptiness
+                // is taken from the input itself.
+                let blank = match field.as_ref() {
+                    "name" => self.name.is_empty(),
+                    "message" => self.message.is_empty(),
+                    _ => false,
+                };
+                let code = if blank && first.code == "length" {
+                    crate::error::FieldErrorCode::Required
+                } else {
+                    field_error_code(first)
+                };
+
                 let err = Some(FieldError::Code(code));
                 match field.as_ref() {
                     "name" => out.name = err,

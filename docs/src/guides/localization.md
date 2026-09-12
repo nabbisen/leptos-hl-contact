@@ -51,8 +51,8 @@ let labels = ContactFormLabels {
 
 | Field | Shown when |
 |-------|------------|
-| `required` | a required field was blank — the server policy's `require_subject` |
-| `length` | the value is too short or too long; `{min}` and `{max}` are replaced with numbers |
+| `required` | a required field was left empty, or the server policy's `require_subject` rejected a missing subject |
+| `length` | the value is present but too short or too long; `{min}` and `{max}` are replaced with numbers |
 | `format_email` | the email field is not a valid address |
 | `format` | any other field is syntactically invalid |
 | `line_breaks` | a line break appears in `name` or `subject` |

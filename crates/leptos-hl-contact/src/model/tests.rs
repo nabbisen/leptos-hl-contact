@@ -125,21 +125,49 @@ fn code_for(input: &ContactInput, field: ContactField) -> FieldErrorCode {
     }
 }
 
-/// `validator` reports an empty required string as `length` with `min: 1`,
-/// not as a `required` code — so the client renders the length text.  The
-/// server emits `Required` only from the policy.
+/// `validator` cannot tell "blank" from "too short" — both arrive as
+/// `length` — so a box the visitor simply left empty must not be answered
+/// with a range message.
 #[test]
-fn empty_name_yields_length_code() {
+fn empty_name_yields_required_code() {
     let mut input = valid_input();
     input.name = String::new();
     assert_eq!(
         code_for(&input, ContactField::Name),
-        FieldErrorCode::Length { min: 1, max: 80 }
+        FieldErrorCode::Required
     );
 }
 
 #[test]
-fn over_long_name_yields_the_same_length_code() {
+fn empty_message_yields_required_code() {
+    let mut input = valid_input();
+    input.message = String::new();
+    assert_eq!(
+        code_for(&input, ContactField::Message),
+        FieldErrorCode::Required
+    );
+}
+
+/// `from_raw` trims, so a field of spaces is blank by the time it is
+/// validated.
+#[test]
+fn whitespace_only_name_yields_required_code() {
+    let input = ContactInput::from_raw(
+        "   ".into(),
+        "alice@example.com".into(),
+        Some("Hello".into()),
+        "This is my message.".into(),
+        String::new(),
+    );
+    assert_eq!(
+        code_for(&input, ContactField::Name),
+        FieldErrorCode::Required
+    );
+}
+
+/// A value that really is too long still gets the range message.
+#[test]
+fn over_long_name_still_yields_length_code() {
     let mut input = valid_input();
     input.name = "x".repeat(81);
     assert_eq!(

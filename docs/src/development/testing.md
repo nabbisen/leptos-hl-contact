@@ -98,6 +98,14 @@ cargo leptos build
 ls -l target/site/pkg     # every file must be newer than your edit
 ```
 
+**Rebuild the example with `cargo leptos build`, not `cargo build`.** After
+editing an example, a plain `cargo build` refreshes the binary but not the
+generated bundle, and the two then disagree about the WASM filename: the
+page asks for `<name>_bg.wasm`, gets a 404, and silently falls back to the
+plain-POST path. The symptoms are a `TypeError: Failed to execute 'compile'
+on 'WebAssembly': HTTP status code is not ok` in the console and a submit
+recorded as a `Document` request where a `Fetch` was expected.
+
 **Set `form.noValidate` before testing server-side validation.** The form
 carries `required` and `type="email"`, so the browser blocks a submit with a
 deliberately invalid value and the request never reaches the server — the

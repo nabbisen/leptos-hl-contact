@@ -28,6 +28,13 @@ No version assigned; the owner decides the release number.
   Without the context nothing changes: JavaScript clients show the inline
   message and no-JavaScript clients reload the form page.
 
+### Fixed
+
+- A required field left empty now renders the `required` label instead of the
+  length label.  `validator` reports a blank value and a too-short one
+  identically, as `length` with `min: 1`, so a visitor who simply left the
+  box empty was told it "must be between 1 and 4000 characters".
+
 ### Changed
 
 - **The server no longer composes visitor-facing text.**  Validation, policy,
@@ -47,6 +54,11 @@ No version assigned; the owner decides the release number.
   - `ContactFormLabels` gains `errors: ContactErrorLabels`.  Build it with
     `..Default::default()` and you are unaffected; an exhaustive struct
     literal must add the field.
+
+  If you translated `ContactFormLabels::error` but not the new `errors`
+  block, visitors will now see English error text: `error` is reached only
+  for a payload the client does not recognise, and every message the current
+  server sends has its own label in `errors`.
 
   On the wire, `field_errors:` members become objects such as
   `{"kind":"length","min":1,"max":80}`, and whole-submission failures become
