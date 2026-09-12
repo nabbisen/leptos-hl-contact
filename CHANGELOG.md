@@ -1,5 +1,68 @@
 # Changelog
 
+## [Unreleased]
+
+No version assigned; the owner decides the release number.
+
+### Changed
+
+- **The `csrf` feature, module and items are renamed to `form-token` /
+  `form_token`.**  The token proves the sender fetched a page from this
+  server recently; it is not a CSRF control on its own, and the name said
+  otherwise.  Origin validation remains the CSRF control.
+- **The hidden field is `form_token`, not `csrf_token`.**  The DOM contract
+  is public API, so this is the breaking change that makes the release a
+  minor.  `submit_contact` accepts the old field for one minor, so a page
+  rendered by 0.4 still submits successfully to 0.5.
+
+### Added
+
+- **A minimum age.**  `FormTokenConfig::min_age_secs`, two seconds by
+  default, rejects a submission that arrives sooner than that after the page
+  was rendered — a script's speed, not a person's.  The rejection is
+  retryable by design: the same token is valid a moment later, so somebody
+  who autofilled and clicked immediately is delayed by one attempt rather
+  than turned away.  `0` disables the check.
+- `ContactErrorCode::TooFast` and `ContactErrorLabels::too_fast`
+  ("Please wait a moment and try again.") for that case, so it is
+  distinguishable from a forged token and translatable like every other
+  message.
+- `FormTokenError`, which reports *why* a token failed, and `Binding`, whose
+  `Cookie` variant is wired for a later handoff.
+- `FormTokenConfig` builders `with_ttl`, `with_min_age`, `with_binding`.
+
+### Migration
+
+Every old name still works, warns, and is removed in the next minor.
+
+| 0.4 | 0.5 |
+|-----|-----|
+| feature `csrf` | `form-token` (`csrf` kept as an alias) |
+| module `csrf` | `form_token` |
+| `CsrfConfig` | `FormTokenConfig` |
+| `CsrfToken` | `FormToken` |
+| `CsrfConfigContext` | `FormTokenContext` |
+| `generate_csrf_token` | `issue_form_token` |
+| `verify_csrf_token(token, cfg) -> bool` | `verify_form_token(token, bound, cfg) -> Result<(), FormTokenError>` |
+| hidden field `csrf_token` | `form_token` |
+| env var `CSRF_SECRET` (docs and examples) | `FORM_TOKEN_SECRET` |
+
+Two things do not move by themselves:
+
+- **A `CsrfConfig { secret_key, token_ttl_secs }` struct literal no longer
+  compiles.**  `token_ttl_secs` is now `ttl_secs` and two fields were added;
+  use `FormTokenConfig::new(secret)` with the `with_*` builders.
+- **`min_age_secs` defaults to 2**, which is new behaviour.  A test that
+  submits instantly will now see `too_fast`; call `.with_min_age(0)` for the
+  old behaviour.
+
+### Documentation
+
+- `security/csrf.md` → `security/form-token.md`, rewritten: the guarantees
+  table has a column per binding mode, the minimum age is explained as a
+  deliberate one-retry cost to a fast human, and a migration section lists
+  every old → new name.  The book redirects the old URL.
+
 ## [0.4.0] — 2026-09-13
 
 ### Fixed

@@ -2,7 +2,7 @@
 //
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║  LOCAL DEVELOPMENT ONLY                                          ║
-// ║  This example has no rate limiting, no CSRF protection, and no  ║
+// ║  This example has no rate limiting, no form token, and no       ║
 // ║  Origin validation.  Do NOT deploy it as-is to production.      ║
 // ║  Use examples/axum-with-security for production-ready wiring.   ║
 // ╚══════════════════════════════════════════════════════════════════╝
@@ -35,7 +35,7 @@ async fn main() {
     // Loud startup warning so this is never accidentally used in production.
     tracing::warn!(
         "axum-basic is a LOCAL DEVELOPMENT example only. \
-         It has no rate limiting, CSRF protection, or Origin validation. \
+         It has no rate limiting, form token, or Origin validation. \
          Use examples/axum-with-security for production-ready wiring."
     );
 

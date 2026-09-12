@@ -23,7 +23,8 @@
 //! | `islands`      | Enables Leptos Islands architecture.            |
 //! | `smtp-lettre`  | Enables the SMTP delivery adapter.             |
 //! | `axum-helpers` | Enables Axum-specific integration helpers.     |
-//! | `csrf`         | Stateless HMAC-SHA256 anti-automation token; `submit_contact` requires `CsrfConfigContext` (fail-closed). |
+//! | `form-token`   | Stateless HMAC-SHA256 form token; `submit_contact` requires `FormTokenContext` (fail-closed). |
+//! | `csrf`         | Deprecated alias for `form-token`; removed in the next minor. |
 //!
 //! ## Quick start
 //!
@@ -51,8 +52,12 @@ pub mod components;
 // Server function — compiled only when `ssr` is active.
 pub mod server;
 
-// CSRF token helper — compiled only when `csrf` is active.
-#[cfg(feature = "csrf")]
+// Form token — compiled only when `form-token` is active.
+#[cfg(feature = "form-token")]
+pub mod form_token;
+
+// Deprecated 0.4 aliases; removed in the next minor.
+#[cfg(feature = "form-token")]
 pub mod csrf;
 
 // Axum integration helpers — compiled only when `axum-helpers` is active.
@@ -77,5 +82,8 @@ pub use error::{
 pub use model::{ContactInput, MESSAGE_MAX_LEN};
 pub use server::submit_contact;
 
-#[cfg(feature = "csrf")]
-pub use csrf::{CsrfConfig, CsrfConfigContext, CsrfToken, generate_csrf_token, verify_csrf_token};
+#[cfg(feature = "form-token")]
+pub use form_token::{
+    Binding, FormToken, FormTokenConfig, FormTokenContext, FormTokenError, issue_form_token,
+    verify_form_token,
+};

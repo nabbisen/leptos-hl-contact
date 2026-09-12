@@ -1,79 +1,37 @@
-// tests.rs — unit tests for the CSRF token module.
+// tests.rs — unit tests for the parent module.
+//
+// These exist to prove the 0.4 names still compile and behave, which is the
+// whole point of the alias module.  `#[allow(deprecated)]` is deliberate:
+// deprecating the aliases is what this module is for.
+#![allow(deprecated)]
 
 use super::*;
 
-fn test_config() -> CsrfConfig {
-    CsrfConfig::new(b"test-secret-key-at-least-32-bytes-long".to_vec())
+#[test]
+fn deprecated_aliases_still_name_the_new_types() {
+    let config: CsrfConfig =
+        FormTokenConfig::new(b"secret-key-at-least-32-bytes-long".to_vec()).with_min_age(0);
+    let token: CsrfToken = generate_csrf_token(&config);
+    let _ctx: CsrfConfigContext = std::sync::Arc::new(config.clone());
+
+    assert!(!token.0.is_empty());
 }
 
 #[test]
-fn generated_token_verifies_successfully() {
-    let config = test_config();
+fn deprecated_round_trip_is_true() {
+    // `min_age` 0, or a freshly issued token would be rejected as too young
+    // and this alias cannot report why.
+    let config =
+        FormTokenConfig::new(b"secret-key-at-least-32-bytes-long".to_vec()).with_min_age(0);
     let token = generate_csrf_token(&config);
     assert!(verify_csrf_token(&token.0, &config));
 }
 
 #[test]
-fn token_format_has_three_pipe_separated_parts() {
-    let config = test_config();
+fn deprecated_verify_is_false_for_a_tampered_token() {
+    let config =
+        FormTokenConfig::new(b"secret-key-at-least-32-bytes-long".to_vec()).with_min_age(0);
     let token = generate_csrf_token(&config);
-    let parts: Vec<&str> = token.0.split('|').collect();
-    assert_eq!(parts.len(), 3, "token must have 3 pipe-separated parts");
-}
-
-#[test]
-fn tampered_signature_fails_verification() {
-    let config = test_config();
-    let token = generate_csrf_token(&config);
-    // Flip the last character of the signature
-    let mut tampered = token.0.clone();
-    let last = tampered.pop().unwrap();
-    let replacement = if last == 'a' { 'b' } else { 'a' };
-    tampered.push(replacement);
+    let tampered = format!("{}x", token.0);
     assert!(!verify_csrf_token(&tampered, &config));
-}
-
-#[test]
-fn wrong_secret_fails_verification() {
-    let config = test_config();
-    let other_config = CsrfConfig::new(b"completely-different-secret-key-xyz".to_vec());
-    let token = generate_csrf_token(&config);
-    assert!(!verify_csrf_token(&token.0, &other_config));
-}
-
-#[test]
-fn malformed_token_fails_verification() {
-    let config = test_config();
-    assert!(!verify_csrf_token("", &config));
-    assert!(!verify_csrf_token("not-a-token", &config));
-    assert!(!verify_csrf_token("a|b", &config)); // only 2 parts
-}
-
-#[test]
-fn expired_token_fails_verification() {
-    let config = CsrfConfig {
-        secret_key: b"test-secret".to_vec(),
-        token_ttl_secs: 0, // expire immediately
-    };
-    let old_ts = 1_000_000u64; // year 1970+~11 days, definitely expired
-    let payload = format!("{old_ts}|aabbccddeeff00112233445566778899");
-    let sig = super::sign(&payload, &config.secret_key);
-    let old_token = format!("{payload}|{sig}");
-    assert!(!verify_csrf_token(&old_token, &config));
-}
-
-#[test]
-fn two_tokens_differ() {
-    let config = test_config();
-    let t1 = generate_csrf_token(&config);
-    let t2 = generate_csrf_token(&config);
-    // Nonces must differ even when generated close together
-    assert_ne!(t1.0, t2.0);
-}
-
-#[test]
-fn constant_time_eq_works() {
-    assert!(constant_time_eq("abcdef", "abcdef"));
-    assert!(!constant_time_eq("abcdef", "abcdeg"));
-    assert!(!constant_time_eq("abc", "abcd"));
 }

@@ -97,9 +97,9 @@ Before going public, work through the
 - **Progressive enhancement.**  Plain POST without JavaScript.
 - **Accessible by default.**  Labels, ARIA, live regions, keyboard.
 - **Pluggable delivery.**  Framework-neutral trait; Axum helpers are opt-in.
-- **Honest security model.**  The `csrf` feature's token is an
-  anti-automation measure; Origin validation in your middleware is the
-  CSRF control.  Both are documented, with examples.
+- **Honest security model.**  The `form-token` feature's token is an
+  anti-automation measure with a minimum age; Origin validation in your
+  middleware is the CSRF control.  Both are documented, with examples.
 
 ---
 

@@ -21,7 +21,7 @@
 # Security
 
 - [Overview](./security/README.md)
-  - [Anti-automation Token](./security/csrf.md)
+  - [Form Token](./security/form-token.md)
   - [Hardening](./security/hardening.md)
   - [Turnstile](./security/turnstile.md)
 

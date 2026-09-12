@@ -70,3 +70,17 @@ fn pii_not_present_in_expected_log_messages() {
     assert!(!noop_msg.contains('%'));
     assert!(!smtp_msg.contains('%'));
 }
+
+/// `TooFast` is the one token failure the visitor is told apart from the
+/// rest, because retrying works.  It travels like every other code.
+#[test]
+fn too_fast_message_has_the_contact_error_prefix() {
+    use crate::error::{CONTACT_ERROR_PREFIX, ContactErrorCode};
+    let msg = ContactErrorCode::TooFast.into_server_fn_message();
+    assert_eq!(msg, format!("{CONTACT_ERROR_PREFIX}too_fast"));
+    assert!(!msg.starts_with(FIELD_ERROR_PREFIX));
+    assert_eq!(
+        ContactErrorCode::from_str_code("too_fast"),
+        Some(ContactErrorCode::TooFast)
+    );
+}

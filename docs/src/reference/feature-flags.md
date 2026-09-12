@@ -10,18 +10,19 @@ downstream crates choose exactly what they activate.
 | `islands` | — | Leptos Islands architecture |
 | `smtp-lettre` | `ssr` | `delivery::smtp` (`lettre`, `tokio`) |
 | `axum-helpers` | `ssr` | `axum_helpers` (`axum`, `leptos_axum`) |
-| `csrf` | `ssr` | `csrf` module; token verification in `submit_contact` (`hmac`, `sha2`, `rand`, `hex`) |
+| `form-token` | `ssr` | `form_token` module; token verification in `submit_contact` (`hmac`, `sha2`, `rand`, `hex`) |
+| `csrf` | `form-token` | Deprecated alias for `form-token`; removed in the next minor |
 
 ## Recommended combinations
 
 | Binary | Features |
 |--------|----------|
 | Server, minimal | `ssr`, `smtp-lettre` |
-| Server, Axum, production | `ssr`, `smtp-lettre`, `axum-helpers`, `csrf` |
+| Server, Axum, production | `ssr`, `smtp-lettre`, `axum-helpers`, `form-token` |
 | WASM client | `hydrate` |
 | Islands server | `islands`, `ssr`, `smtp-lettre` |
 | Library tests | `--all-features` |
 
 Features are additive.  Enabling one never removes an API or changes the
-behaviour of another, with one deliberate exception: enabling `csrf`
-makes `submit_contact` **require** `CsrfConfigContext` (fail-closed).
+behaviour of another, with one deliberate exception: enabling `form-token`
+makes `submit_contact` **require** `FormTokenContext` (fail-closed).

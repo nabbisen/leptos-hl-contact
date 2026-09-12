@@ -55,7 +55,7 @@ fn ContactPage() -> impl IntoView {
         <main style="max-width: 600px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
             <h1>"Contact us (secured)"</h1>
             <p style="color: #666; font-size: 0.9rem;">
-                "This form is protected by: rate limiting, CSRF tokens, and Origin validation."
+                "This form is protected by: rate limiting, a form token, and Origin validation."
             </p>
             <ContactForm
                 classes=ContactFormClasses {

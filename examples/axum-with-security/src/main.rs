@@ -3,17 +3,18 @@
 // Production-ready integration of leptos-hl-contact with:
 //   - Request body size limit (32 KiB) — prevents large-POST abuse
 //   - Rate limiting via tower_governor (IP-based, 2 req/s, burst 5, HTTP 429)
-//   - CSRF token verification via HMAC-SHA256 (stateless, no session needed)
+//   - Form token verification via HMAC-SHA256 (stateless, no session needed),
+//     with a two-second minimum age
 //   - Strict Origin / Referer validation (URL-parsed, scheme+host+port compared)
 //
 // Required environment variables:
-//   CSRF_SECRET=<openssl rand -hex 32>    # 32+ random bytes; NO default fallback
+//   FORM_TOKEN_SECRET=<openssl rand -hex 32>  # 32+ random bytes; NO default fallback
 //   ALLOWED_ORIGIN=https://example.com   # origin URL; NO default fallback
 //   SMTP_HOST / SMTP_USER / SMTP_PASS / SMTP_FROM / CONTACT_TO  (for real SMTP)
 //
 // SECURITY NOTICE:
 //   - Always run behind HTTPS in production; update ALLOWED_ORIGIN accordingly.
-//   - Set CSRF_SECRET to a unique, random value per deployment.
+//   - Set FORM_TOKEN_SECRET to a unique, random value per deployment.
 //   - Ensure your reverse proxy validates X-Forwarded-For before reaching Axum.
 
 #[cfg(feature = "ssr")]
@@ -47,7 +48,7 @@ use url::Url;
 #[cfg(feature = "ssr")]
 use leptos_hl_contact::{
     axum_helpers::{delivery_context_fn, success_redirect},
-    csrf::{CsrfConfig, CsrfConfigContext, generate_csrf_token},
+    form_token::{FormTokenConfig, FormTokenContext, issue_form_token},
     delivery::{ContactDeliveryContext, noop::NoopDelivery},
 };
 
@@ -123,20 +124,18 @@ async fn main() {
     let _ = dotenvy::dotenv();
 
     // ------------------------------------------------------------------
-    // CSRF configuration — fail-closed if CSRF_SECRET is missing
+    // Form token configuration — fail-closed if the secret is missing
     // ------------------------------------------------------------------
-    // CSRF_SECRET is required.  Generate with: openssl rand -hex 32
-    let csrf_secret = std::env::var("CSRF_SECRET")
+    // FORM_TOKEN_SECRET is required.  Generate with: openssl rand -hex 32
+    let token_secret = std::env::var("FORM_TOKEN_SECRET")
         .expect(
-            "CSRF_SECRET must be set to a 32+ byte random value. \
+            "FORM_TOKEN_SECRET must be set to a 32+ byte random value. \
              Generate one with: openssl rand -hex 32",
         )
         .into_bytes();
 
-    let csrf_config: CsrfConfigContext = Arc::new(CsrfConfig {
-        secret_key:     csrf_secret,
-        token_ttl_secs: 3600,
-    });
+    // Defaults: one-hour TTL, two-second minimum age, no cookie binding.
+    let token_config: FormTokenContext = Arc::new(FormTokenConfig::new(token_secret));
 
     // ------------------------------------------------------------------
     // Delivery backend
@@ -192,10 +191,10 @@ async fn main() {
             routes,
             move || {
                 ctx.clone()();
-                provide_context::<CsrfConfigContext>(Arc::clone(&csrf_config));
+                provide_context::<FormTokenContext>(Arc::clone(&token_config));
                 // Unused on server-function requests, which read the submitted
                 // token rather than issuing one.
-                provide_context(generate_csrf_token(&csrf_config));
+                provide_context(issue_form_token(&token_config));
                 provide_context(redirect.clone());
             },
             {
@@ -214,7 +213,7 @@ async fn main() {
 
     tracing::info!(
         addr = %addr,
-        "leptos-hl-contact (body-limit + rate-limit + CSRF + Origin validation)"
+        "leptos-hl-contact (body-limit + rate-limit + form token + Origin validation)"
     );
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     // Connection info is what lets `SmartIpKeyExtractor` fall back to the peer

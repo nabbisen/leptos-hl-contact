@@ -93,6 +93,9 @@ pub enum FieldError {
 pub enum ContactErrorCode {
     /// The form token was missing, malformed, or expired.
     TokenInvalid,
+    /// The form was submitted sooner after loading than the configured
+    /// minimum age.  Retryable: the same token works moments later.
+    TooFast,
     /// A required context value is absent, so the form cannot accept
     /// submissions.
     NotConfigured,
@@ -107,6 +110,7 @@ impl ContactErrorCode {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::TokenInvalid => "token_invalid",
+            Self::TooFast => "too_fast",
             Self::NotConfigured => "not_configured",
             Self::DeliveryFailed => "delivery_failed",
             Self::Unexpected => "unexpected",
@@ -119,6 +123,7 @@ impl ContactErrorCode {
     pub fn from_str_code(s: &str) -> Option<Self> {
         match s {
             "token_invalid" => Some(Self::TokenInvalid),
+            "too_fast" => Some(Self::TooFast),
             "not_configured" => Some(Self::NotConfigured),
             "delivery_failed" => Some(Self::DeliveryFailed),
             "unexpected" => Some(Self::Unexpected),

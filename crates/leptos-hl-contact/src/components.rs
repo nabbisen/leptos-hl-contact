@@ -8,8 +8,8 @@ use crate::{
     server::SubmitContact,
 };
 
-#[cfg(feature = "csrf")]
-use crate::csrf::CsrfToken;
+#[cfg(feature = "form-token")]
+use crate::form_token::FormToken;
 
 // ---------------------------------------------------------------------------
 // Helper — small inline error paragraph
@@ -119,12 +119,12 @@ pub fn ContactForm(
     // Read the token once, at creation.  SSR has it in context; the browser
     // does not, and the SSR-rendered attribute survives hydration because the
     // form is never rebuilt.
-    #[cfg(feature = "csrf")]
-    let csrf_token_value: String = leptos::context::use_context::<CsrfToken>()
+    #[cfg(feature = "form-token")]
+    let form_token_value: String = leptos::context::use_context::<FormToken>()
         .map(|t| t.0.clone())
         .unwrap_or_default();
-    #[cfg(not(feature = "csrf"))]
-    let csrf_token_value: String = String::new();
+    #[cfg(not(feature = "form-token"))]
+    let form_token_value: String = String::new();
 
     let classes = StoredValue::new(classes);
     let labels = StoredValue::new(labels);
@@ -226,7 +226,7 @@ pub fn ContactForm(
                 let show_subject = options.with_value(|o| o.show_subject);
                 let require_subject = options.with_value(|o| o.require_subject);
                 let max_msg_len = options.with_value(|o| o.effective_max_message_len());
-                let csrf_token_value = csrf_token_value.clone();
+                let form_token_value = form_token_value.clone();
 
                 view! {
                     <ActionForm action=submit_action>
@@ -319,13 +319,13 @@ pub fn ContactForm(
                             />
                         </div>
 
-                        // Anti-automation token — hidden field, rendered by SSR.
-                        // Empty when the `csrf` feature is disabled or
-                        // CsrfConfigContext is not provided.
+                        // Form token — hidden field, rendered by SSR.
+                        // Empty when the `form-token` feature is disabled or
+                        // FormTokenContext is not provided.
                         <input
                             type="hidden"
-                            name="csrf_token"
-                            value=csrf_token_value
+                            name="form_token"
+                            value=form_token_value
                         />
 
                         // Honeypot — visually hidden; excluded from assistive tech.

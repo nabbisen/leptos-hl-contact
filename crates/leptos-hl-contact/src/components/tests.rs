@@ -47,19 +47,19 @@ fn form_renders_all_ids_once() {
     }
 
     assert_eq!(
-        count(&html, "name=\"csrf_token\""),
+        count(&html, "name=\"form_token\""),
         1,
         "expected exactly one hidden token field"
     );
 }
 
-#[cfg(feature = "csrf")]
+#[cfg(feature = "form-token")]
 #[test]
 fn hidden_token_is_rendered_from_context() {
-    use crate::csrf::CsrfToken;
+    use crate::form_token::FormToken;
 
     let html = render(|| {
-        leptos::context::provide_context(CsrfToken("test-token-value".into()));
+        leptos::context::provide_context(FormToken("test-token-value".into()));
         view! { <ContactForm /> }.into_any()
     });
 

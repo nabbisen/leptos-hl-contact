@@ -24,18 +24,18 @@ server functions alike.  The log line is:
 ERROR leptos_hl_contact::server: ContactDeliveryContext not provided — check server setup
 ```
 
-## The banner says the form is unavailable, with the `csrf` feature on
+## The banner says the form is unavailable, with the `form-token` feature on
 
-The `csrf` feature is enabled but `CsrfConfigContext` is missing from the
-context closure.
+The `form-token` feature is enabled but `FormTokenContext` is missing from
+the context closure.
 
 ## "Your session token expired. Please reload the page and try again."
 
 One of:
 
-- `CsrfToken` is not provided in the context closure, so the hidden field is
-  empty.  Add `provide_context(generate_csrf_token(&csrf))` there.
-- The token is older than `token_ttl_secs` (default one hour).
+- `FormToken` is not provided in the context closure, so the hidden field is
+  empty.  Add `provide_context(issue_form_token(&token_config))` there.
+- The token is older than `ttl_secs` (default one hour).
 - The secret changed since the page was rendered: a restart with a new
   `CSRF_SECRET`, or instances behind a load balancer that disagree.
 
@@ -58,7 +58,7 @@ One of:
 
 The server received empty fields.  Make sure the form is the crate's
 `ContactForm` (field names `name`, `email`, `subject`, `message`,
-`website`, `csrf_token`) and that it is not nested inside another `<form>`.
+`website`, `form_token`) and that it is not nested inside another `<form>`.
 
 ## The honeypot field is visible
 

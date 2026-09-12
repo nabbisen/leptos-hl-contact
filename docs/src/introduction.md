@@ -24,7 +24,7 @@ Three cooperating layers, shipped together:
 - **Credential isolation.** SMTP credentials, the recipient address, and the
   token secret exist only in server-side types and are never compiled into
   WASM.
-- **Anti-automation token** (`csrf` feature): a stateless HMAC-signed token
+- **Form token** (`form-token` feature): a stateless HMAC-signed token
   that proves the sender fetched the page recently.  See
   [Security](./security/README.md) for exactly what it does and does not
   protect against.

@@ -13,8 +13,9 @@ examples.
 `ContactSuccessRedirect`, `InvalidRedirectPath`, `ContactErrorCode`,
 `ContactErrorLabels`, `ContactField`, `FieldError`, `FieldErrorCode`,
 `submit_contact`, and with the
-`csrf` feature `CsrfConfig`, `CsrfConfigContext`, `CsrfToken`,
-`generate_csrf_token`, `verify_csrf_token`.
+`form-token` feature `Binding`, `FormToken`, `FormTokenConfig`,
+`FormTokenContext`, `FormTokenError`, `issue_form_token`,
+`verify_form_token`.
 
 ## `components`
 
@@ -30,7 +31,7 @@ pub fn ContactForm(
 ```
 
 Renders the form as an `<ActionForm/>` bound to `submit_contact`.  Reads
-`CsrfToken` from context when the `csrf` feature is on.  Element ids and
+`FormToken` from context when the `form-token` feature is on.  Element ids and
 attributes are listed in the
 [DOM contract](../development/external-design.md#412-dom-contract).
 
@@ -46,12 +47,13 @@ pub async fn submit_contact(
     subject:    Option<String>,
     message:    String,
     website:    String,          // honeypot — must be empty
-    csrf_token: Option<String>,  // verified when the `csrf` feature is on
+    form_token: Option<String>,  // verified when the `form-token` feature is on
+    csrf_token: Option<String>,  // deprecated 0.4 name; used only if form_token is absent
 ) -> Result<(), ServerFnError>
 ```
 
 `POST /api/submit_contact`, form-encoded.  Order of work: token check
-(`csrf`) → `ContactInput::from_raw` → `check_honeypot` → `validate_fields`
+(`form-token`) → `ContactInput::from_raw` → `check_honeypot` → `validate_fields`
 → `ContactServerPolicy` → `ContactDelivery::deliver` →
 `ContactSuccessRedirect` when one is in context.
 
@@ -59,6 +61,7 @@ pub async fn submit_contact(
 |---------|-------------|
 | Validation or policy failure | `ServerFnError::Args("field_errors:{…json…}")` |
 | Token invalid, expired or missing | `ServerFnError::Args("contact_error:token_invalid")` |
+| Token younger than `min_age_secs` | `ServerFnError::Args("contact_error:too_fast")` — retryable |
 | Token config or delivery context missing | `ServerFnError::ServerError("contact_error:not_configured")` |
 | Delivery failed | `ServerFnError::ServerError("contact_error:delivery_failed")` |
 | Unexpected | `ServerFnError::ServerError("contact_error:unexpected")` |
@@ -259,19 +262,47 @@ pub fn success_redirect(path: impl Into<String>) -> ContactSuccessRedirect;
 `leptos_axum::redirect`.  It panics on a path that is not site-relative,
 because it is startup configuration.
 
-## `csrf` module
+## `form_token` module
 
-Feature `csrf`.
+Feature `form-token`.
 
 ```rust,ignore
-pub struct CsrfConfig { pub secret_key: Vec<u8>, pub token_ttl_secs: u64 }
-impl CsrfConfig { pub fn new(secret_key: Vec<u8>) -> Self }   // ttl 3600
-pub struct CsrfToken(pub String);
-pub type CsrfConfigContext = Arc<CsrfConfig>;
+pub enum Binding { None, Cookie }
 
-pub fn generate_csrf_token(config: &CsrfConfig) -> CsrfToken;
-pub fn verify_csrf_token(token: &str, config: &CsrfConfig) -> bool;
+pub enum FormTokenError {
+    Malformed, BadSignature, Expired, FromFuture, TooYoung,
+    BindingMissing, BindingMismatch,
+}
+
+pub struct FormTokenConfig {
+    pub secret_key: Vec<u8>,
+    pub ttl_secs: u64,        // default 3600
+    pub min_age_secs: u64,    // default 2; 0 disables
+    pub binding: Binding,     // default Binding::None
+}
+impl FormTokenConfig {
+    pub fn new(secret_key: Vec<u8>) -> Self;
+    pub fn with_ttl(self, secs: u64) -> Self;
+    pub fn with_min_age(self, secs: u64) -> Self;
+    pub fn with_binding(self, binding: Binding) -> Self;
+}
+
+pub struct FormToken(pub String);
+pub type FormTokenContext = Arc<FormTokenConfig>;
+
+pub fn issue_form_token(config: &FormTokenConfig) -> FormToken;
+pub fn verify_form_token(token: &str, bound_value: Option<&str>, config: &FormTokenConfig)
+    -> Result<(), FormTokenError>;
 ```
 
-`CsrfConfig` implements `Debug` with the key redacted.  Behaviour and
-guarantees: [Anti-automation Token](../security/csrf.md).
+`FormTokenConfig` implements `Debug` with the key redacted.  Checks run in
+this order: format, timestamp, future skew, expiry, minimum age, signature,
+binding.  Behaviour and guarantees:
+[Form Token](../security/form-token.md).
+
+## `csrf` module — deprecated
+
+Feature `csrf`, which enables `form-token`.  Every item warns and is removed
+in the next minor: `CsrfConfig`, `CsrfToken`, `CsrfConfigContext`,
+`generate_csrf_token`, `verify_csrf_token`.  The migration table is in
+[Form Token](../security/form-token.md#migration-from-the-03-and-04-names).

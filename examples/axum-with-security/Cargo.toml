@@ -2,12 +2,12 @@
 # It ships a WASM client, so it is built and run with cargo-leptos:
 #   cargo install cargo-leptos
 #   cd examples/axum-with-security
-#   CSRF_SECRET=$(openssl rand -hex 32) ALLOWED_ORIGIN=http://127.0.0.1:3000 cargo leptos watch
+#   FORM_TOKEN_SECRET=$(openssl rand -hex 32) ALLOWED_ORIGIN=http://127.0.0.1:3000 cargo leptos watch
 #
 # `cargo check --features ssr` still works without cargo-leptos.
 [package]
 name        = "axum-with-security"
-description = "Production example: leptos-hl-contact with rate limiting, CSRF, and Origin validation."
+description = "Production example: leptos-hl-contact with rate limiting, a form token, and Origin validation."
 version     = "0.4.0"
 edition     = "2024"
 authors     = ["nabbisen"]
@@ -39,7 +39,7 @@ ssr = [
     "leptos-hl-contact/ssr",
     "leptos-hl-contact/smtp-lettre",
     "leptos-hl-contact/axum-helpers",
-    "leptos-hl-contact/csrf",
+    "leptos-hl-contact/form-token",
 ]
 
 [dependencies]
@@ -47,7 +47,7 @@ leptos        = { version = "0.8" }
 leptos_meta   = { version = "0.8" }
 leptos_router = { version = "0.8" }
 # No default features: the two example features above select what the crate
-# needs.  `csrf` implies `ssr`, so it must never reach the WASM build.
+# needs.  `form-token` implies `ssr`, so it must never reach the WASM build.
 leptos-hl-contact = { path = "../../crates/leptos-hl-contact", default-features = false }
 
 console_error_panic_hook = "0.1"

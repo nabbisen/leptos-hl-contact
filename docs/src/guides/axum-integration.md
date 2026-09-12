@@ -8,8 +8,8 @@ to `leptos_routes_with_context`:
 | Value | Needed for |
 |-------|------------|
 | `ContactDeliveryContext` | required — `submit_contact` delivers through it |
-| `CsrfConfigContext` (`csrf` feature) | required — token verification, fail-closed without it |
-| `CsrfToken` (`csrf` feature) | required — one fresh token per page render; unused on server-function requests |
+| `FormTokenContext` (`form-token` feature) | required — token verification, fail-closed without it |
+| `FormToken` (`form-token` feature) | required — one fresh token per page render; unused on server-function requests |
 | `ContactServerPolicy` | optional — server-side limits |
 | `ContactSuccessRedirect` | required for the success redirect |
 
@@ -60,18 +60,18 @@ yourself in the closure.
 
 ## All context values together
 
-With the `csrf` feature, a server policy and a success page:
+With the `form-token` feature, a server policy and a success page:
 
 ```rust,ignore
 use leptos::context::provide_context;
 use leptos_hl_contact::{
     ContactServerPolicy,
     axum_helpers::success_redirect,
-    csrf::{CsrfConfig, CsrfConfigContext, generate_csrf_token},
+    form_token::{FormTokenConfig, FormTokenContext, issue_form_token},
 };
 
-let csrf: CsrfConfigContext = Arc::new(CsrfConfig::new(
-    std::env::var("CSRF_SECRET").expect("CSRF_SECRET").into_bytes(),
+let token_config: FormTokenContext = Arc::new(FormTokenConfig::new(
+    std::env::var("FORM_TOKEN_SECRET").expect("FORM_TOKEN_SECRET").into_bytes(),
 ));
 let policy = ContactServerPolicy { require_subject: true, max_message_len: 2000 };
 // Built before the router so an invalid path panics at boot.
@@ -80,10 +80,10 @@ let redirect = success_redirect("/thanks");
 let app = Router::new()
     .leptos_routes_with_context(&leptos_options, routes, move || {
         ctx.clone()();
-        provide_context::<CsrfConfigContext>(Arc::clone(&csrf));
+        provide_context::<FormTokenContext>(Arc::clone(&token_config));
         // Unused on server-function requests, which read the submitted token
         // rather than issuing one.
-        provide_context(generate_csrf_token(&csrf));
+        provide_context(issue_form_token(&token_config));
         provide_context(policy.clone());
         provide_context(redirect.clone());
     }, App)

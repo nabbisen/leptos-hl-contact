@@ -1,260 +1,57 @@
-// csrf.rs — Stateless HMAC-SHA256 anti-automation token helper (feature `csrf`).
+// csrf.rs — Deprecated aliases for the 0.4 names.
 //
-// Feature: `csrf`
-//
-// # Design
-//
-// Tokens are stateless (no session or database required).
-// Each token embeds a Unix timestamp and a random nonce, both signed with
-// HMAC-SHA256 using the application's secret key.
-//
-// Token format: `{timestamp_secs}|{nonce_hex}|{hmac_hex}`
-//
-// Verification checks:
-//   1. The HMAC is valid (prevents forgery).
-//   2. The token is not older than `token_ttl_secs`.
-//
-// # Usage in Axum
-//
-// 1. Build a `CsrfConfig` from an environment variable and wrap it in `Arc`.
-// 2. Provide `Arc<CsrfConfig>` via `provide_context` in the closure passed to
-//    `leptos_routes_with_context`; that closure serves page renders and
-//    server functions alike.
-// 3. In the same closure call `provide_context(generate_csrf_token(&config))`.
-//    Leptos creates a fresh context per request, so each page render gets a
-//    unique token.
-// 4. `ContactForm` detects the `CsrfToken` context and embeds the token as a
-//    hidden form field automatically.
-// 5. `submit_contact` detects `Arc<CsrfConfig>` in context and verifies the
-//    submitted token.
+// The feature, module and items were renamed in 0.5 because the token is not
+// a CSRF control on its own; see `form_token`.  Everything here forwards and
+// is removed in the next minor.
 
-use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::form_token::{FormToken, FormTokenConfig, FormTokenContext, verify_form_token};
 
-use hmac::{Hmac, Mac, digest::KeyInit};
-use rand::RngCore;
-use sha2::Sha256;
+/// Renamed to [`FormTokenConfig`](crate::form_token::FormTokenConfig).
+///
+/// Note that a `CsrfConfig { secret_key, token_ttl_secs }` struct literal no
+/// longer compiles: the field is now `ttl_secs` and two more were added.
+/// Build the value with `FormTokenConfig::new(secret)` and its `with_*`
+/// methods.
+#[deprecated(
+    since = "0.5.0",
+    note = "renamed to `form_token`; removed in the next minor"
+)]
+pub type CsrfConfig = FormTokenConfig;
 
-type HmacSha256 = Hmac<Sha256>;
+/// Renamed to [`FormToken`](crate::form_token::FormToken).
+#[deprecated(
+    since = "0.5.0",
+    note = "renamed to `form_token`; removed in the next minor"
+)]
+pub type CsrfToken = FormToken;
 
-// ---------------------------------------------------------------------------
-// CsrfConfig
-// ---------------------------------------------------------------------------
+/// Renamed to [`FormTokenContext`](crate::form_token::FormTokenContext).
+#[deprecated(
+    since = "0.5.0",
+    note = "renamed to `form_token`; removed in the next minor"
+)]
+pub type CsrfConfigContext = FormTokenContext;
 
-/// Configuration for the anti-automation token helper (feature `csrf`).
-///
-/// Provide this as `Arc<CsrfConfig>` via Leptos context in the closure passed
-/// to `leptos_routes_with_context`.
-///
-/// # Security
-///
-/// Load `secret_key` from an environment variable.  It must be kept
-/// server-side and never compiled into WASM.  Use at least 32 random bytes.
-///
-/// # Example
-///
-/// ```rust,ignore
-/// use std::sync::Arc;
-/// use leptos_hl_contact::csrf::CsrfConfig;
-///
-/// let csrf_config = Arc::new(CsrfConfig {
-///     secret_key: std::env::var("CSRF_SECRET")
-///         .expect("CSRF_SECRET must be set")
-///         .into_bytes(),
-///     token_ttl_secs: 3600,
-/// });
-/// ```
-#[derive(Clone)]
-pub struct CsrfConfig {
-    /// HMAC signing key.  Must be kept server-side only.
-    pub secret_key: Vec<u8>,
-
-    /// Token validity window in seconds.  After this period, a token is
-    /// considered expired.  Defaults to 3 600 (one hour).
-    pub token_ttl_secs: u64,
+/// Renamed to [`issue_form_token`](crate::form_token::issue_form_token).
+#[deprecated(
+    since = "0.5.0",
+    note = "renamed to `form_token::issue_form_token`; removed in the next minor"
+)]
+pub fn generate_csrf_token(config: &FormTokenConfig) -> FormToken {
+    crate::form_token::issue_form_token(config)
 }
 
-impl std::fmt::Debug for CsrfConfig {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CsrfConfig")
-            .field("secret_key", &"<redacted>")
-            .field("token_ttl_secs", &self.token_ttl_secs)
-            .finish()
-    }
-}
-
-impl CsrfConfig {
-    /// Create a config with a one-hour TTL.
-    pub fn new(secret_key: Vec<u8>) -> Self {
-        Self {
-            secret_key,
-            token_ttl_secs: 3600,
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// CsrfToken
-// ---------------------------------------------------------------------------
-
-/// A signed, time-limited token value, ready to embed in an HTML form.
+/// Renamed to [`verify_form_token`](crate::form_token::verify_form_token),
+/// which reports *why* a token failed.
 ///
-/// It is valid until it expires and is not bound to the visitor's browser;
-/// Origin validation is the CSRF control.  See the
-/// [security documentation](https://github.com/nabbisen/leptos-hl-contact/blob/main/docs/src/security/csrf.md).
-///
-/// Provide this via Leptos context in the context closure.  It is read only
-/// by page renders — `submit_contact` verifies the token the form submitted —
-/// but it is harmless to generate on every request.  `ContactForm` reads this
-/// context and inserts the value into a hidden `<input name="csrf_token">`
-/// field automatically.
-///
-/// # Example
-///
-/// ```rust,ignore
-/// use leptos_hl_contact::csrf::{CsrfConfig, CsrfToken, generate_csrf_token};
-/// use std::sync::Arc;
-///
-/// // In your context closure:
-/// let token: CsrfToken = generate_csrf_token(&csrf_config);
-/// leptos::context::provide_context(token);
-/// ```
-#[derive(Clone, Debug)]
-pub struct CsrfToken(pub String);
-
-// ---------------------------------------------------------------------------
-// generate_csrf_token
-// ---------------------------------------------------------------------------
-
-/// Generate a fresh, signed CSRF token.
-///
-/// The token encodes the current Unix timestamp and a 16-byte random nonce,
-/// signed with HMAC-SHA256 using `config.secret_key`.
-///
-/// Call this once per SSR render and provide the result via Leptos context so
-/// that `ContactForm` can embed it in the hidden form field.
-///
-/// # Panics
-///
-/// Panics if the system clock is before the Unix epoch (i.e. never in
-/// practice).
-pub fn generate_csrf_token(config: &CsrfConfig) -> CsrfToken {
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("system clock before Unix epoch")
-        .as_secs();
-
-    let mut nonce_bytes = [0u8; 16];
-    rand::thread_rng().fill_bytes(&mut nonce_bytes);
-    let nonce_hex = hex::encode(nonce_bytes);
-
-    let signed_payload = format!("{timestamp}|{nonce_hex}");
-    let signature = sign(&signed_payload, &config.secret_key);
-
-    CsrfToken(format!("{signed_payload}|{signature}"))
-}
-
-// ---------------------------------------------------------------------------
-// verify_csrf_token
-// ---------------------------------------------------------------------------
-
-/// Verify a CSRF token submitted with a form.
-///
-/// Returns `true` when:
-/// 1. The token has the correct format.
-/// 2. The HMAC signature is valid.
-/// 3. The token is not older than `config.token_ttl_secs`.
-///
-/// Returns `false` otherwise.  Callers should treat `false` as an
-/// `Unauthorized` or `Forbidden` response.
-///
-/// # Security
-///
-/// This function uses a constant-time comparison for the HMAC, so it is safe
-/// against timing attacks.
-pub fn verify_csrf_token(token: &str, config: &CsrfConfig) -> bool {
-    // Format: "{timestamp}|{nonce_hex}|{hmac_hex}"
-    let parts: Vec<&str> = token.splitn(3, '|').collect();
-    if parts.len() != 3 {
-        return false;
-    }
-
-    let timestamp_str = parts[0];
-    let nonce_hex = parts[1];
-    let submitted_sig = parts[2];
-
-    // Parse timestamp
-    let Ok(timestamp) = timestamp_str.parse::<u64>() else {
-        return false;
-    };
-
-    // Verify nonce is valid hex
-    if hex::decode(nonce_hex).is_err() {
-        return false;
-    }
-
-    // Check TTL and reject future timestamps beyond clock-skew tolerance.
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
-
-    // Allow up to 60 s of clock skew for tokens from slightly-ahead clocks.
-    const ALLOWED_FUTURE_SKEW_SECS: u64 = 60;
-    if timestamp > now.saturating_add(ALLOWED_FUTURE_SKEW_SECS) {
-        tracing::debug!(
-            timestamp,
-            now,
-            "CSRF token has future timestamp beyond skew tolerance"
-        );
-        return false;
-    }
-
-    if now.saturating_sub(timestamp) > config.token_ttl_secs {
-        tracing::debug!(timestamp, now, "CSRF token expired");
-        return false;
-    }
-
-    // Verify HMAC (constant-time comparison via `verify_slice`)
-    let payload = format!("{timestamp_str}|{nonce_hex}");
-    let expected = sign(&payload, &config.secret_key);
-
-    // Constant-time hex comparison
-    constant_time_eq(submitted_sig, &expected)
-}
-
-// ---------------------------------------------------------------------------
-// CsrfConfigContext
-// ---------------------------------------------------------------------------
-
-/// Type alias for the Leptos context used to inject CSRF configuration.
-///
-/// Provide this in the closure passed to `leptos_routes_with_context` so that
-/// token verification works for every `submit_contact` call.
-pub type CsrfConfigContext = Arc<CsrfConfig>;
-
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
-fn sign(payload: &str, key: &[u8]) -> String {
-    let mut mac = HmacSha256::new_from_slice(key).expect("HMAC accepts any key length");
-    mac.update(payload.as_bytes());
-    hex::encode(mac.finalize().into_bytes())
-}
-
-/// Constant-time string comparison to prevent timing attacks.
-fn constant_time_eq(a: &str, b: &str) -> bool {
-    let a = a.as_bytes();
-    let b = b.as_bytes();
-    if a.len() != b.len() {
-        return false;
-    }
-    let mut diff = 0u8;
-    for (x, y) in a.iter().zip(b.iter()) {
-        diff |= x ^ y;
-    }
-    diff == 0
+/// This wrapper passes no bound value and flattens the result to a `bool`, so
+/// a caller cannot tell a too-young token from a forged one.
+#[deprecated(
+    since = "0.5.0",
+    note = "renamed to `form_token::verify_form_token`, which returns the reason; removed in the next minor"
+)]
+pub fn verify_csrf_token(token: &str, config: &FormTokenConfig) -> bool {
+    verify_form_token(token, None, config).is_ok()
 }
 
 // ---------------------------------------------------------------------------

@@ -42,7 +42,7 @@ CAPTCHA for high-value forms.  Start with the
 [Production Checklist](../getting-started/production-checklist.md).
 
 **Does the crate handle CSRF?**
-Partly.  The `csrf` feature adds a signed, expiring token that stops bots
+Partly.  The `form-token` feature adds a signed, expiring token that stops bots
 which never fetched the page, but the token is not tied to the visitor's
 browser, so the real cross-site control is Origin / Referer validation in
 your middleware.  Details: [Security](../security/README.md#about-the-token).
@@ -81,6 +81,6 @@ detail.  Nothing internal is sent to the browser by design.
 The server sent `not_configured`: a required context value is missing.  See
 [Axum Integration](../guides/axum-integration.md#the-context-closure).
 
-**…and the `csrf` feature is on.**
-`CsrfConfigContext` is missing from the context closure.  Same fix, for the
+**…and the `form-token` feature is on.**
+`FormTokenContext` is missing from the context closure.  Same fix, for the
 token config.

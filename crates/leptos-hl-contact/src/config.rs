@@ -79,6 +79,8 @@ pub struct ContactErrorLabels {
     pub line_breaks: String,
     /// The form token was missing, malformed, or expired.
     pub token_invalid: String,
+    /// The form was submitted too soon after loading.  Retryable.
+    pub too_fast: String,
     /// A required context value is absent on the server.
     pub not_configured: String,
     /// The delivery backend refused or failed.
@@ -95,6 +97,7 @@ impl Default for ContactErrorLabels {
             line_breaks: "Line breaks are not allowed here.".into(),
             token_invalid: "Your session token expired. Please reload the page and try again."
                 .into(),
+            too_fast: "Please wait a moment and try again.".into(),
             not_configured: "This form is not available right now.".into(),
             delivery_failed: "Failed to send message. Please try again later.".into(),
         }
@@ -136,6 +139,7 @@ impl ContactErrorLabels {
         use crate::error::ContactErrorCode as C;
         match code {
             C::TokenInvalid => self.token_invalid.clone(),
+            C::TooFast => self.too_fast.clone(),
             C::NotConfigured => self.not_configured.clone(),
             C::DeliveryFailed | C::Unexpected => self.delivery_failed.clone(),
         }
