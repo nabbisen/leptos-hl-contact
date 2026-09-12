@@ -12,6 +12,7 @@ downstream crates choose exactly what they activate.
 | `axum-helpers` | `ssr` | `axum_helpers` (`axum`, `leptos_axum`) |
 | `form-token` | `ssr` | `form_token` module; token verification in `submit_contact` (`hmac`, `sha2`, `rand`, `hex`) |
 | `csrf` | `form-token` | Deprecated alias for `form-token`; removed in the next minor |
+| `challenge-http` | `ssr` | `HttpChallengeVerifier`, which calls the vendors' siteverify endpoints (`reqwest` with rustls only) |
 
 ## Recommended combinations
 
@@ -19,6 +20,7 @@ downstream crates choose exactly what they activate.
 |--------|----------|
 | Server, minimal | `ssr`, `smtp-lettre` |
 | Server, Axum, production | `ssr`, `smtp-lettre`, `axum-helpers`, `form-token` |
+| … with a challenge | the above, plus `challenge-http` |
 | WASM client | `hydrate` |
 | Islands server | `islands`, `ssr`, `smtp-lettre` |
 | Library tests | `--all-features` |

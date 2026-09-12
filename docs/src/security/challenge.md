@@ -1,0 +1,220 @@
+# Challenge (CAPTCHA)
+
+A challenge asks the visitor's browser to prove it is operated by a person.
+Add one when the honeypot, the rate limit and the form token are not enough
+for a high-value or high-traffic form.
+
+The component renders the widget from configuration alone, and
+`submit_contact` verifies the token with the vendor before anything is
+delivered.  Every error fails closed.  A form without the `challenge` prop
+loads nothing from any vendor.
+
+## Providers
+
+| Provider | `ChallengeProvider` | Widget | Token field | Verification endpoint |
+|----------|---------------------|--------|-------------|-----------------------|
+| Cloudflare Turnstile | `Turnstile` | visible or managed | `cf-turnstile-response` | `https://challenges.cloudflare.com/turnstile/v0/siteverify` |
+| hCaptcha | `HCaptcha` | checkbox | `h-captcha-response` | `https://api.hcaptcha.com/siteverify` |
+| Google reCAPTCHA v2 | `RecaptchaV2` | checkbox or invisible | `g-recaptcha-response` | `https://www.google.com/recaptcha/api/siteverify` |
+| Google reCAPTCHA v3 | `RecaptchaV3 { action }` | none; a score | `g-recaptcha-response` | `https://www.google.com/recaptcha/api/siteverify` |
+
+## Setup
+
+Two halves, and both are required: the widget in the page, and the verifier
+on the server.
+
+**1. Enable the built-in verifier** on the server binary:
+
+```toml
+leptos-hl-contact = { version = "0.5", features = ["ssr", "axum-helpers", "form-token", "challenge-http"] }
+```
+
+**2. Render the widget.**  The site key is public:
+
+```rust,ignore
+use leptos_hl_contact::config::{ChallengeProvider, ChallengeWidget};
+
+let challenge = ChallengeWidget::new(ChallengeProvider::Turnstile, site_key)
+    .expect("site key uses only [A-Za-z0-9_-]");
+
+view! { <ContactForm challenge=challenge /> }
+```
+
+`ChallengeWidget::new` and its `with_*` methods validate every value that
+reaches the page: the site key and the v3 action against `[A-Za-z0-9_-]+`,
+the language as a BCP 47 tag, the nonce as base64.
+
+**3. Verify on the server.**  The secret never leaves it:
+
+```rust,ignore
+use std::sync::Arc;
+use leptos_hl_contact::{ChallengeContext, ChallengePolicy, HttpChallengeVerifier};
+
+let challenge = ChallengeContext {
+    verifier: Arc::new(HttpChallengeVerifier::new(ChallengeProvider::Turnstile, secret)),
+    policy: ChallengePolicy::default(),
+};
+
+// In the context closure passed to `leptos_routes_with_context`:
+provide_context(challenge.clone());
+```
+
+For reCAPTCHA v3, set `ChallengePolicy::expected_action` to the widget's
+action and adjust `min_score` (default 0.5) to your traffic.
+
+`HttpChallengeVerifier` makes one call per submission, capped at five
+seconds (`with_timeout`), and never retries.  If outbound traffic must go
+through a forwarding proxy, point `with_verify_url` at it.
+
+A complete, environment-driven setup is in
+[`examples/axum-with-security`](https://github.com/nabbisen/leptos-hl-contact/tree/main/examples/axum-with-security):
+`CHALLENGE_PROVIDER`, `CHALLENGE_SITE_KEY`, `CHALLENGE_SECRET`.
+
+## What the server decides
+
+The challenge runs after the form token, the honeypot, field validation and
+the server policy, so invalid input never costs a vendor call.
+
+- **No `ChallengeContext` and no token:** nothing to do; the form proceeds.
+- **A token but no `ChallengeContext`:** rejected as `not_configured`, with
+  an `error` log.  A widget was rendered and nothing can verify it; that
+  misconfiguration must be loud.
+- **A `ChallengeContext` but no token:** rejected as `challenge_required`
+  under `NoJsPolicy::Reject`, or accepted with an `info` log under
+  `AcceptWithHoneypotOnly`.
+- **The vendor passed the token,** and the score and action satisfy the
+  policy: proceed.
+- **The vendor failed the token,** the score is below `min_score` (or not a
+  number), or the action does not match: rejected as `challenge_failed`,
+  with a `warn` log carrying the vendor's error codes.
+- **The vendor could not be asked** — a timeout, a network error, a non-2xx
+  status, or a response that is not the expected JSON: rejected as
+  `challenge_unavailable`, with an `error` log.  This fails closed: a vendor
+  outage rejects submissions rather than letting spam through.
+
+An empty or whitespace-only token counts as absent.  Tokens and secrets are
+never logged.
+
+## Without JavaScript
+
+Every vendor needs JavaScript to produce a token.  `NoJsPolicy` decides what
+happens to a submission that arrives without one:
+
+- **`Reject`** (default): the component shows `challenge_requires_js` inside
+  `<noscript>`, and the server answers `challenge_required`.
+- **`AcceptWithHoneypotOnly`**: the submission is accepted on the honeypot
+  alone.
+
+A server cannot distinguish a no-JS browser from a bot that omits the token,
+so `AcceptWithHoneypotOnly` makes the challenge advisory.  Use `Reject`
+unless no-JS visitors matter more than bots.
+
+Set the same policy on both sides: `ChallengeWidget::with_no_js` and
+`ChallengePolicy::no_js`.
+
+## What the visitor sees
+
+| Situation | Label | Default text |
+|-----------|-------|--------------|
+| No token (policy `Reject`) | `challenge_required` | Please complete the security check. |
+| The check failed | `challenge_failed` | The security check did not pass. Please try again. |
+| The vendor could not be reached | `challenge_unavailable` | The security check is unavailable right now. Please try again later. |
+| JavaScript is off (policy `Reject`) | `challenge_requires_js` | This form needs JavaScript to verify you are human. |
+| Widget rendered, no verifier on the server | `not_configured` | This form is not available right now. |
+
+All of them are in `ContactErrorLabels`; see
+[Localization](../guides/localization.md#error-messages).
+
+## Content Security Policy
+
+Every script tag the component writes — the vendor script, reCAPTCHA v3's
+inline submit script, and the vendor script the browser adds after
+client-side navigation — carries the nonce from
+`ChallengeWidget::with_script_nonce`.  With a nonce, Turnstile and
+reCAPTCHA pass it on to what they load, and both work with
+`'strict-dynamic'`.  reCAPTCHA v3's inline script needs the nonce, or
+`'unsafe-inline'`, which is not recommended.
+
+Without nonces, allow the vendor's hosts.  These are the vendors' own
+published values:
+
+```text
+# Cloudflare Turnstile
+script-src  https://challenges.cloudflare.com
+frame-src   https://challenges.cloudflare.com
+
+# hCaptcha — do not pin specific subdomains
+script-src  https://hcaptcha.com https://*.hcaptcha.com
+frame-src   https://hcaptcha.com https://*.hcaptcha.com
+style-src   https://hcaptcha.com https://*.hcaptcha.com
+connect-src https://hcaptcha.com https://*.hcaptcha.com
+
+# Google reCAPTCHA (v2 and v3)
+script-src  https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/
+frame-src   https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/
+connect-src https://www.google.com/recaptcha/
+```
+
+Sources: [Turnstile](https://developers.cloudflare.com/turnstile/reference/content-security-policy/),
+[hCaptcha](https://docs.hcaptcha.com/),
+[reCAPTCHA](https://developers.google.com/recaptcha/docs/faq).
+
+## Privacy
+
+A challenge sends data about the visitor to a third party.  Say so in your
+privacy notice, and name the vendor.
+
+- **Cloudflare Turnstile.**  The widget runs in the visitor's browser and
+  sends signals about the browser and its environment, and the visitor's IP
+  address, to Cloudflare.  See Cloudflare's
+  [privacy policy](https://www.cloudflare.com/privacypolicy/).
+- **hCaptcha.**  The widget sends browser and interaction data, and the
+  visitor's IP address, to hCaptcha.  See hCaptcha's
+  [privacy policy](https://www.hcaptcha.com/privacy).
+- **Google reCAPTCHA.**  The script sends hardware, software and interaction
+  data, and the visitor's IP address, to Google.  See Google's
+  [privacy policy](https://policies.google.com/privacy) and
+  [terms](https://policies.google.com/terms).  Google's
+  [FAQ](https://developers.google.com/recaptcha/docs/faq) explains the
+  branding it requires if you hide the badge.
+
+The server additionally sends the token and your secret to the vendor's
+verification endpoint.  It sends no form content.
+
+## Test keys
+
+Never deploy these: they provide no protection.
+
+| Vendor | Site key | Secret | Result |
+|--------|----------|--------|--------|
+| Turnstile | `1x00000000000000000000AA` | `1x0000000000000000000000000000000AA` | always passes |
+| Turnstile | `2x00000000000000000000AB` | `2x0000000000000000000000000000000AA` | always fails |
+| Turnstile | `1x00000000000000000000AA` | `3x0000000000000000000000000000000AA` | fails, token already spent |
+| hCaptcha | `10000000-ffff-ffff-ffff-000000000001` | `0x0000000000000000000000000000000000000000` | always passes; response token `10000000-aaaa-bbbb-cccc-000000000001` |
+| reCAPTCHA v2 | `6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI` | `6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe` | always passes; the widget shows a warning |
+
+Turnstile's and hCaptcha's test keys work on any host, including
+`localhost`.  Google publishes no reCAPTCHA v3 test key; the v2 key above
+issues tokens under `?render=` but its score means nothing.  Sources:
+[Turnstile](https://developers.cloudflare.com/turnstile/troubleshooting/testing/),
+[hCaptcha](https://docs.hcaptcha.com/),
+[reCAPTCHA](https://developers.google.com/recaptcha/docs/faq).
+
+Live tests against these endpoints are `#[ignore]`d; see
+[Testing](../development/testing.md#live-challenge-tests).
+
+## Client-side navigation
+
+Every vendor scans the page for its widget once, when its script loads.  A
+form reached by client-side navigation adds its widget after that scan, so
+the component renders it explicitly, and adds the vendor script to `<head>`
+at most once so returning to the form never loads it twice.
+
+Turnstile and hCaptcha are rendered by calling `render` directly: Turnstile
+does not run a `ready` callback registered after its script has loaded, and
+hCaptcha has no `ready`.  reCAPTCHA is rendered through `ready`, which runs
+at once when the script has already loaded.  Do not change the first to use
+`ready`: the widget would silently never render.
+
+reCAPTCHA v3's inline script uses `form.requestSubmit()`, which very old
+browsers lack.

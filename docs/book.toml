@@ -17,3 +17,4 @@ editable = false
 
 [output.html.redirect]
 "/security/csrf.html" = "form-token.html"
+"/security/turnstile.html" = "challenge.html"

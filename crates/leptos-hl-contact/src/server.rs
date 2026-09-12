@@ -196,8 +196,9 @@ pub async fn submit_contact(
             }
         }
 
-        // 6. Every context value, read now: Leptos context is not reachable
-        // after an await point here, and the challenge below awaits.
+        // 6. Every configuration check, made now: nothing below may call a
+        // vendor or a mail server before the server is known to be fully
+        // configured.
         let Some(delivery) = use_context::<ContactDeliveryContext>() else {
             tracing::error!("ContactDeliveryContext not provided — check server setup");
             return Err(ServerFnError::ServerError(

@@ -19,7 +19,7 @@ that explains it.
 | ☐ | Logs reviewed: no message bodies, addresses, or secrets | [Security](../security/README.md) |
 | ☐ | Success page configured (`success_redirect`) if visitors without JavaScript must see a confirmation | [Customization](../guides/customization.md#success-page) |
 | ☐ | Form smoke-tested with JavaScript disabled | [Troubleshooting](../help/troubleshooting.md) |
-| ☐ | Optional: CAPTCHA for high-value forms | [Turnstile](../security/turnstile.md) |
+| ☐ | Optional: a challenge for high-value forms — widget and `ChallengeContext` both set, and the widget's no-JS policy matching the server's | [Challenge](../security/challenge.md) |
 
 The [`axum-with-security`](https://github.com/nabbisen/leptos-hl-contact/tree/main/examples/axum-with-security)
 example implements every non-optional item.

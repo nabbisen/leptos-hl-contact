@@ -40,6 +40,7 @@ ssr = [
     "leptos-hl-contact/smtp-lettre",
     "leptos-hl-contact/axum-helpers",
     "leptos-hl-contact/form-token",
+    "leptos-hl-contact/challenge-http",
 ]
 
 [dependencies]

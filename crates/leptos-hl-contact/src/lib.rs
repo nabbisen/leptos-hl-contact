@@ -92,6 +92,9 @@ pub use challenge::{
     ChallengeContext, ChallengeError, ChallengeOutcome, ChallengePolicy, ChallengeVerifier,
 };
 
+#[cfg(feature = "challenge-http")]
+pub use challenge::http::HttpChallengeVerifier;
+
 #[cfg(feature = "form-token")]
 pub use form_token::{
     Binding, FormToken, FormTokenBinding, FormTokenConfig, FormTokenContext, FormTokenError,

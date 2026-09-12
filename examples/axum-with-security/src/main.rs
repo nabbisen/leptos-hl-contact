@@ -10,6 +10,17 @@
 // Required environment variables:
 //   FORM_TOKEN_SECRET=<openssl rand -hex 32>  # 32+ random bytes; NO default fallback
 //   ALLOWED_ORIGIN=https://example.com   # origin URL; NO default fallback
+//
+// Optional challenge (off unless set; see app.rs):
+//   CHALLENGE_PROVIDER=turnstile|hcaptcha|recaptcha-v2|recaptcha-v3
+//   CHALLENGE_SITE_KEY=...   # public: with the provider, renders the widget
+//   CHALLENGE_SECRET=...     # server only: with the other two, verifies it
+//
+//   Cloudflare Turnstile test keys (https://developers.cloudflare.com/turnstile/troubleshooting/testing/):
+//     site key 1x00000000000000000000AA            always passes
+//     site key 2x00000000000000000000AB            always blocks
+//     secret   1x0000000000000000000000000000000AA  always passes
+//     secret   2x0000000000000000000000000000000AA  always fails
 //   SMTP_HOST / SMTP_USER / SMTP_PASS / SMTP_FROM / CONTACT_TO  (for real SMTP)
 //
 // SECURITY NOTICE:
@@ -37,10 +48,12 @@ use leptos::context::provide_context;
 use leptos_axum::{LeptosRoutes, generate_route_list};
 #[cfg(feature = "ssr")]
 use leptos_hl_contact::{
+    ChallengeContext, ChallengePolicy, HttpChallengeVerifier,
     axum_helpers::{
         FormTokenCookie, delivery_context_fn, provide_form_token_binding,
         provide_form_token_issuer, provide_form_token_with_cookie, success_redirect,
     },
+    config::ChallengeProvider,
     delivery::{ContactDeliveryContext, noop::NoopDelivery},
     form_token::{Binding, FormTokenConfig, FormTokenContext},
 };
@@ -190,6 +203,45 @@ async fn main() {
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(app::App);
 
+    // ------------------------------------------------------------------
+    // Challenge (optional)
+    // ------------------------------------------------------------------
+    // The widget needs CHALLENGE_PROVIDER and CHALLENGE_SITE_KEY; verification
+    // needs CHALLENGE_SECRET as well.  A widget without a secret is left
+    // running on purpose: every submission with a token is then rejected as
+    // `not_configured`, loudly, which is what that misconfiguration must do.
+    let challenge_context: Option<ChallengeContext> = match (
+        app::challenge_widget(),
+        std::env::var("CHALLENGE_SECRET")
+            .ok()
+            .filter(|s| !s.is_empty()),
+    ) {
+        (Some(_), Some(secret)) => {
+            let provider = std::env::var("CHALLENGE_PROVIDER")
+                .ok()
+                .and_then(|p| app::parse_provider(&p))
+                .expect("challenge_widget() parsed it");
+            let expected_action = matches!(provider, ChallengeProvider::RecaptchaV3 { .. })
+                .then(|| app::RECAPTCHA_V3_ACTION.to_owned());
+            tracing::info!(?provider, "challenge enabled");
+            Some(ChallengeContext {
+                verifier: Arc::new(HttpChallengeVerifier::new(provider, secret)),
+                policy: ChallengePolicy {
+                    expected_action,
+                    ..Default::default()
+                },
+            })
+        }
+        (Some(_), None) => {
+            tracing::warn!(
+                "CHALLENGE_SITE_KEY is set without CHALLENGE_SECRET: the widget renders, \
+                 and every submission carrying its token is rejected as not_configured"
+            );
+            None
+        }
+        (None, _) => None,
+    };
+
     // Built once, before the router, so an invalid path panics at boot rather
     // than on the first submission.
     let redirect = success_redirect("/thanks");
@@ -214,6 +266,9 @@ async fn main() {
                 provide_form_token_binding(&token_cookie);
                 provide_form_token_issuer(&token_cookie);
                 provide_context(redirect.clone());
+                if let Some(challenge) = &challenge_context {
+                    provide_context(challenge.clone());
+                }
             },
             {
                 let o = leptos_options.clone();

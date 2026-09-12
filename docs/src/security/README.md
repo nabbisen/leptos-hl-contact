@@ -20,7 +20,7 @@ full threat model is in [External Design](../development/external-design.md#5-se
 | Rate limiting | example | ✅ middleware |
 | Request body limit | example | ✅ layer |
 | TLS | — | ✅ proxy |
-| CAPTCHA | pattern | ✅ if needed |
+| [Challenge](./challenge.md) — Turnstile, hCaptcha, reCAPTCHA | ✅ widget and verification (`challenge-http`) | ✅ vendor keys, if needed |
 
 ## Layers, from the edge inward
 
@@ -33,7 +33,7 @@ Cheap checks first, so expensive ones rarely run:
 5. [Form token](./form-token.md): proves the sender fetched a page from this server within the last hour, and waited at least a moment before submitting
 6. Honeypot
 7. Field validation and [server policy](../guides/customization.md#contactserverpolicy)
-8. Optional [CAPTCHA](./turnstile.md)
+8. Optional [challenge](./challenge.md), verified with the vendor before delivery
 
 ## About the token
 
@@ -53,4 +53,4 @@ POSTs is the Origin / Referer check, with or without binding.**  Read
 
 - [Form Token](./form-token.md) — the `form-token` feature
 - [Hardening](./hardening.md) — rate limiting, origin validation, body limit, secrets
-- [Turnstile](./turnstile.md) — adding a CAPTCHA
+- [Challenge](./challenge.md) — Turnstile, hCaptcha or reCAPTCHA

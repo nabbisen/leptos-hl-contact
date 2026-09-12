@@ -25,6 +25,8 @@ axum-helpers = ["ssr", "dep:leptos_axum", "dep:axum"]
 form-token = ["ssr", "dep:hmac", "dep:sha2", "dep:rand", "dep:hex"]
 # Deprecated alias, removed in the next minor.
 csrf = ["form-token"]
+# Built-in verifiers that call the vendors' siteverify endpoints.
+challenge-http = ["ssr", "dep:reqwest"]
 
 [dependencies]
 leptos = { version = "0.8", features = [] }
@@ -48,5 +50,11 @@ sha2 = { version = "0.11", optional = true }
 rand = { version = "0.9", optional = true }
 hex = { version = "0.4", optional = true }
 
+# Challenge verification over HTTP (optional, challenge-http feature).  rustls
+# only, so there is no second TLS stack and no system library to install.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "http2"], optional = true }
+
 [dev-dependencies]
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+# `net`, `io-util`, `sync` and `time` run the local siteverify responder in
+# the challenge-http tests.
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time"] }

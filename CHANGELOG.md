@@ -86,6 +86,14 @@ No version assigned; the owner decides the release number.
   reached by client-side navigation is rendered explicitly, and the vendor
   script is never loaded twice.  Without the prop, nothing is loaded from any
   vendor.
+- **Built-in challenge verifiers** (feature `challenge-http`).
+  `HttpChallengeVerifier` calls Turnstile's, hCaptcha's or reCAPTCHA's
+  siteverify endpoint with one reused `reqwest` client (rustls only), a
+  five-second cap, and no retries.  A timeout is `Timeout`; a network error,
+  a non-2xx status or a response without a boolean `success` is
+  `Unavailable`; an empty secret is `Misconfigured`.  All three reject the
+  submission as `challenge_unavailable`.  The secret is redacted from
+  `Debug`, and `with_verify_url` supports a forwarding proxy.
 
 ### Migration
 
@@ -120,6 +128,10 @@ Two things do not move by themselves:
 
 ### Documentation
 
+- `security/turnstile.md` is now `security/challenge.md`, covering all four
+  providers, the server's decision table, the no-JavaScript policy and its
+  weakness, CSP and privacy per vendor, and the vendors' test keys.  The old
+  URL redirects.
 - `security/csrf.md` → `security/form-token.md`, rewritten: the guarantees
   table has a column per binding mode, the minimum age is explained as a
   deliberate one-retry cost to a fast human, and a migration section lists

@@ -42,8 +42,13 @@ let labels = ContactFormLabels {
         format:          "入力内容が正しくありません。".into(),
         line_breaks:     "改行は使用できません。".into(),
         token_invalid:   "セッションの有効期限が切れました。ページを再読み込みしてください。".into(),
+        too_fast:        "少し時間をおいてから、もう一度お試しください。".into(),
         not_configured:  "現在このフォームはご利用いただけません。".into(),
         delivery_failed: "送信できませんでした。しばらくしてからお試しください。".into(),
+        challenge_required:    "セキュリティ確認を完了してください。".into(),
+        challenge_failed:      "セキュリティ確認に失敗しました。もう一度お試しください。".into(),
+        challenge_unavailable: "現在セキュリティ確認を利用できません。しばらくしてからお試しください。".into(),
+        challenge_requires_js: "このフォームでは、人による操作であることの確認に JavaScript が必要です。".into(),
     },
     ..Default::default()
 };
@@ -57,8 +62,13 @@ let labels = ContactFormLabels {
 | `format` | any other field is syntactically invalid |
 | `line_breaks` | a line break appears in `name` or `subject` |
 | `token_invalid` | the form token was missing, malformed or expired |
+| `too_fast` | the form was submitted sooner after loading than the token's minimum age; retryable |
 | `not_configured` | the server is missing a required context value |
 | `delivery_failed` | the backend refused or failed, and for any unexpected error |
+| `challenge_required` | a [challenge](../security/challenge.md) is configured and the submission carried no token |
+| `challenge_failed` | the challenge vendor rejected the token, or its score or action did not satisfy the policy |
+| `challenge_unavailable` | the challenge vendor could not be reached |
+| `challenge_requires_js` | shown inside `<noscript>` next to the widget, under `NoJsPolicy::Reject` |
 
 `{min}` and `{max}` are the only placeholders, and they are replaced by plain
 string substitution — there is no format syntax, so translated text may put
@@ -87,8 +97,13 @@ let labels = ContactFormLabels {
         format:          "入力内容が正しくありません。".into(),
         line_breaks:     "改行は使用できません。".into(),
         token_invalid:   "セッションの有効期限が切れました。ページを再読み込みしてください。".into(),
+        too_fast:        "少し時間をおいてから、もう一度お試しください。".into(),
         not_configured:  "現在このフォームはご利用いただけません。".into(),
         delivery_failed: "送信できませんでした。しばらくしてからお試しください。".into(),
+        challenge_required:    "セキュリティ確認を完了してください。".into(),
+        challenge_failed:      "セキュリティ確認に失敗しました。もう一度お試しください。".into(),
+        challenge_unavailable: "現在セキュリティ確認を利用できません。しばらくしてからお試しください。".into(),
+        challenge_requires_js: "このフォームでは、人による操作であることの確認に JavaScript が必要です。".into(),
     },
 };
 ```

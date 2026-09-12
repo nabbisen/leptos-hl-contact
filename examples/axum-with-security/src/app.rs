@@ -9,8 +9,66 @@ use leptos_router::{
 
 use leptos_hl_contact::{
     ContactForm,
-    config::{ContactFormClasses, ContactFormLabels, ContactFormOptions},
+    config::{
+        ChallengeProvider, ChallengeWidget, ContactFormClasses, ContactFormLabels,
+        ContactFormOptions,
+    },
 };
+
+// ---------------------------------------------------------------------------
+// Challenge configuration
+// ---------------------------------------------------------------------------
+//
+// CHALLENGE_PROVIDER  turnstile | hcaptcha | recaptcha-v2 | recaptcha-v3
+// CHALLENGE_SITE_KEY  public; rendered into the page
+// CHALLENGE_SECRET    server only; see main.rs
+//
+// The site key lives in the server's environment, which the browser build
+// cannot read.  The shell renders the two public values into `<meta>` tags and
+// the browser reads them back, so the server render, hydration and any later
+// client-side navigation all build the same widget.
+
+/// The reCAPTCHA v3 action this example sends and the server requires.
+pub const RECAPTCHA_V3_ACTION: &str = "contact";
+
+/// Parse `CHALLENGE_PROVIDER`.
+pub fn parse_provider(name: &str) -> Option<ChallengeProvider> {
+    match name {
+        "turnstile" => Some(ChallengeProvider::Turnstile),
+        "hcaptcha" => Some(ChallengeProvider::HCaptcha),
+        "recaptcha-v2" => Some(ChallengeProvider::RecaptchaV2),
+        "recaptcha-v3" => Some(ChallengeProvider::RecaptchaV3 {
+            action: RECAPTCHA_V3_ACTION.into(),
+        }),
+        _ => None,
+    }
+}
+
+/// The public challenge settings: provider name and site key.
+#[cfg(feature = "ssr")]
+fn challenge_settings() -> Option<(String, String)> {
+    let get = |k| std::env::var(k).ok().filter(|v: &String| !v.is_empty());
+    Some((get("CHALLENGE_PROVIDER")?, get("CHALLENGE_SITE_KEY")?))
+}
+
+/// The public challenge settings, read back from the shell's `<meta>` tags.
+#[cfg(not(feature = "ssr"))]
+fn challenge_settings() -> Option<(String, String)> {
+    let meta = |name: &str| {
+        document()
+            .query_selector(&format!("meta[name=\"{name}\"]"))
+            .ok()
+            .flatten()?
+            .get_attribute("content")
+    };
+    Some((meta("challenge-provider")?, meta("challenge-site-key")?))
+}
+
+/// The widget for this deployment, or `None` when no challenge is configured.
+pub fn challenge_widget() -> Option<ChallengeWidget> {
+    let (provider, site_key) = challenge_settings()?;
+    ChallengeWidget::new(parse_provider(&provider)?, site_key).ok()
+}
 
 /// The HTML document the server renders around [`App`].
 ///
@@ -27,6 +85,11 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <AutoReload options=options.clone() />
                 <HydrationScripts options=options.clone() />
                 <MetaTags />
+                // Only a configuration that builds a valid widget is published.
+                {challenge_widget().and(challenge_settings()).map(|(provider, site_key)| view! {
+                    <meta name="challenge-provider" content=provider />
+                    <meta name="challenge-site-key" content=site_key />
+                })}
             </head>
             <body>
                 <App />
@@ -73,27 +136,44 @@ fn ContactPage() -> impl IntoView {
         token_refresh_secs: Some(3540),
         ..Default::default()
     };
+    let classes = ContactFormClasses {
+        root: "contact-form".into(),
+        field: "contact-field".into(),
+        label: "contact-label".into(),
+        input: "contact-input".into(),
+        textarea: "contact-textarea".into(),
+        button: "contact-button".into(),
+        error: "contact-error".into(),
+        success: "contact-success".into(),
+    };
+
+    // `challenge` takes a `ChallengeWidget`, not an `Option`, so the form is
+    // written with it when CHALLENGE_PROVIDER and CHALLENGE_SITE_KEY are set
+    // and without it otherwise.  The server and the browser read the same
+    // settings, so both take the same branch and hydration matches.
+    let form = match challenge_widget() {
+        Some(challenge) => view! {
+            <ContactForm
+                classes=classes
+                labels=ContactFormLabels::default()
+                options=options
+                challenge=challenge
+            />
+        }
+        .into_any(),
+        None => view! {
+            <ContactForm classes=classes labels=ContactFormLabels::default() options=options />
+        }
+        .into_any(),
+    };
 
     view! {
         <main style="max-width: 600px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
             <h1>"Contact us (secured)"</h1>
             <p style="color: #666; font-size: 0.9rem;">
-                "This form is protected by: rate limiting, a form token, and Origin validation."
+                "This form is protected by: rate limiting, a form token, Origin validation, and a challenge when configured."
             </p>
-            <ContactForm
-                classes=ContactFormClasses {
-                    root:     "contact-form".into(),
-                    field:    "contact-field".into(),
-                    label:    "contact-label".into(),
-                    input:    "contact-input".into(),
-                    textarea: "contact-textarea".into(),
-                    button:   "contact-button".into(),
-                    error:    "contact-error".into(),
-                    success:  "contact-success".into(),
-                }
-                labels=ContactFormLabels::default()
-                options=options
-            />
+            {form}
         </main>
     }
 }

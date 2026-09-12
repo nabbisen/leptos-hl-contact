@@ -34,6 +34,8 @@ never inline.  Groups:
 | `error/tests.rs` | `ContactFieldErrors` JSON round-trip and sentinel parsing |
 | `security/tests.rs` | header sanitisation |
 | `server/tests.rs` | error-message shape (sentinel present or absent) |
+| `challenge/tests.rs` | the challenge decision table, one test per row, with a mock verifier |
+| `challenge/http/tests.rs` | `HttpChallengeVerifier` against a local responder: response shapes, the request, timeout and error mapping; live vendor tests (ignored) |
 | `csrf/tests.rs` | token round-trip, tamper, wrong key, expiry, malformed input, constant-time compare |
 | `delivery/noop/tests.rs` | async no-op call |
 | `delivery/smtp/tests.rs` | message headers, `Reply-To` encoding, body content |
@@ -45,6 +47,21 @@ and the specification disagree, fix one of them explicitly.
 
 Integration tests that drive `submit_contact` end to end do not exist yet
 (roadmap P-15).
+
+## Live challenge tests
+
+The `challenge-http` verifiers have tests that call the real vendor
+endpoints with the vendors' published test keys.  They are `#[ignore]`d, so
+neither `cargo test` nor CI runs them.  Run them by hand before a release
+that touches `challenge/http.rs`:
+
+```bash
+cargo test -p leptos-hl-contact --no-default-features --features challenge-http --lib -- --ignored live_ --nocapture
+```
+
+They need outbound HTTPS to `challenges.cloudflare.com`, `api.hcaptcha.com`
+and `www.google.com`.  Google's test secret accepts any token, so the
+reCAPTCHA test shows the round trip, not a real check.
 
 ## Running the examples
 

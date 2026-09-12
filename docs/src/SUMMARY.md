@@ -23,7 +23,7 @@
 - [Overview](./security/README.md)
   - [Form Token](./security/form-token.md)
   - [Hardening](./security/hardening.md)
-  - [Turnstile](./security/turnstile.md)
+  - [Challenge (CAPTCHA)](./security/challenge.md)
 
 # Reference
 

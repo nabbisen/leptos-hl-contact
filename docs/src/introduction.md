@@ -10,7 +10,7 @@ Three cooperating layers, shipped together:
 | Layer | What it does |
 |-------|-------------|
 | **`ContactForm`** | Accessible HTML form with class, label, and option injection |
-| **`submit_contact`** | Server function: token check → normalise → honeypot → validate → policy → deliver |
+| **`submit_contact`** | Server function: token check → normalise → honeypot → validate → policy → challenge → deliver |
 | **`ContactDelivery`** | Delivery trait with SMTP and no-op implementations; implement it for anything else |
 
 ### Key properties
@@ -19,6 +19,9 @@ Three cooperating layers, shipped together:
   as a plain HTML POST when JavaScript or WebAssembly is unavailable.
 - **Server-side validation** on every submission, whatever the client sent.
 - **Honeypot** bot filtering with no visible CAPTCHA.
+- **Optional challenge.**  Turnstile, hCaptcha or reCAPTCHA, rendered by the
+  component and verified by the server before delivery; fail-closed.  See
+  [Challenge](./security/challenge.md).
 - **Email header injection protection.** `name` and `subject` are rejected
   if they contain line breaks, and sanitised again when the message is built.
 - **Credential isolation.** SMTP credentials, the recipient address, and the
@@ -35,8 +38,6 @@ Three cooperating layers, shipped together:
 
 ## What it does not include
 
-- A bundled CAPTCHA (a Turnstile integration pattern is
-  [documented](./security/turnstile.md); an adapter is on the roadmap)
 - Submission storage or an admin panel
 - Attachments or file upload
 - A form builder
