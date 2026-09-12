@@ -16,6 +16,11 @@ No version assigned; the owner decides the release number.
   example ever bound a port.
 - Example manifests were at `0.3.2` while the workspace was `0.3.3`; both
   now match.
+- `axum-with-security` serves with
+  `into_make_service_with_connect_info::<SocketAddr>()`, so
+  `tower_governor`'s `SmartIpKeyExtractor` can fall back to the peer address.
+  Without it every request lacking a forwarded-IP header was answered
+  `500 Unable To Extract Key!` before reaching a handler.
 
 ### Added
 

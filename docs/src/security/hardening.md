@@ -50,6 +50,21 @@ let app = app.layer(GovernorLayer::new(governor_config));
 proxy sets it from the real connection and strips any value the client
 sent, otherwise the limit can be bypassed with a forged header.
 
+Serve the router with `into_make_service_with_connect_info::<SocketAddr>()`
+so the extractor can fall back to the peer address; without it every request
+that lacks a forwarded-IP header fails with a 500.
+
+```rust,ignore
+use std::net::SocketAddr;
+
+axum::serve(
+    listener,
+    app.into_make_service_with_connect_info::<SocketAddr>(),
+)
+.await
+.unwrap();
+```
+
 ## Origin / Referer validation
 
 This is the cross-site request forgery control.  Parse the header as a URL

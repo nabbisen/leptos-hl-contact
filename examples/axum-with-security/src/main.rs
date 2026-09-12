@@ -16,7 +16,7 @@
 //   - Set CSRF_SECRET to a unique, random value per deployment.
 //   - Ensure your reverse proxy validates X-Forwarded-For before reaching Axum.
 
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 
 use axum::{
     Router,
@@ -215,5 +215,13 @@ async fn main() {
         "leptos-hl-contact (body-limit + rate-limit + CSRF + Origin validation)"
     );
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    // Connection info is what lets `SmartIpKeyExtractor` fall back to the peer
+    // address when no forwarded-IP header is present.  Without it every such
+    // request fails with "Unable To Extract Key!" (500).
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .unwrap();
 }
