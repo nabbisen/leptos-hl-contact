@@ -10,8 +10,8 @@ pass to `leptos_routes_with_context`.  See
 
 Releases up to and including 0.3.4 told integrators to write that route;
 before 0.3.4 the documentation spelled it with the Axum 0.7 form
-`"/api/*fn_name"`, which is what panics.  A value provided only in that route's closure never
-reached the server function anyway.
+`"/api/*fn_name"`, which is what panics.  A value provided only in that
+route's closure never reached the server function anyway.
 
 ## "This form is not available right now."
 
