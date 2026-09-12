@@ -64,7 +64,10 @@ pub mod axum_helpers;
 // ---------------------------------------------------------------------------
 
 pub use components::ContactForm;
-pub use config::{ContactFormClasses, ContactFormLabels, ContactFormOptions, ContactServerPolicy};
+pub use config::{
+    ContactFormClasses, ContactFormLabels, ContactFormOptions, ContactServerPolicy,
+    ContactSuccessRedirect, InvalidRedirectPath,
+};
 pub use delivery::{ContactDelivery, ContactDeliveryContext};
 pub use error::{ContactDeliveryError, ContactFieldErrors, ContactValidationError};
 pub use model::{ContactInput, MESSAGE_MAX_LEN};

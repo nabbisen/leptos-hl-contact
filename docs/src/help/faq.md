@@ -4,8 +4,10 @@
 
 **Does it work without JavaScript?**
 Yes.  The form is an `<ActionForm/>` and submits as a normal POST.
-Validation and delivery are identical.  A successful no-JS submission
-currently reloads the page without a confirmation message (roadmap P-13).
+Validation and delivery are identical.  Configure a
+[success page](../guides/customization.md#success-page) and a successful
+submission redirects there with or without JavaScript; without one, a no-JS
+submission reloads the form page and shows no confirmation.
 
 **Which Leptos versions?**
 v0.8 only.

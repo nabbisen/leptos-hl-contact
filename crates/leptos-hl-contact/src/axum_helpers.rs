@@ -15,7 +15,7 @@
 
 use std::sync::Arc;
 
-use crate::delivery::ContactDeliveryContext;
+use crate::{config::ContactSuccessRedirect, delivery::ContactDeliveryContext};
 
 // ---------------------------------------------------------------------------
 // provide_contact_delivery
@@ -92,6 +92,39 @@ pub fn delivery_context_fn(
         let d = Arc::clone(&delivery);
         provide_contact_delivery(d);
     }
+}
+
+// ---------------------------------------------------------------------------
+// success_redirect
+// ---------------------------------------------------------------------------
+
+/// Build a [`ContactSuccessRedirect`] that redirects with
+/// [`leptos_axum::redirect`].
+///
+/// Provide the result via Leptos context in the **server-function handler**
+/// closure; that is where `submit_contact` reads it.  It is harmless in the
+/// SSR renderer closure but has nothing to do there.
+///
+/// # Panics
+///
+/// Panics when `path` is not site-relative.  This is startup configuration
+/// read from your own source or environment, so a bad value should stop the
+/// process rather than silently disable the redirect.  Use
+/// [`ContactSuccessRedirect::new`] directly to handle the error yourself.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use leptos::context::provide_context;
+/// use leptos_hl_contact::axum_helpers::success_redirect;
+///
+/// // In the server-function handler closure:
+/// provide_context(success_redirect("/thanks"));
+/// ```
+pub fn success_redirect(path: impl Into<String>) -> ContactSuccessRedirect {
+    let path = path.into();
+    ContactSuccessRedirect::new(path.clone(), leptos_axum::redirect)
+        .unwrap_or_else(|e| panic!("success_redirect({path:?}): {e}"))
 }
 
 // ---------------------------------------------------------------------------

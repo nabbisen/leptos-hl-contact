@@ -193,11 +193,11 @@ through individual attribute closures.
 
 | Event | With WASM | Without WASM (plain POST) |
 |-------|-----------|---------------------------|
-| Submit | `fetch` POST, form-encoded; page stays | Browser POST; server answers `302` to the Referer |
-| Success | state → success | **current**: page reloads showing an empty form, no confirmation.  **target** (RFC 002): the server function redirects to an integrator-configured success page; without one, current behaviour, documented |
+| Submit | `fetch` POST, form-encoded; page stays | Browser POST; server answers `302` to the configured success page, or to the Referer when none is configured |
+| Success | success page when `ContactSuccessRedirect` is in context (client-side navigation), otherwise the inline success state | `302` to the success page when one is configured; without one the page reloads with no confirmation, which is why configuring one is recommended |
 | Field errors | payload parsed by variant, shown per field | framework appends `__err=<encoded>` to the Referer; SSR renders the action value from it and shows field errors [FR-PE-02]; input is lost by the reload |
 | Generic error | banner | same `__err` mechanism → banner |
-| Token | hidden field from SSR; **must survive re-render** (P-11) | fresh token on every render; always valid |
+| Token | hidden field from SSR; survives re-render since RFC 002 handoff 02 | fresh token on every render; always valid |
 
 ### 4.2 HTTP interface
 

@@ -47,7 +47,7 @@ use tower_governor::{
 use url::Url;
 #[cfg(feature = "ssr")]
 use leptos_hl_contact::{
-    axum_helpers::delivery_context_fn,
+    axum_helpers::{delivery_context_fn, success_redirect},
     csrf::{CsrfConfig, CsrfConfigContext, generate_csrf_token},
     delivery::{ContactDeliveryContext, noop::NoopDelivery},
 };
@@ -198,6 +198,9 @@ async fn main() {
                             move || {
                                 ctx();
                                 provide_context::<CsrfConfigContext>(Arc::clone(&csrf));
+                                // Sends every successful submission to /thanks,
+                                // with or without JavaScript.
+                                provide_context(success_redirect("/thanks"));
                             },
                             req,
                         )
@@ -214,6 +217,11 @@ async fn main() {
                 ctx.clone()();
                 provide_context::<CsrfConfigContext>(Arc::clone(&csrf_for_ssr));
                 provide_context(generate_csrf_token(&csrf_for_ssr));
+                // Also here: `leptos_routes_with_context` registers the server
+                // functions at their own paths using *this* closure, and Axum
+                // prefers that literal path over the `/api/{*fn_name}` route
+                // above.  The two-context-sites rule applies to this value too.
+                provide_context(success_redirect("/thanks"));
             },
             {
                 let o = leptos_options.clone();

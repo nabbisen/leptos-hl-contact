@@ -43,6 +43,7 @@ pub fn App() -> impl IntoView {
         <Router>
             <Routes fallback=|| view! { <p>"Page not found."</p> }>
                 <Route path=path!("/") view=ContactPage />
+                <Route path=path!("/thanks") view=ThanksPage />
             </Routes>
         </Router>
     }
@@ -70,6 +71,18 @@ fn ContactPage() -> impl IntoView {
                 labels=ContactFormLabels::default()
                 options=ContactFormOptions::default()
             />
+        </main>
+    }
+}
+
+/// Where a successful submission lands, with or without JavaScript.
+#[component]
+fn ThanksPage() -> impl IntoView {
+    view! {
+        <main style="max-width: 600px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
+            <h1>"Thank you"</h1>
+            <p>"Your message has been sent. We will get back to you soon."</p>
+            <p><a href="/">"Back to the form"</a></p>
         </main>
     }
 }

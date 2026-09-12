@@ -142,3 +142,66 @@ fn policy_check_reports_both_errors_at_once() {
     assert!(errs.subject.is_some());
     assert!(errs.message.is_some());
 }
+
+// ---------------------------------------------------------------------------
+// ContactSuccessRedirect
+// ---------------------------------------------------------------------------
+
+#[test]
+fn redirect_accepts_site_relative_paths() {
+    for path in ["/thanks", "/a/b?x=1#top", "/", "/a/b/"] {
+        assert!(
+            ContactSuccessRedirect::new(path, |_| {}).is_ok(),
+            "{path:?} should be accepted"
+        );
+    }
+}
+
+/// An open redirect would let an attacker send a visitor off-site through a
+/// misconfigured form, so anything not site-relative is refused at startup.
+#[test]
+fn redirect_rejects_absolute_and_protocol_relative() {
+    for path in [
+        "https://evil.test",
+        "//evil.test",
+        "evil.test/x",
+        "/a\\b",
+        "",
+        "/a b",
+        "/a\n",
+        "/a\tb",
+        "javascript:alert(1)",
+        "/\u{0000}",
+    ] {
+        assert!(
+            ContactSuccessRedirect::new(path, |_| {}).is_err(),
+            "{path:?} should be rejected"
+        );
+    }
+}
+
+#[test]
+fn redirect_apply_calls_executor_with_path() {
+    use std::sync::{Arc, Mutex};
+
+    let seen: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+    let sink = Arc::clone(&seen);
+
+    let redirect = ContactSuccessRedirect::new("/thanks", move |p| {
+        *sink.lock().unwrap() = Some(p.to_owned());
+    })
+    .expect("site-relative path");
+
+    assert_eq!(redirect.path(), "/thanks");
+    assert!(seen.lock().unwrap().is_none(), "not called before apply");
+
+    redirect.apply();
+    assert_eq!(seen.lock().unwrap().as_deref(), Some("/thanks"));
+}
+
+#[test]
+fn redirect_debug_does_not_expose_the_executor() {
+    let r = ContactSuccessRedirect::new("/thanks", |_| {}).unwrap();
+    let s = format!("{r:?}");
+    assert!(s.contains("/thanks"), "path should be visible: {s}");
+}

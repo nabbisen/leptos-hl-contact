@@ -86,6 +86,37 @@ directly, so options are **not** a security boundary.
 (4 000) is clamped to it.  `ContactFormOptions::effective_max_message_len()`
 returns the value the component actually renders as `maxlength`.
 
+## Success page
+
+By default a successful submission shows the inline success message with
+JavaScript, and reloads the form page without it — so a no-JavaScript visitor
+gets no confirmation at all.  Name a success page and both paths land there:
+
+```rust,ignore
+use leptos_hl_contact::axum_helpers::success_redirect;
+
+// In *both* context closures (see Axum Integration):
+leptos::context::provide_context(success_redirect("/thanks"));
+```
+
+| Configured? | With JavaScript | Without JavaScript |
+|-------------|-----------------|--------------------|
+| yes | navigates to the page | `302` to the page |
+| no | inline success message | page reloads, no confirmation |
+
+The path must be site-relative: it must start with a single `/`, and may not
+contain a scheme, a backslash, whitespace or a control character.  Query
+strings and fragments are allowed.  `success_redirect` panics on anything
+else, because this is startup configuration; use
+[`ContactSuccessRedirect::new`] if you would rather handle the error.  The
+rule exists so a misconfiguration cannot turn the form into an open redirect,
+and the destination is never read from form input or a query parameter.
+
+Without `axum-helpers`, build the value yourself: `ContactSuccessRedirect::new`
+takes the path and a closure that performs the redirect in your framework.
+
+[`ContactSuccessRedirect::new`]: https://docs.rs/leptos-hl-contact/latest/leptos_hl_contact/config/struct.ContactSuccessRedirect.html
+
 ## ContactServerPolicy
 
 Server-side enforcement, independent of what the client claims.  Provide it

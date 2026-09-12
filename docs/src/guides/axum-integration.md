@@ -12,9 +12,17 @@ context must therefore be provided in **both** closures:
 | `CsrfConfigContext` (`csrf` feature) | required | required |
 | `CsrfToken` (`csrf` feature) | — | required, one fresh token per request |
 | `ContactServerPolicy` | optional | optional |
+| `ContactSuccessRedirect` | required for the redirect | required for the redirect |
 
 Missing a required value does not crash the server: the server function
 logs at `error` and answers with a generic "not configured" message.
+
+> Provide every value in **both** closures, even one the table calls
+> server-function-only.  `leptos_routes_with_context` registers each server
+> function at its own literal path using the SSR closure, and Axum prefers
+> that literal path over a `/api/{*fn_name}` wildcard registered by hand — so
+> a value provided only in the wildcard's closure can be silently invisible
+> to the server function.
 
 ## Minimal wiring
 
@@ -66,6 +74,7 @@ With the `csrf` feature and a server policy the two closures look like this:
 use leptos::context::provide_context;
 use leptos_hl_contact::{
     ContactServerPolicy,
+    axum_helpers::success_redirect,
     csrf::{CsrfConfig, CsrfConfigContext, generate_csrf_token},
 };
 
@@ -88,6 +97,7 @@ let app = Router::new()
                     ctx();
                     provide_context::<CsrfConfigContext>(Arc::clone(&csrf));
                     provide_context(policy.clone());
+                    provide_context(success_redirect("/thanks"));
                 }, req).await
             }
         }
@@ -99,6 +109,7 @@ let app = Router::new()
             provide_context::<CsrfConfigContext>(Arc::clone(&csrf));
             provide_context(generate_csrf_token(&csrf));   // SSR only
             provide_context(policy.clone());
+            provide_context(success_redirect("/thanks"));
         }
     }, App)
     .with_state(leptos_options);

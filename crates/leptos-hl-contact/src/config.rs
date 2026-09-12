@@ -1,7 +1,10 @@
-// config.rs — Client-visible configuration types for ContactForm.
+// config.rs — Configuration types for ContactForm.
 //
-// All types in this module are serialisable so they can cross the SSR/hydrate
-// boundary as component props.  They must **never** contain secrets.
+// The prop types are serialisable so they can cross the SSR/hydrate boundary.
+// They must **never** contain secrets.  `ContactSuccessRedirect` is
+// server-side configuration and is deliberately not serialisable.
+
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
@@ -245,6 +248,94 @@ impl ContactServerPolicy {
         }
 
         errs
+    }
+}
+
+// ---------------------------------------------------------------------------
+// ContactSuccessRedirect
+// ---------------------------------------------------------------------------
+
+/// The configured redirect path is not a safe site-relative path.
+#[derive(Debug, thiserror::Error)]
+#[error(
+    "invalid redirect path: must be site-relative (start with '/', not '//', \
+     no scheme, no control characters)"
+)]
+pub struct InvalidRedirectPath;
+
+/// Where to send the visitor after a successful submission.
+///
+/// Provide this via Leptos context in the server-function handler closure to
+/// send every successful submission to a page of your own, with or without
+/// JavaScript.  When it is absent, behaviour is unchanged: a JavaScript
+/// client shows the inline success message and a no-JavaScript client
+/// reloads the form page.
+///
+/// The crate never calls a framework's redirect itself.  It holds a validated
+/// path and an opaque executor supplied by the integrator; with Axum,
+/// [`success_redirect`](crate::axum_helpers::success_redirect) builds both.
+///
+/// # Security
+///
+/// [`new`](Self::new) rejects anything that is not site-relative, so a
+/// misconfiguration cannot turn the form into an open redirect.  The path is
+/// fixed at startup and is never read from form input or a query parameter.
+#[derive(Clone)]
+pub struct ContactSuccessRedirect {
+    path: String,
+    redirect: Arc<dyn Fn(&str) + Send + Sync>,
+}
+
+impl std::fmt::Debug for ContactSuccessRedirect {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ContactSuccessRedirect")
+            .field("path", &self.path)
+            .finish_non_exhaustive()
+    }
+}
+
+impl ContactSuccessRedirect {
+    /// Build a redirect for `path`, executed by `redirect`.
+    ///
+    /// `path` must be site-relative: non-empty, starting with a single `/`,
+    /// with no scheme, backslash, whitespace or ASCII control character.
+    /// Query strings and fragments are allowed.
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidRedirectPath`] when `path` fails those rules.
+    pub fn new(
+        path: impl Into<String>,
+        redirect: impl Fn(&str) + Send + Sync + 'static,
+    ) -> Result<Self, InvalidRedirectPath> {
+        let path = path.into();
+
+        let valid = path.starts_with('/')
+            && !path.starts_with("//")
+            && !path.contains('\\')
+            && !path.contains("://")
+            && !path.chars().any(|c| c.is_control() || c.is_whitespace());
+
+        if !valid {
+            return Err(InvalidRedirectPath);
+        }
+
+        Ok(Self {
+            path,
+            redirect: Arc::new(redirect),
+        })
+    }
+
+    /// The validated destination.
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    /// Run the redirect.  Called by
+    /// [`submit_contact`](crate::server::submit_contact) after a successful
+    /// delivery.
+    pub fn apply(&self) {
+        (self.redirect)(&self.path);
     }
 }
 

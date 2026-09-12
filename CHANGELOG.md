@@ -20,6 +20,13 @@ No version assigned; the owner decides the release number.
   submission, keyboard focus moves to the first invalid input.  Client-side
   only.  `ContactFormOptions` gains a field; construct it with
   `..Default::default()` to stay source-compatible.
+- `ContactSuccessRedirect` and `InvalidRedirectPath`, with
+  `axum_helpers::success_redirect`.  Name a success page and every successful
+  submission lands there, with or without JavaScript — closing the gap where
+  a no-JavaScript visitor got no confirmation at all.  Only site-relative
+  paths are accepted, so a misconfiguration cannot become an open redirect.
+  Without the context nothing changes: JavaScript clients show the inline
+  message and no-JavaScript clients reload the form page.
 
 ## [0.3.4] — 2026-09-12
 

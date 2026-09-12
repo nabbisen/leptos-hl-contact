@@ -36,6 +36,14 @@ use crate::{delivery::ContactDeliveryContext, error::ContactValidationError, mod
 /// When [`ContactServerPolicy`](crate::config::ContactServerPolicy) is provided via
 /// context, `require_subject` and `max_message_len` are enforced server-side.
 ///
+/// # Success redirect
+///
+/// When [`ContactSuccessRedirect`](crate::config::ContactSuccessRedirect) is
+/// provided via context, a successful delivery runs it before returning, so
+/// the visitor is sent to the configured page with or without JavaScript.
+/// Without it, behaviour is unchanged: a JavaScript client shows the inline
+/// success message and a no-JavaScript client reloads the form page.
+///
 /// # Security
 ///
 /// - Server-side validation is always performed.
@@ -134,12 +142,21 @@ pub async fn submit_contact(
             ));
         };
 
-        // 7. Deliver.
+        // 7. Read the optional success redirect *before* awaiting delivery:
+        // Leptos context is not reachable after an await point here.
+        let success_redirect = use_context::<crate::config::ContactSuccessRedirect>();
+
+        // 8. Deliver.
         if let Err(e) = delivery.deliver(input).await {
             tracing::error!(error = %e, "contact form delivery failed");
             return Err(ServerFnError::ServerError(
                 "Failed to send message. Please try again later.".into(),
             ));
+        }
+
+        // 9. Success redirect, so the no-JS path can confirm too.
+        if let Some(redirect) = success_redirect {
+            redirect.apply();
         }
 
         return Ok(());

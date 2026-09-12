@@ -10,7 +10,7 @@ examples.
 `ContactFormOptions`, `ContactServerPolicy`, `ContactDelivery`,
 `ContactDeliveryContext`, `ContactDeliveryError`, `ContactFieldErrors`,
 `ContactValidationError`, `ContactInput`, `MESSAGE_MAX_LEN`,
-`submit_contact`, and with the
+`ContactSuccessRedirect`, `InvalidRedirectPath`, `submit_contact`, and with the
 `csrf` feature `CsrfConfig`, `CsrfConfigContext`, `CsrfToken`,
 `generate_csrf_token`, `verify_csrf_token`.
 
@@ -50,7 +50,8 @@ pub async fn submit_contact(
 
 `POST /api/submit_contact`, form-encoded.  Order of work: token check
 (`csrf`) → `ContactInput::from_raw` → `check_honeypot` → `validate_fields`
-→ `ContactServerPolicy` → `ContactDelivery::deliver`.
+→ `ContactServerPolicy` → `ContactDelivery::deliver` →
+`ContactSuccessRedirect` when one is in context.
 
 | Outcome | Returned as |
 |---------|-------------|
@@ -66,7 +67,7 @@ pub async fn submit_contact(
 ```rust,ignore
 pub struct ContactFormClasses { pub root, field, label, input, textarea, button, error, success: String }
 pub struct ContactFormLabels  { pub name, email, subject, message, submit, sending, success, error, honeypot_label: String }
-pub struct ContactFormOptions { pub show_subject: bool, pub require_subject: bool, pub max_message_len: usize }
+pub struct ContactFormOptions { pub show_subject: bool, pub require_subject: bool, pub max_message_len: usize, pub focus_first_error: bool }
 pub struct ContactServerPolicy { pub require_subject: bool, pub max_message_len: usize }
 
 impl ContactFormOptions {
@@ -77,11 +78,28 @@ impl ContactServerPolicy {
     pub fn effective_max_message_len(&self) -> usize;   // clamped to MESSAGE_MAX_LEN
     pub fn check(&self, input: &ContactInput) -> ContactFieldErrors;   // empty == passes
 }
+
+pub struct ContactSuccessRedirect { /* path + executor */ }
+pub struct InvalidRedirectPath;     // Error
+
+impl ContactSuccessRedirect {
+    pub fn new(path: impl Into<String>, redirect: impl Fn(&str) + Send + Sync + 'static)
+        -> Result<Self, InvalidRedirectPath>;
+    pub fn path(&self) -> &str;
+    pub fn apply(&self);            // called by submit_contact on success
+}
 ```
 
 Defaults: classes empty; labels English; options
-`true / false / MESSAGE_MAX_LEN`; policy `false / MESSAGE_MAX_LEN`.  Meaning
+`true / false / MESSAGE_MAX_LEN / true`; policy `false / MESSAGE_MAX_LEN`.  Meaning
 of each field: [Customization](../guides/customization.md).
+
+`ContactSuccessRedirect` is server-side configuration and is not
+serialisable.  `new` accepts only site-relative paths — starting with a
+single `/`, no scheme, backslash, whitespace or control character — so a
+misconfiguration cannot become an open redirect; `Debug` shows the path and
+not the executor.  Provide it in **both** context closures; see
+[Success page](../guides/customization.md#success-page).
 
 Both `max_message_len` fields are counted in characters and clamped to
 `MESSAGE_MAX_LEN`: a policy can tighten the validator's limit, never raise it.
@@ -134,7 +152,8 @@ pub struct ContactFieldErrors { pub name, email, subject, message: Option<String
 impl ContactFieldErrors {
     pub fn is_empty(&self) -> bool;
     pub fn to_json(&self) -> String;
-    pub fn from_error_str(s: &str) -> Option<Self>;    // expects the sentinel at the start
+    pub fn from_error_str(s: &str) -> Option<Self>;    // finds the sentinel anywhere
+    pub fn from_server_fn_error<E>(err: &ServerFnError<E>) -> Option<Self>;  // matches the Args variant
     pub fn into_server_fn_message(self) -> String;
 }
 
@@ -143,6 +162,9 @@ pub enum ContactValidationError { InvalidInput(String), HoneypotTriggered }
 ```
 
 `ContactFieldErrors` is safe to show; the two enums are server-side only.
+A client should use `from_server_fn_error`, which matches the error variant
+rather than its displayed text; `from_error_str` is the fallback for callers
+holding only a string.
 
 ## `delivery`
 
@@ -188,7 +210,12 @@ pub fn sanitize_header_value(value: &str) -> String   // replaces each \r and \n
 ```rust,ignore
 pub fn provide_contact_delivery(delivery: ContactDeliveryContext);
 pub fn delivery_context_fn(delivery: ContactDeliveryContext) -> impl Fn() + Clone + Send + Sync + 'static;
+pub fn success_redirect(path: impl Into<String>) -> ContactSuccessRedirect;
 ```
+
+`success_redirect` builds a `ContactSuccessRedirect` backed by
+`leptos_axum::redirect`.  It panics on a path that is not site-relative,
+because it is startup configuration.
 
 ## `csrf` module
 
