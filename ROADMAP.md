@@ -127,7 +127,7 @@ All three RFCs (004, 005, 006) were accepted on 2026-09-12; handoffs exist for e
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
-| P-12 | Form token redesign — **implemented** across RFC 004 handoffs 01–03 (2026-09-13): rename with aliases, two-second minimum age, cookie binding with a per-browser nonce and `__Host-` prefix, client-side acquisition and loop-proof refresh (off by default).  Handoff 03 pending one-line correction C4 | **High** | [RFC 004](./rfcs/accepted/004-form-token.md) | verified by the architect |
+| P-12 | Form token redesign — **done** in RFC 004 handoffs 01–03, all approved 2026-09-13 (final `10a12a8`): rename with aliases, two-second minimum age, cookie binding with a per-browser nonce and `__Host-` prefix, client-side acquisition and loop-proof refresh (off by default) | **High** | [RFC 004](./rfcs/accepted/004-form-token.md) | verified by the architect |
 | P-21 | Challenge providers: `challenge` prop renders the widget and a hidden token field inside the form; `ChallengeVerifier` trait; built-in Turnstile, hCaptcha, reCAPTCHA v2/v3 behind `challenge-http`; fail-closed; no-JS policy per owner decision; vendor test keys in CI; verify-endpoint timeout and outage behaviour defined | **High** | [RFC 005](./rfcs/accepted/005-challenge-providers.md) | decided |
 | P-25 | Pre-delivery filter hook: `ContactFilter` trait returning accept / reject / silent-drop for a validated submission, for content heuristics or third-party spam services | Medium | [RFC 006](./rfcs/accepted/006-contact-filter.md) | new 2026-09-12 |
 

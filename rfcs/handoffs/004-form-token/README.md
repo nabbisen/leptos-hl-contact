@@ -12,3 +12,7 @@ Review requests go to `.git-exclude/review-request/004-form-token/`.
 | 03 | [Client-side acquisition and refresh](./03-client-acquisition.md) | D4 | 01, 02 | medium |
 
 Strictly in order; each touches `form_token.rs` and `server.rs`.
+
+## State
+
+All three handoffs approved 2026-09-13 (01 `9caa9cd`/`a6ebdc5`; 02 `540bd6d`, `b25b7ff`, `fe7e027`; 03 `29c7d4f`, `420af11`, `10a12a8`).  RFC 004 moves to `done/` at the 0.5.0 release.
