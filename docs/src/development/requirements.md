@@ -163,7 +163,7 @@ input the browser accepted.
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
 | FR-ABUSE-01 | A honeypot MUST be built in and enabled without configuration | MUST | Met |
-| FR-ABUSE-02 | The crate MUST either provide a request-forgery control that is effective on its own, or MUST state unambiguously that application-level Origin validation is the CSRF control and describe the built-in token as an anti-automation measure.  The current token is not bound to the visitor and can be replayed within its TTL | MUST | Planned (RFC 004: rename to form token; opt-in cookie binding gives the double-submit property) |
+| FR-ABUSE-02 | The crate MUST either provide a request-forgery control that is effective on its own, or MUST state unambiguously that application-level Origin validation is the CSRF control and describe the built-in token as an anti-automation measure | MUST | Met (0.5.0): renamed form token; optional cookie binding with `__Host-` prefix as defence in depth; Origin validation documented as the control |
 | FR-ABUSE-03 | Token verification MUST use constant-time comparison, MUST enforce a TTL, and MUST tolerate bounded clock skew | MUST | Met |
 | FR-ABUSE-04 | When the `form-token` feature is enabled and its configuration is missing, submissions MUST be rejected (fail-closed) with a logged `error` | MUST | Met |
 | FR-ABUSE-05 | Rate limiting is an application responsibility; the crate MUST document it and ship a working example | MUST | Met |
@@ -352,7 +352,6 @@ input the browser accepted.
 |-------------|--------|--------------|
 | NFR-TEST-02, NFR-TEST-03 | Gap | P-15 |
 | FR-UI-12 (client-side navigation) | Planned | RFC 004 |
-| FR-ABUSE-02 | Planned | P-12 / RFC 004 |
 | FR-ABUSE-10..12 | Planned | P-21 / RFC 005 |
 | FR-ABUSE-14 | Planned | P-25 / RFC 006 |
 | FR-DEL-08, NFR-PERF-03 | Gap | Future (queue adapter) |
@@ -383,6 +382,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 8 | RFC 004 handoff 02: FR-ABUSE-02 Met |
 | 2026-09-13 | Draft 7 | RFC 004 handoff 01: form-token naming, FR-VAL-06 and FR-ABUSE-13 Met |
 | 2026-09-13 | Draft 6 | RFC 007 and RFC 003 handoff 01: FR-CFG-02 and FR-I18N-02 Met; the "two context sites" constraint corrected |
 | 2026-09-12 | Draft 5 | RFC 002 handoff 03: FR-UI-06, FR-PE-03 Met; FR-CFG-02 downgraded to Partial pending RFC 007 (one context closure) |

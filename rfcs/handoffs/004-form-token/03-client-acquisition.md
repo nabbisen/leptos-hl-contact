@@ -52,6 +52,25 @@ token).
    `issue_form_token_fn`, `FormTokenIssuer`, `provide_form_token_issuer`,
    the new option; Customization: the option.
 
+## Amendment from the handoff 02 reviews (2026-09-13)
+
+- **Reuse the browser's nonce.**  `issue_form_token_fn` is a POST, so the GET
+  gate in `provide_form_token_with_cookie` does not apply.  If it minted a
+  fresh nonce and re-set the cookie, every tab that fetched a token would
+  invalidate the others — the defect corrected in handoff 02.  The issuer
+  must read the request cookie under `effective_name` and use
+  `issue_form_token_with_nonce` when it is usable, minting only otherwise,
+  and must write the cookie through `set_cookie_value` so the `__Host-`
+  prefix is applied.  Add a test: a request carrying a valid cookie gets a
+  token with that nonce.  Evidence: render the form in one jar, fetch a token
+  client-side in the same jar, then submit the *rendered* token and show it
+  accepted.
+- **Link caching to the binding limits.**  In `security/form-token.md`, one
+  sentence under "What binding cannot stop" pointing at the caching callout:
+  a cached page pairs one visitor's token with another visitor's cookie.
+- Any new client-side effect uses the `all(feature = "hydrate", not(feature
+  = "ssr"))` gate established in RFC 002 handoff 02.
+
 ## Required tests
 
 `components/tests.rs` (SSR): the hidden input still carries the SSR token

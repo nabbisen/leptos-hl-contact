@@ -412,7 +412,7 @@ reputation); visitor PII in transit; the application's availability.
 | T2 | Sender spoofing / SPF failure | visitor address as `From` | `From` always server-configured | crate | Met |
 | T3 | Credential or recipient leak to client | serialising config into WASM or responses | config types exist only server-side; redacted `Debug` | crate | Met |
 | T4 | Automated spam | bots posting the form | honeypot; token (proof of prior page fetch); rate limit; Turnstile | crate + app | Met (layers documented) |
-| T5 | Cross-site request forgery | victim's browser posts from another origin | **Origin / Referer validation** (app); token alone does not prevent this (§5.4) | app | Documented; naming decision pending (P-12) |
+| T5 | Cross-site request forgery | victim's browser posts from another origin | **Origin / Referer validation** (app) is the control; with `Binding::Cookie` the form token adds an independent double-submit check (0.5.0) | app + crate | Met; binding is defence in depth |
 | T6 | Token replay | reuse of one token within TTL | not prevented by design (stateless); TTL bounds the window; rate limit bounds volume | — | Accepted risk pending P-12 |
 | T7 | Flooding / resource exhaustion | many POSTs, large bodies | rate limit; 32 KiB body limit; 4 000-char message ceiling | app + crate | Met |
 | T8 | Information disclosure through errors | stack traces or relay errors reaching the visitor | generic messages; details only in logs | crate | Met |
@@ -424,6 +424,7 @@ reputation); visitor PII in transit; the application's availability.
 | T14 | Relay abuse as open relay | attacker-controlled `To` | `To` fixed by config | crate | Met |
 | T15 | Slow relay holding connections | delivery without timeout | none today | crate | Gap [FR-DEL-08] |
 | T16 | Open redirect or header injection through the success page | a configured redirect path that leaves the site, or carries CR/LF into the `Location` header | `ContactSuccessRedirect::new` accepts only site-relative paths: it requires a leading `/`, rejects `//`, `\`, `://`, and every control or whitespace character, so neither an off-site target nor a header break survives construction.  The path is fixed at startup and never read from form input or a query parameter | crate | Met (0.4.0) |
+| T17 | Cookie tossing defeats binding | a sibling subdomain sets the binding cookie with `Domain` and `SameSite=None`, paired with a token the attacker fetched for that nonce | `__Host-` cookie prefix, applied when the cookie is `Secure` on `/`; a second `__Host-` cookie from our own origin fails closed (`BindingMismatch`); Origin validation still rejects the POST | crate + app | Met at defaults (0.5.0); not with `secure: false` or a non-root path, documented |
 
 New in 0.4.0: the success redirect (T16) is the crate's first outward
 response header, so it is the first place a configuration value reaches a
@@ -597,6 +598,7 @@ The project rule is "less is more".  Applied here:
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial external design from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 6 | RFC 004 handoff 02: T5 updated for binding; T17 cookie tossing and the `__Host-` prefix |
 | 2026-09-13 | Draft 5 | RFC 004 handoff 01: the token is named *form token* throughout; the hidden field is `form_token`; minimum age recorded |
 | 2026-09-13 | Draft 4 | 0.4.0 security audit: T16 added for the success redirect, the release's only new outward data flow |
 | 2026-09-12 | Draft 3 | M1 outcomes marked current (§4.1.3, §4.1.4, §4.2.3, §4.3, §6) |
