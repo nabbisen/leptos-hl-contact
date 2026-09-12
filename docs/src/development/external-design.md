@@ -78,21 +78,32 @@
 2. Construct a delivery backend and wrap it as `Arc<dyn ContactDelivery>`.
 3. (Optional) Construct `CsrfConfig` from a secret and a TTL; construct
    `ContactServerPolicy`.
-4. Provide the context values at **both context sites** (§2.2).
+4. Provide the context values in the context closure (§2.2).
 5. Add application-level layers: body limit, rate limit, origin check.
 6. Place `<ContactForm/>` in a page, passing classes, labels, options.
 
-### 2.2 Context sites and required values
+### 2.2 The context closure and required values
 
-| Context value | Type | Server-fn handler | SSR renderer | If missing |
-|---------------|------|-------------------|--------------|------------|
-| Delivery backend | `ContactDeliveryContext` = `Arc<dyn ContactDelivery>` | **required** | required (harmless if absent, kept for symmetry) | `error` log; generic "not configured" message [FR-SUB-08] |
-| Token config (`csrf`) | `CsrfConfigContext` = `Arc<CsrfConfig>` | **required** | **required** (to issue tokens) | fail-closed: `error` log; generic "security not configured" message [FR-ABUSE-04] |
-| Per-request token (`csrf`) | `CsrfToken` | must not be provided | **required**, freshly generated per request | form renders an empty hidden field; every submit fails verification |
-| Server policy | `ContactServerPolicy` | optional | optional | validator limits apply (4 000 chars, subject optional) |
+All values are provided in the single closure passed to
+`leptos_routes_with_context`.
 
-The two-site rule is a Leptos constraint: server functions execute in a
-handler that does not share the SSR renderer's context.
+| Context value | Type | Provided in the context closure | If missing |
+|---------------|------|---------------------------------|------------|
+| Delivery backend | `ContactDeliveryContext` = `Arc<dyn ContactDelivery>` | **required** | `error` log; generic "not configured" message [FR-SUB-08] |
+| Token config (`csrf`) | `CsrfConfigContext` = `Arc<CsrfConfig>` | **required** | fail-closed: `error` log; generic "security not configured" message [FR-ABUSE-04] |
+| Per-request token (`csrf`) | `CsrfToken` | **required**, freshly generated per request; read only by page renders | form renders an empty hidden field; every submit fails verification |
+| Server policy | `ContactServerPolicy` | optional | validator limits apply (4 000 chars, subject optional) |
+| Success redirect | `ContactSuccessRedirect` | required for the redirect | inline success with JS; page reload without it |
+
+`leptos_routes_with_context` registers each server function at its own path
+using this closure, so page renders and `submit_contact` share it.  A
+hand-written `/api/{*fn_name}` route is unnecessary, and a value provided
+only there does not reach the server function: Axum prefers the literal
+path the framework registered.  Earlier revisions of this document described
+two context sites; that was incorrect (RFC 007).
+
+Where a value must differ by request kind, read `Parts` from context and
+branch on the method or path rather than splitting the closure.
 
 ### 2.3 Rendering modes
 

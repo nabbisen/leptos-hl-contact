@@ -28,6 +28,22 @@ No version assigned; the owner decides the release number.
   Without the context nothing changes: JavaScript clients show the inline
   message and no-JavaScript clients reload the form page.
 
+### Documentation
+
+- **One context closure for Axum.**  The documentation told integrators to
+  provide every context value at "two sites", a hand-written
+  `/api/{*fn_name}` route and the SSR closure.  That was wrong:
+  `leptos_routes_with_context` registers each server function at its own path
+  using its own closure, and Axum prefers that literal path, so the manual
+  route never served a registered server function and a value provided only
+  there never reached it.  Both examples now use one closure and no manual
+  route; the guides, the security pages, the troubleshooting entries, the
+  External Design and the rustdoc say so.  No crate logic changed.
+- The Production Checklist gains a row for configuring a success page when
+  visitors without JavaScript must see a confirmation, and the accessibility
+  guide notes that such a page confirms by navigation rather than a live
+  region.
+
 ## [0.3.4] — 2026-09-12
 
 ### Fixed

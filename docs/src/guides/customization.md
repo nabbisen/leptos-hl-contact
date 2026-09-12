@@ -95,8 +95,11 @@ gets no confirmation at all.  Name a success page and both paths land there:
 ```rust,ignore
 use leptos_hl_contact::axum_helpers::success_redirect;
 
-// In *both* context closures (see Axum Integration):
-leptos::context::provide_context(success_redirect("/thanks"));
+// Build it before the router so a bad path panics at boot …
+let redirect = success_redirect("/thanks");
+
+// … then provide it in the context closure (see Axum Integration):
+leptos::context::provide_context(redirect.clone());
 ```
 
 | Configured? | With JavaScript | Without JavaScript |
@@ -120,8 +123,7 @@ takes the path and a closure that performs the redirect in your framework.
 ## ContactServerPolicy
 
 Server-side enforcement, independent of what the client claims.  Provide it
-through Leptos context in both the server-function handler and the SSR
-renderer (see [Axum Integration](./axum-integration.md)).
+through the context closure (see [Axum Integration](./axum-integration.md)).
 
 ```rust,ignore
 use leptos_hl_contact::ContactServerPolicy;

@@ -63,16 +63,16 @@ more than 60 seconds in the future.
    });
    ```
 
-4. Provide it at both context sites, and a fresh token in the SSR renderer:
+4. Provide it in the context closure, with a fresh token per render:
 
    ```rust,ignore
-   // server-function handler closure
-   provide_context::<CsrfConfigContext>(Arc::clone(&csrf));
-
-   // SSR renderer closure
+   // The closure passed to `leptos_routes_with_context`
    provide_context::<CsrfConfigContext>(Arc::clone(&csrf));
    provide_context(generate_csrf_token(&csrf));
    ```
+
+   The token is issued on every request through that closure and used only
+   by page renders; `submit_contact` verifies the token the form submitted.
 
    The full router is in [Axum Integration](../guides/axum-integration.md#all-context-values-together).
 
@@ -81,14 +81,14 @@ more than 60 seconds in the future.
 ## Fail-closed behaviour
 
 When the feature is enabled and `CsrfConfigContext` is missing from the
-server-function handler, every submission is rejected with a generic
+context closure, every submission is rejected with a generic
 "security is not configured" message and an `error` log line.  This is
 deliberate: forgetting the context must not silently disable the check.
 (Version 0.3.0 skipped verification in that case; 0.3.1 and later fail
 closed.)
 
-If `CsrfToken` is missing from the SSR renderer, the hidden field is empty
-and every submission fails verification with the "reload the page" message.
+If `CsrfToken` is missing, the hidden field is empty and every submission
+fails verification with the "reload the page" message.
 
 ## Known limitation
 

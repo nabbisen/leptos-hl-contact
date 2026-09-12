@@ -1,36 +1,35 @@
 # Axum Integration
 
-## The two context sites
+## The context closure
 
-Leptos executes server functions in one Axum handler and renders pages in
-another.  They do not share context.  Everything the crate reads from
-context must therefore be provided in **both** closures:
+Provide everything the crate reads from context in the one closure you pass
+to `leptos_routes_with_context`:
 
-| Value | Server-function handler | SSR renderer |
-|-------|-------------------------|--------------|
-| `ContactDeliveryContext` | required | required |
-| `CsrfConfigContext` (`csrf` feature) | required | required |
-| `CsrfToken` (`csrf` feature) | — | required, one fresh token per request |
-| `ContactServerPolicy` | optional | optional |
-| `ContactSuccessRedirect` | required for the redirect | required for the redirect |
+| Value | Needed for |
+|-------|------------|
+| `ContactDeliveryContext` | required — `submit_contact` delivers through it |
+| `CsrfConfigContext` (`csrf` feature) | required — token verification, fail-closed without it |
+| `CsrfToken` (`csrf` feature) | required — one fresh token per page render; unused on server-function requests |
+| `ContactServerPolicy` | optional — server-side limits |
+| `ContactSuccessRedirect` | required for the success redirect |
 
 Missing a required value does not crash the server: the server function
 logs at `error` and answers with a generic "not configured" message.
 
-> Provide every value in **both** closures, even one the table calls
-> server-function-only.  `leptos_routes_with_context` registers each server
-> function at its own literal path using the SSR closure, and Axum prefers
-> that literal path over a `/api/{*fn_name}` wildcard registered by hand — so
-> a value provided only in the wildcard's closure can be silently invisible
-> to the server function.
+> **Why one closure.**  `leptos_routes_with_context` registers each server
+> function at its own path using the same closure it renders pages with, so
+> a hand-written `/api/{*fn_name}` route is unnecessary — and worse than
+> unnecessary: Axum prefers the literal path, so a context value provided
+> only on the wildcard route never reaches the server function.  Earlier
+> versions of this guide described two context sites; that was wrong.
 
 ## Minimal wiring
 
 ```rust,ignore
 use std::sync::Arc;
-use axum::{Router, body::Body, extract::Request, routing::post};
+use axum::Router;
 use leptos::config::get_configuration;
-use leptos_axum::{LeptosRoutes, generate_route_list, handle_server_fns_with_context};
+use leptos_axum::{LeptosRoutes, generate_route_list};
 use leptos_hl_contact::{
     axum_helpers::delivery_context_fn,
     delivery::{ContactDeliveryContext, noop::NoopDelivery},
@@ -39,20 +38,13 @@ use leptos_hl_contact::{
 #[tokio::main]
 async fn main() {
     let delivery: ContactDeliveryContext = Arc::new(NoopDelivery);
-    let ctx = delivery_context_fn(delivery);      // one closure, cloned twice
+    let ctx = delivery_context_fn(delivery);
 
     let conf = get_configuration(None).unwrap();
     let leptos_options = conf.leptos_options.clone();
     let routes = generate_route_list(App);
 
     let app = Router::new()
-        .route("/api/{*fn_name}", post({
-            let ctx = ctx.clone();
-            move |req: Request<Body>| {
-                let ctx = ctx.clone();
-                async move { handle_server_fns_with_context(ctx, req).await }
-            }
-        }))
         .leptos_routes_with_context(&leptos_options, routes, ctx, App)
         .with_state(leptos_options);
 
@@ -64,11 +56,11 @@ async fn main() {
 `delivery_context_fn` and `provide_contact_delivery` come from the
 `axum-helpers` feature.  Without it, call
 `leptos::context::provide_context::<ContactDeliveryContext>(Arc::clone(&d))`
-yourself in each closure.
+yourself in the closure.
 
 ## All context values together
 
-With the `csrf` feature and a server policy the two closures look like this:
+With the `csrf` feature, a server policy and a success page:
 
 ```rust,ignore
 use leptos::context::provide_context;
@@ -82,38 +74,29 @@ let csrf: CsrfConfigContext = Arc::new(CsrfConfig::new(
     std::env::var("CSRF_SECRET").expect("CSRF_SECRET").into_bytes(),
 ));
 let policy = ContactServerPolicy { require_subject: true, max_message_len: 2000 };
+// Built before the router so an invalid path panics at boot.
+let redirect = success_redirect("/thanks");
 
 let app = Router::new()
-    .route("/api/{*fn_name}", post({
-        let ctx = ctx.clone();
-        let csrf = Arc::clone(&csrf);
-        let policy = policy.clone();
-        move |req: Request<Body>| {
-            let ctx = ctx.clone();
-            let csrf = Arc::clone(&csrf);
-            let policy = policy.clone();
-            async move {
-                handle_server_fns_with_context(move || {
-                    ctx();
-                    provide_context::<CsrfConfigContext>(Arc::clone(&csrf));
-                    provide_context(policy.clone());
-                    provide_context(success_redirect("/thanks"));
-                }, req).await
-            }
-        }
-    }))
-    .leptos_routes_with_context(&leptos_options, routes, {
-        let csrf = Arc::clone(&csrf);
-        move || {
-            ctx.clone()();
-            provide_context::<CsrfConfigContext>(Arc::clone(&csrf));
-            provide_context(generate_csrf_token(&csrf));   // SSR only
-            provide_context(policy.clone());
-            provide_context(success_redirect("/thanks"));
-        }
+    .leptos_routes_with_context(&leptos_options, routes, move || {
+        ctx.clone()();
+        provide_context::<CsrfConfigContext>(Arc::clone(&csrf));
+        // Unused on server-function requests, which read the submitted token
+        // rather than issuing one.
+        provide_context(generate_csrf_token(&csrf));
+        provide_context(policy.clone());
+        provide_context(redirect.clone());
     }, App)
     .with_state(leptos_options);
 ```
+
+### Advanced: excluding a server function
+
+`leptos_routes_with_context` skips any path you list as excluded, which is
+the case for registering a server function on a route of your own — a
+different middleware stack for one endpoint, say.  If you do that, provide
+the context in *that* handler as well: it no longer shares the closure
+above.  Unless you need this, one closure is the whole story.
 
 ## Middleware order
 
@@ -123,7 +106,6 @@ endpoint too:
 
 ```rust,ignore
 let app = Router::new()
-    .route("/api/{*fn_name}", post(/* … */))
     .leptos_routes_with_context(/* … */)
     .with_state(leptos_options)
     .layer(from_fn_with_state(security_state, check_origin))   // runs 3rd
@@ -139,4 +121,6 @@ complete file is
 
 The core crate does not depend on Axum.  With Actix Web or another backend,
 provide the same context values through that framework's Leptos
-integration; the types and the two-site rule are identical.
+integration.  The types are identical; check how that integration registers
+server functions, since the one-closure rule above is a property of
+`leptos_axum`.

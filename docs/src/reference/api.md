@@ -98,7 +98,7 @@ of each field: [Customization](../guides/customization.md).
 serialisable.  `new` accepts only site-relative paths — starting with a
 single `/`, no scheme, backslash, whitespace or control character — so a
 misconfiguration cannot become an open redirect; `Debug` shows the path and
-not the executor.  Provide it in **both** context closures; see
+not the executor.  Provide it in the context closure; see
 [Success page](../guides/customization.md#success-page).
 
 Both `max_message_len` fields are counted in characters and clamped to

@@ -1,16 +1,11 @@
 # Troubleshooting
 
-## Server panics at startup: "Path segments must not start with `*`"
-
-Axum 0.8 changed the wildcard syntax.  Use `/api/{*fn_name}`, not
-`/api/*fn_name`.
-
 ## "Contact form is not configured."
 
-`ContactDeliveryContext` is missing in the server-function handler.
-Provide it (or `delivery_context_fn`) in **both** closures:
-`handle_server_fns_with_context` and `leptos_routes_with_context`.  The log
-line is:
+`ContactDeliveryContext` is missing from the context closure.  Provide it
+(or `delivery_context_fn`) in the closure you pass to
+`leptos_routes_with_context`; that one closure serves page renders and
+server functions alike.  The log line is:
 
 ```text
 ERROR leptos_hl_contact::server: ContactDeliveryContext not provided — check server setup
@@ -18,15 +13,15 @@ ERROR leptos_hl_contact::server: ContactDeliveryContext not provided — check s
 
 ## "Contact form security is not configured."
 
-The `csrf` feature is enabled but `CsrfConfigContext` is missing in the
-server-function handler.  Provide it at both sites.
+The `csrf` feature is enabled but `CsrfConfigContext` is missing from the
+context closure.
 
 ## "Invalid or expired security token. Please reload the page."
 
 One of:
 
-- `CsrfToken` is not provided in the SSR renderer closure, so the hidden
-  field is empty.  Add `provide_context(generate_csrf_token(&csrf))` there.
+- `CsrfToken` is not provided in the context closure, so the hidden field is
+  empty.  Add `provide_context(generate_csrf_token(&csrf))` there.
 - The token is older than `token_ttl_secs` (default one hour).
 - The secret changed since the page was rendered: a restart with a new
   `CSRF_SECRET`, or instances behind a load balancer that disagree.

@@ -27,14 +27,13 @@ use axum::{
     http::{StatusCode, header},
     middleware::{Next, from_fn_with_state},
     response::Response,
-    routing::post,
 };
 #[cfg(feature = "ssr")]
 use leptos::config::get_configuration;
 #[cfg(feature = "ssr")]
 use leptos::context::provide_context;
 #[cfg(feature = "ssr")]
-use leptos_axum::{LeptosRoutes, generate_route_list, handle_server_fns_with_context};
+use leptos_axum::{LeptosRoutes, generate_route_list};
 #[cfg(feature = "ssr")]
 use tower_http::limit::RequestBodyLimitLayer;
 #[cfg(feature = "ssr")]
@@ -177,51 +176,27 @@ async fn main() {
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(app::App);
 
-    let csrf_for_server_fns = Arc::clone(&csrf_config);
-    let csrf_for_ssr         = Arc::clone(&csrf_config);
+    // Built once, before the router, so an invalid path panics at boot rather
+    // than on the first submission.
+    let redirect = success_redirect("/thanks");
 
     // ------------------------------------------------------------------
     // Axum router
     // ------------------------------------------------------------------
+    // One context closure.  `leptos_routes_with_context` registers the server
+    // functions at their own paths using this same closure, so everything the
+    // page render and `submit_contact` need is provided here, once.
     let app = Router::new()
-        // Server function handler: delivery context + CSRF config for verification.
-        .route(
-            "/api/{*fn_name}",
-            post({
-                let ctx  = ctx.clone();
-                let csrf = Arc::clone(&csrf_for_server_fns);
-                move |req: Request<Body>| {
-                    let ctx  = ctx.clone();
-                    let csrf = Arc::clone(&csrf);
-                    async move {
-                        handle_server_fns_with_context(
-                            move || {
-                                ctx();
-                                provide_context::<CsrfConfigContext>(Arc::clone(&csrf));
-                                // Sends every successful submission to /thanks,
-                                // with or without JavaScript.
-                                provide_context(success_redirect("/thanks"));
-                            },
-                            req,
-                        )
-                        .await
-                    }
-                }
-            }),
-        )
-        // SSR renderer: delivery context + CSRF config + fresh per-request token.
         .leptos_routes_with_context(
             &leptos_options,
             routes,
             move || {
                 ctx.clone()();
-                provide_context::<CsrfConfigContext>(Arc::clone(&csrf_for_ssr));
-                provide_context(generate_csrf_token(&csrf_for_ssr));
-                // Also here: `leptos_routes_with_context` registers the server
-                // functions at their own paths using *this* closure, and Axum
-                // prefers that literal path over the `/api/{*fn_name}` route
-                // above.  The two-context-sites rule applies to this value too.
-                provide_context(success_redirect("/thanks"));
+                provide_context::<CsrfConfigContext>(Arc::clone(&csrf_config));
+                // Unused on server-function requests, which read the submitted
+                // token rather than issuing one.
+                provide_context(generate_csrf_token(&csrf_config));
+                provide_context(redirect.clone());
             },
             {
                 let o = leptos_options.clone();

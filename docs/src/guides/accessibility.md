@@ -26,6 +26,11 @@ Example of the rendered error state:
 </p>
 ```
 
+With a [success page](./customization.md#success-page) configured the
+confirmation is a navigation to a new page rather than a live region.  Both
+are accessible; make the page's first heading say what happened, so a screen
+reader announces the outcome on arrival.
+
 ## Your responsibilities
 
 - Colour contrast of the classes you supply (WCAG AA: 4.5:1).

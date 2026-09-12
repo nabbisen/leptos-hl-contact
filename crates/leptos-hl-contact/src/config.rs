@@ -177,8 +177,8 @@ impl ContactFormOptions {
 
 /// Server-side enforcement policy for contact form submissions.
 ///
-/// Provide this via Leptos context in both the SSR renderer and the
-/// server-function handler closures to enforce constraints server-side,
+/// Provide this via Leptos context in the closure passed to
+/// `leptos_routes_with_context` to enforce constraints server-side,
 /// independent of whatever the client-side [`ContactFormOptions`] states.
 ///
 /// # Why this is separate from `ContactFormOptions`
@@ -193,7 +193,7 @@ impl ContactFormOptions {
 /// use leptos::context::provide_context;
 /// use leptos_hl_contact::config::ContactServerPolicy;
 ///
-/// // In both SSR renderer and server-fn handler closures:
+/// // In the context closure:
 /// provide_context(ContactServerPolicy {
 ///     require_subject: true,
 ///     max_message_len: 2000,
@@ -265,9 +265,9 @@ pub struct InvalidRedirectPath;
 
 /// Where to send the visitor after a successful submission.
 ///
-/// Provide this via Leptos context in the server-function handler closure to
-/// send every successful submission to a page of your own, with or without
-/// JavaScript.  When it is absent, behaviour is unchanged: a JavaScript
+/// Provide this via Leptos context in the closure passed to
+/// `leptos_routes_with_context` to send every successful submission to a page
+/// of your own, with or without JavaScript.  When it is absent, behaviour is unchanged: a JavaScript
 /// client shows the inline success message and a no-JavaScript client
 /// reloads the form page.
 ///

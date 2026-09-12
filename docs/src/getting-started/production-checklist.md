@@ -16,6 +16,7 @@ that explains it.
 | ☐ | `SmtpTlsMode::StartTls` or `Tls`, never `DangerousPlaintext` | [Delivery Backends](../guides/delivery-backends.md) |
 | ☐ | Server policy set if the UI requires a subject or caps the message | [Customization](../guides/customization.md#contactserverpolicy) |
 | ☐ | Logs reviewed: no message bodies, addresses, or secrets | [Security](../security/README.md) |
+| ☐ | Success page configured (`success_redirect`) if visitors without JavaScript must see a confirmation | [Customization](../guides/customization.md#success-page) |
 | ☐ | Form smoke-tested with JavaScript disabled | [Troubleshooting](../help/troubleshooting.md) |
 | ☐ | Optional: CAPTCHA for high-value forms | [Turnstile](../security/turnstile.md) |
 

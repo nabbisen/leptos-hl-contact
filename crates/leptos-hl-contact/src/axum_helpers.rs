@@ -4,14 +4,10 @@
 //
 // # Why this module exists
 //
-// When using Leptos server functions with Axum, the delivery context must be
-// provided to **two** places:
-//
-// 1. The server-function handler (`leptos_axum::handle_server_fns_with_context`)
-// 2. The SSR rendering handler (`LeptosRoutes::leptos_routes_with_context`)
-//
-// The helpers here make it easy to build the context closure without
-// repeating the Arc::clone boilerplate in both places.
+// Everything the crate reads from context is provided in the one closure
+// passed to `LeptosRoutes::leptos_routes_with_context`, which serves page
+// renders and server functions alike.  The helpers here build that closure
+// without the `Arc::clone` boilerplate.
 
 use std::sync::Arc;
 
@@ -23,8 +19,8 @@ use crate::{config::ContactSuccessRedirect, delivery::ContactDeliveryContext};
 
 /// Register a [`ContactDeliveryContext`] as a Leptos context value.
 ///
-/// Call this inside the context closure passed to both
-/// `handle_server_fns_with_context` and `leptos_routes_with_context`.
+/// Call this inside the context closure passed to
+/// `leptos_routes_with_context`.
 ///
 /// # Example
 ///
@@ -38,16 +34,10 @@ use crate::{config::ContactSuccessRedirect, delivery::ContactDeliveryContext};
 /// };
 ///
 /// let delivery: ContactDeliveryContext = Arc::new(NoopDelivery);
-/// let d1 = Arc::clone(&delivery);
-/// let d2 = Arc::clone(&delivery);
 ///
 /// let app = axum::Router::new()
-///     .route("/api/{*fn_name}", post(move |req| {
-///         let d = Arc::clone(&d1);
-///         handle_server_fns_with_context(move || provide_contact_delivery(Arc::clone(&d)), req)
-///     }))
 ///     .leptos_routes_with_context(&opts, routes,
-///         move || provide_contact_delivery(Arc::clone(&d2)), App);
+///         move || provide_contact_delivery(Arc::clone(&delivery)), App);
 /// ```
 pub fn provide_contact_delivery(delivery: ContactDeliveryContext) {
     leptos::context::provide_context(delivery);
@@ -60,9 +50,8 @@ pub fn provide_contact_delivery(delivery: ContactDeliveryContext) {
 /// Build a `move || …` closure that provides the given delivery context.
 ///
 /// Returns an `impl Fn() + Clone + Send + 'static` closure suitable for
-/// passing to both `handle_server_fns_with_context` and
-/// `leptos_routes_with_context`.  Each invocation of the closure clones the
-/// `Arc` and calls `provide_contact_delivery`.
+/// passing to `leptos_routes_with_context`.  Each invocation clones the `Arc`
+/// and calls `provide_contact_delivery`.
 ///
 /// This avoids manual `Arc::clone` repetition at the call site.
 ///
@@ -79,10 +68,6 @@ pub fn provide_contact_delivery(delivery: ContactDeliveryContext) {
 /// let ctx = delivery_context_fn(delivery);
 ///
 /// let app = axum::Router::new()
-///     .route("/api/{*fn_name}", post({
-///         let ctx = ctx.clone();
-///         move |req| handle_server_fns_with_context(ctx.clone(), req)
-///     }))
 ///     .leptos_routes_with_context(&opts, routes, ctx, App);
 /// ```
 pub fn delivery_context_fn(
@@ -101,9 +86,9 @@ pub fn delivery_context_fn(
 /// Build a [`ContactSuccessRedirect`] that redirects with
 /// [`leptos_axum::redirect`].
 ///
-/// Provide the result via Leptos context in the **server-function handler**
-/// closure; that is where `submit_contact` reads it.  It is harmless in the
-/// SSR renderer closure but has nothing to do there.
+/// Provide the result via Leptos context in the closure passed to
+/// `leptos_routes_with_context`.  Build it once, before the router, so an
+/// invalid path panics at startup rather than on the first submission.
 ///
 /// # Panics
 ///
@@ -118,8 +103,11 @@ pub fn delivery_context_fn(
 /// use leptos::context::provide_context;
 /// use leptos_hl_contact::axum_helpers::success_redirect;
 ///
-/// // In the server-function handler closure:
-/// provide_context(success_redirect("/thanks"));
+/// // Before the router:
+/// let redirect = success_redirect("/thanks");
+///
+/// // In the context closure:
+/// provide_context(redirect.clone());
 /// ```
 pub fn success_redirect(path: impl Into<String>) -> ContactSuccessRedirect {
     let path = path.into();

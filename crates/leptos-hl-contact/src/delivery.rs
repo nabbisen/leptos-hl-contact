@@ -64,9 +64,9 @@ pub trait ContactDelivery: Send + Sync + 'static {
 
 /// Type alias for the Leptos context used to inject a delivery backend.
 ///
-/// Register this in your Axum router via
-/// [`provide_context`](leptos::context::provide_context) or
-/// [`handle_server_fns_with_context`](leptos_axum::handle_server_fns_with_context).
+/// Register this in your Axum router with
+/// [`provide_context`](leptos::context::provide_context) inside the closure
+/// passed to `leptos_routes_with_context`.
 ///
 /// # Example (Axum)
 ///
@@ -77,7 +77,8 @@ pub trait ContactDelivery: Send + Sync + 'static {
 /// use leptos_hl_contact::delivery::noop::NoopDelivery;
 ///
 /// let delivery: ContactDeliveryContext = Arc::new(NoopDelivery);
-/// // Provide to both the server-function handler and the SSR renderer.
+/// // Provide it in the closure passed to `leptos_routes_with_context`; the
+/// // same closure serves page renders and server functions.
 /// provide_context(delivery);
 /// ```
 pub type ContactDeliveryContext = Arc<dyn ContactDelivery>;

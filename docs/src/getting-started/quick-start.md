@@ -76,14 +76,14 @@ typed values.
 
 ## Step 3 — Provide the backend to Leptos
 
-Leptos runs server functions in a handler separate from the SSR renderer,
-so the delivery context must be provided in **both** places.
-`delivery_context_fn` builds one closure you can pass to each.
+Everything the crate reads from context goes in the one closure you pass to
+`leptos_routes_with_context`.  `delivery_context_fn` builds that closure for
+the delivery backend.
 
 ```rust,ignore
-use axum::{Router, body::Body, extract::Request, routing::post};
+use axum::Router;
 use leptos::config::get_configuration;
-use leptos_axum::{LeptosRoutes, generate_route_list, handle_server_fns_with_context};
+use leptos_axum::{LeptosRoutes, generate_route_list};
 use leptos_hl_contact::axum_helpers::delivery_context_fn;
 
 let ctx = delivery_context_fn(delivery);
@@ -93,19 +93,15 @@ let leptos_options = conf.leptos_options.clone();
 let routes = generate_route_list(App);
 
 let app = Router::new()
-    .route("/api/{*fn_name}", post({
-        let ctx = ctx.clone();
-        move |req: Request<Body>| {
-            let ctx = ctx.clone();
-            async move { handle_server_fns_with_context(ctx, req).await }
-        }
-    }))
     .leptos_routes_with_context(&leptos_options, routes, ctx, App)
     .with_state(leptos_options);
 ```
 
-> Axum 0.8 writes wildcard segments as `{*fn_name}`.  The older `*fn_name`
-> form panics at startup.
+> One closure covers both page renders and `submit_contact`:
+> `leptos_routes_with_context` registers each server function at its own path
+> using the same closure.  You do not need a `/api/{*fn_name}` route of your
+> own, and a context value provided only on such a route would not reach the
+> server function.
 
 ## Step 4 — Place the component
 

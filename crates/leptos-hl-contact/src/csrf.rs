@@ -17,9 +17,10 @@
 // # Usage in Axum
 //
 // 1. Build a `CsrfConfig` from an environment variable and wrap it in `Arc`.
-// 2. Provide `Arc<CsrfConfig>` via `provide_context` in both the SSR renderer
-//    closure and the server-function handler closure.
-// 3. In the SSR renderer closure, also call `provide_context(generate_csrf_token(&config))`.
+// 2. Provide `Arc<CsrfConfig>` via `provide_context` in the closure passed to
+//    `leptos_routes_with_context`; that closure serves page renders and
+//    server functions alike.
+// 3. In the same closure call `provide_context(generate_csrf_token(&config))`.
 //    Leptos creates a fresh context per request, so each page render gets a
 //    unique token.
 // 4. `ContactForm` detects the `CsrfToken` context and embeds the token as a
@@ -42,9 +43,8 @@ type HmacSha256 = Hmac<Sha256>;
 
 /// Configuration for the anti-automation token helper (feature `csrf`).
 ///
-/// Provide this as `Arc<CsrfConfig>` via Leptos context in **both**:
-/// - the SSR renderer closure
-/// - the server-function handler closure
+/// Provide this as `Arc<CsrfConfig>` via Leptos context in the closure passed
+/// to `leptos_routes_with_context`.
 ///
 /// # Security
 ///
@@ -103,10 +103,11 @@ impl CsrfConfig {
 /// Origin validation is the CSRF control.  See the
 /// [security documentation](https://github.com/nabbisen/leptos-hl-contact/blob/main/docs/src/security/csrf.md).
 ///
-/// Provide this via Leptos context in the **SSR renderer closure only** (not
-/// in the server-function handler closure — each context is request-scoped).
-/// `ContactForm` reads this context and inserts the value into a hidden
-/// `<input name="csrf_token">` field automatically.
+/// Provide this via Leptos context in the context closure.  It is read only
+/// by page renders — `submit_contact` verifies the token the form submitted —
+/// but it is harmless to generate on every request.  `ContactForm` reads this
+/// context and inserts the value into a hidden `<input name="csrf_token">`
+/// field automatically.
 ///
 /// # Example
 ///
@@ -114,7 +115,7 @@ impl CsrfConfig {
 /// use leptos_hl_contact::csrf::{CsrfConfig, CsrfToken, generate_csrf_token};
 /// use std::sync::Arc;
 ///
-/// // In your SSR renderer context closure:
+/// // In your context closure:
 /// let token: CsrfToken = generate_csrf_token(&csrf_config);
 /// leptos::context::provide_context(token);
 /// ```
@@ -228,8 +229,8 @@ pub fn verify_csrf_token(token: &str, config: &CsrfConfig) -> bool {
 
 /// Type alias for the Leptos context used to inject CSRF configuration.
 ///
-/// Provide this in **both** the SSR renderer and the server-function handler
-/// closures so that token verification works for every `submit_contact` call.
+/// Provide this in the closure passed to `leptos_routes_with_context` so that
+/// token verification works for every `submit_contact` call.
 pub type CsrfConfigContext = Arc<CsrfConfig>;
 
 // ---------------------------------------------------------------------------
