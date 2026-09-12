@@ -2,9 +2,11 @@
 
 use crate::error::FIELD_ERROR_PREFIX;
 
+/// The sentinel is part of the wire contract between `submit_contact` and
+/// `ContactForm` (External Design §4.2.3); changing it is a breaking change.
 #[test]
-fn field_error_prefix_is_not_empty() {
-    assert!(!FIELD_ERROR_PREFIX.is_empty());
+fn field_error_prefix_is_the_wire_sentinel() {
+    assert_eq!(FIELD_ERROR_PREFIX, "field_errors:");
 }
 
 #[test]
