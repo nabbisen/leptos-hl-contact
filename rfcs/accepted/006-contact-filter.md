@@ -1,6 +1,9 @@
 # RFC 006 — Pre-delivery filter hook
 
-**Status.** Proposed — 2026-09-12.
+**Status.** Accepted — proposed and accepted by the owner on 2026-09-12,
+with the instruction that developers must not be confused between the
+anti-abuse layers.  Amended at acceptance: D4.
+**Handoffs.** [`../handoffs/006-contact-filter/README.md`](../handoffs/006-contact-filter/README.md)
 **Tracks.** Roadmap M3 item P-25.  Requirement FR-ABUSE-14 (SHOULD).
 External Design §5.3 layer 9.
 **Touches.** New `filter.rs`, `server.rs`, `error.rs`, `config.rs`,
@@ -76,6 +79,33 @@ differs per deployment.
 domain; an outline for calling an external classifier with a timeout and
 fail-open; chaining.  A note that filters see PII and must follow
 FR-OBS-02 in their own logs.
+
+### D4 — Developer clarity (amendment at acceptance)
+
+The crate now has five server-side anti-abuse mechanisms.  Rules so they
+read as one design:
+
+| Mechanism | The question it answers | Configured by | Runs | Visitor sees on failure |
+|-----------|-------------------------|---------------|------|-------------------------|
+| Honeypot | Did a bot fill the hidden field? | nothing | always | success (silent) |
+| Form token | Did the sender fetch our page recently, not too fast, (bound to this browser)? | `FormTokenContext` | when configured | "reload" / "wait a moment" |
+| Server policy | Does the input meet this site's structural limits? | `ContactServerPolicy` | when configured | field error |
+| Challenge | Did a vendor judge the sender human? | `ChallengeContext` + `challenge` prop | when configured | "complete the check" |
+| Filter | Does this site want this content? | `ContactFilterContext` | when configured | generic rejection or silent |
+
+- Every server-side value is a `*Context` type provided the same way in
+  the same closure; no mechanism reads environment variables or global
+  state.
+- Each mechanism has exactly one home page in the Security section; the
+  Security overview carries the table above and nothing else about them.
+- `ContactFilter` never receives unvalidated input and never produces a
+  field error; `ContactServerPolicy` never judges content.  The two do
+  not overlap.
+- Names: `FilterDecision::{Accept, Reject, SilentDrop}` — no "Allow",
+  "Deny", "Drop", "Spam" synonyms anywhere in code or docs.
+- The generic rejection label is `rejected`, distinct from every
+  challenge and token label, so an integrator reading logs or labels can
+  tell which layer acted.
 
 ## Alternatives considered
 

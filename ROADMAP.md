@@ -99,13 +99,13 @@ fail-closed, with an explicit opt-in to accept them under honeypot-only
 protection; an HTTP client dependency is accepted behind a
 `challenge-http` feature.
 
-RFCs are written in this order; each needs acceptance before its handoff.
+All three RFCs (004, 005, 006) were accepted on 2026-09-12; handoffs exist for each.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
 | P-12 | Anti-forgery token redesign **plus token minimum age**: decide binding (cookie / session) or reposition as anti-automation "form token" and rename; reject submissions younger than a configurable number of seconds since the page render (JS-free bot signal); resolve the client-side-navigation case where a form created in the browser has no SSR token (new finding 2026-09-12) | **High** | [RFC 004](./rfcs/accepted/004-form-token.md) | verified by design reading |
-| P-21 | Challenge providers: `challenge` prop renders the widget and a hidden token field inside the form; `ChallengeVerifier` trait; built-in Turnstile, hCaptcha, reCAPTCHA v2/v3 behind `challenge-http`; fail-closed; no-JS policy per owner decision; vendor test keys in CI; verify-endpoint timeout and outage behaviour defined | **High** | [RFC 005](./rfcs/proposed/005-challenge-providers.md) | decided |
-| P-25 | Pre-delivery filter hook: `ContactFilter` trait returning accept / reject / silent-drop for a validated submission, for content heuristics or third-party spam services | Medium | [RFC 006](./rfcs/proposed/006-contact-filter.md) | new 2026-09-12 |
+| P-21 | Challenge providers: `challenge` prop renders the widget and a hidden token field inside the form; `ChallengeVerifier` trait; built-in Turnstile, hCaptcha, reCAPTCHA v2/v3 behind `challenge-http`; fail-closed; no-JS policy per owner decision; vendor test keys in CI; verify-endpoint timeout and outage behaviour defined | **High** | [RFC 005](./rfcs/accepted/005-challenge-providers.md) | decided |
+| P-25 | Pre-delivery filter hook: `ContactFilter` trait returning accept / reject / silent-drop for a validated submission, for content heuristics or third-party spam services | Medium | [RFC 006](./rfcs/accepted/006-contact-filter.md) | new 2026-09-12 |
 
 ### M4 — Reach (proposed release: 0.6.x)
 
@@ -114,6 +114,7 @@ RFCs are written in this order; each needs acceptance before its handoff.
 | P-20 | Multi-language label presets (GUI rule requires i18n; depends on P-14 for server messages) | Medium | RFC |
 | P-22 | HTTP-API delivery adapters: Resend, SendGrid, AWS SES (existing Future items) | TBD | RFC per adapter |
 | P-23 | Cloudflare Workers compatibility: `lettre` with tokio and native TLS cannot run on Workers; requires a fetch-based delivery adapter and a runtime-neutral core; owner decision on target platforms | TBD (owner decision) | RFC |
+| P-26 | Scheduled CI job running the `#[ignore]` live tests against challenge-vendor test keys; deferred by the owner on 2026-09-12 because it carries a cost; needs its own RFC | TBD (owner) | RFC |
 | P-24 | Dependency and CI hygiene: `rand` 0.8 → 0.9, consider `subtle` for constant-time comparison, CI matrix on MSRV 1.85 plus stable instead of Debian `rustc-1.91` only | Low | task |
 
 ### Future (unscheduled)

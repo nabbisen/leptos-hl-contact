@@ -1,9 +1,9 @@
 # RFC 005 — Challenge providers: Turnstile, hCaptcha, reCAPTCHA
 
-**Status.** Proposed — 2026-09-12.  Implements owner decisions of the same
-day (providers, no-JS policy, `challenge-http` dependency).  Adds a new
-external integration; **owner acceptance required** for the remaining
-design choices in §Open questions.
+**Status.** Accepted — proposed and accepted by the owner on 2026-09-12
+(`min_score` default 0.5; live vendor tests manual only, CI scheduling
+deferred to a future RFC).  Amended at acceptance: see §Amendments.
+**Handoffs.** [`../handoffs/005-challenge-providers/README.md`](../handoffs/005-challenge-providers/README.md)
 **Tracks.** Roadmap M3 item P-21.  Requirements FR-ABUSE-10, FR-ABUSE-11,
 FR-ABUSE-12, NFR-PRIV-02.  External Design §5.3 layer 8.
 **Touches.** New `challenge.rs` (+ `challenge/http.rs`), `components.rs`,
@@ -226,12 +226,28 @@ Three handoffs: (1) core trait, config, codes, decision table with mock
 verifier, server arguments; (2) component rendering for four providers
 and no-JS; (3) `challenge-http` verifiers, live tests, example, docs.
 
-## Open questions for the owner
+## Owner decisions
 
-1. Default `min_score` for reCAPTCHA v3: 0.5 (Google's suggested
-   starting point, recommended).
-2. Weekly scheduled live tests against vendor endpoints: acceptable, or
-   manual only.
+1. Default `min_score` for reCAPTCHA v3 is **0.5**.
+2. Live tests against vendor endpoints are **manual only** (`#[ignore]`,
+   run by hand).  A scheduled CI job is a future RFC because it has a
+   cost for the owner (roadmap P-26).
+
+## Amendments at acceptance
+
+- **No `challenge` feature flag.**  The trait, config, codes, and decision
+  logic have no dependencies and are compiled whenever `ssr` is; the
+  client-visible widget types live in `config` and are always compiled.
+  Only the built-in HTTP verifiers sit behind `challenge-http`.  One flag
+  for one dependency; nothing for developers to pair up.
+- **`ChallengeWidget::new` validates `site_key` and `action`** to
+  `[A-Za-z0-9_-]` so the values can be embedded in markup and in the v3
+  inline script without escaping concerns.
+- **reCAPTCHA v3 tokens are single-use**, so the inline script fetches a
+  token on every submit rather than at load; the load-time call in D1 is
+  dropped.
+- **D5 testing**: the "weekly scheduled" sentence is replaced by "manual,
+  `cargo test -- --ignored` with the vendor test keys".
 
 ## Release implications
 
