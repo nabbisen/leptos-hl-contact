@@ -1,0 +1,555 @@
+# External Design
+
+> **Document status.** Draft 1, proposed by the architect on 2026-09-12
+> against baseline `0.3.3` (commit `8d29d5a`).  Awaiting owner approval.
+>
+> **What this document is.** The external (basic) design: everything an
+> integrator, a visitor, an operator, or an adversary can observe at the
+> crate's boundaries.  Interfaces, behaviour, data formats, guarantees.
+> It does not describe module internals; see [Architecture](./architecture.md).
+> Exhaustive signatures are in the [API Reference](../reference/api.md).
+>
+> **Conventions.** Requirement identifiers in brackets, for example
+> [FR-SUB-02], refer to the [Requirements Specification](./requirements.md).
+> Where the current implementation differs from the design, the row is
+> marked **current** / **target** and the roadmap item is cited.
+
+---
+
+## 1. System context
+
+```text
+                                  integrator-operated                     third parties
+ ┌──────────────┐        ┌────────────────────────────────┐
+ │   Visitor    │ HTTPS  │  Reverse proxy / TLS / WAF      │
+ │  browser,    ├───────▶│  (sets X-Forwarded-For)         │
+ │  JS or no-JS │        └───────────────┬────────────────┘
+ └──────────────┘                        │ HTTP
+        ▲                ┌───────────────▼────────────────┐
+        │                │  Leptos + Axum application      │
+        │  optional      │  ┌────────────────────────────┐ │
+        │  Turnstile     │  │  leptos-hl-contact          │ │      ┌────────────────┐
+        │  widget        │  │  ContactForm   (SSR + CSR)  │ │      │ SMTP relay or  │
+        │                │  │  submit_contact (SSR only)  │ │      │ mail API       │
+        │                │  │  ContactDelivery ───────────┼─┼─────▶│ → operator     │
+        │                │  └────────────────────────────┘ │      │   inbox        │
+        │                │  application provides:          │      └────────────────┘
+        │                │   · Leptos contexts (2 sites)   │
+        │                │   · rate limit, origin check,   │      ┌────────────────┐
+        │                │   · body limit, TLS             ├─────▶│ Turnstile      │
+        │                └────────────────────────────────┘      │ siteverify     │
+        │                                                        └────────────────┘
+        └──── challenge script (optional) ───────────────────────────────┘
+```
+
+### 1.1 Trust boundaries
+
+| Zone | Trust | Notes |
+|------|-------|-------|
+| Browser | Untrusted | Every value it sends is validated again on the server [FR-SUB-05] |
+| Application process | Trusted | Holds SMTP credentials, token secret, recipient address |
+| Reverse proxy | Trusted for client IP | Rate limiting keys on `X-Forwarded-For` only if the proxy sets it |
+| SMTP relay / mail API | Semi-trusted | Receives credentials and message content over TLS |
+| Turnstile (optional) | Third party | Receives visitor signals; must be disclosed by the integrator [NFR-PRIV-02] |
+
+### 1.2 Responsibility split
+
+| Concern | Crate | Application |
+|---------|-------|-------------|
+| Form markup, states, ARIA | ✅ | styles only |
+| Server-side validation, honeypot, policy | ✅ | — |
+| Anti-forgery token issue and verify (`csrf`) | ✅ | provide secret and contexts |
+| Origin / Referer validation | documents + example | ✅ middleware |
+| Rate limiting | documents + example | ✅ middleware |
+| Request body limit | documents + example | ✅ layer |
+| TLS | — | ✅ proxy |
+| Delivery transport | ✅ SMTP, no-op; trait for others | choose and configure |
+| Secrets | typed fields, redacted `Debug` | load from env or secret store |
+| CAPTCHA | guide (adapter under consideration, P-21) | ✅ today |
+
+---
+
+## 2. Integration model
+
+### 2.1 Steps an integrator performs
+
+1. Add the crate to the server binary with `ssr` plus the backends and
+   helpers wanted, and to the WASM binary with `hydrate`.
+2. Construct a delivery backend and wrap it as `Arc<dyn ContactDelivery>`.
+3. (Optional) Construct `CsrfConfig` from a secret and a TTL; construct
+   `ContactServerPolicy`.
+4. Provide the context values at **both context sites** (§2.2).
+5. Add application-level layers: body limit, rate limit, origin check.
+6. Place `<ContactForm/>` in a page, passing classes, labels, options.
+
+### 2.2 Context sites and required values
+
+| Context value | Type | Server-fn handler | SSR renderer | If missing |
+|---------------|------|-------------------|--------------|------------|
+| Delivery backend | `ContactDeliveryContext` = `Arc<dyn ContactDelivery>` | **required** | required (harmless if absent, kept for symmetry) | `error` log; generic "not configured" message [FR-SUB-08] |
+| Token config (`csrf`) | `CsrfConfigContext` = `Arc<CsrfConfig>` | **required** | **required** (to issue tokens) | fail-closed: `error` log; generic "security not configured" message [FR-ABUSE-04] |
+| Per-request token (`csrf`) | `CsrfToken` | must not be provided | **required**, freshly generated per request | form renders an empty hidden field; every submit fails verification |
+| Server policy | `ContactServerPolicy` | optional | optional | validator limits apply (4 000 chars, subject optional) |
+
+The two-site rule is a Leptos constraint: server functions execute in a
+handler that does not share the SSR renderer's context.
+
+### 2.3 Rendering modes
+
+| Mode | Component runs | Server function | Notes |
+|------|----------------|-----------------|-------|
+| SSR + hydrate | server, then browser | server | Full interactivity; the hidden token is rendered by SSR and preserved by hydration (tachys does not rewrite static attributes on first hydration) |
+| SSR only, no WASM shipped | server | server | Plain POST; behaviour per §4.1.4 |
+| Islands | server; island in browser | server | Same as SSR + hydrate for the island |
+
+---
+
+## 3. Data seen at the boundary
+
+| Item | Direction | Contains PII | Where it lives |
+|------|-----------|--------------|----------------|
+| Form fields | browser → server | yes | request body only; never persisted [FR-OBS-04] |
+| Field-error payload | server → browser | no (generic text) | server-fn error, or `__err` URL parameter in no-JS mode |
+| Generic error text | server → browser | no | same |
+| Email message | server → relay | yes | SMTP session |
+| Log events | server → log sink | no [FR-OBS-02] | operator's logging |
+| Token | server → browser → server | no | hidden field |
+
+---
+
+## 4. External interfaces
+
+### 4.1 UI component `ContactForm`
+
+#### 4.1.1 Props
+
+| Prop | Type | Default | Purpose |
+|------|------|---------|---------|
+| `classes` | `ContactFormClasses` | all empty | CSS hook per structural element [FR-UI-03] |
+| `labels` | `ContactFormLabels` | English | Every rendered string [FR-UI-02] |
+| `options` | `ContactFormOptions` | subject shown, optional, 4 000 | UI behaviour [FR-UI-11] |
+
+#### 4.1.2 DOM contract
+
+The following identifiers and attributes are **public API** [NFR-COMPAT-05].
+
+| Element | `id` | `name` | Fixed attributes | Class hook |
+|---------|------|--------|------------------|------------|
+| wrapper `<div>` | — | — | — | `root` |
+| success `<div>` | — | — | `role="status" aria-live="polite"` | `success` |
+| generic error `<div>` | — | — | `role="alert" aria-live="assertive"` | `error` |
+| `<form>` (`ActionForm`) | — | — | `method="post" action="/api/submit_contact"` | — |
+| field wrapper `<div>` ×4 | — | — | — | `field` |
+| `<label>` ×4 | — | — | `for` = input id | `label` |
+| name `<input>` | `contact-name` | `name` | `type=text required maxlength=80 autocomplete=name aria-required=true` | `input` |
+| email `<input>` | `contact-email` | `email` | `type=email required maxlength=254 autocomplete=email aria-required=true` | `input` |
+| subject `<input>` (if shown) | `contact-subject` | `subject` | `type=text maxlength=120`; `required`/`aria-required` follow `require_subject` | `input` |
+| message `<textarea>` | `contact-message` | `message` | `required maxlength=<options> rows=6 aria-required=true` | `textarea` |
+| field error `<p>` | `<input-id>-error` | — | `role="alert" aria-live="polite"` | `error` |
+| token `<input>` | — | `csrf_token` | `type=hidden` | — |
+| honeypot wrapper `<div>` | — | — | `aria-hidden=true`, off-screen inline style | — |
+| honeypot `<input>` | `contact-website` | `website` | `type=text tabindex=-1 autocomplete=off` | — |
+| submit `<button>` | — | — | `type=submit`; `disabled` and `aria-busy` while pending | `button` |
+
+When a field has an error its input additionally carries
+`aria-invalid="true"` and `aria-describedby="<input-id>-error"` [FR-A11Y-03].
+
+Because ids are fixed, at most one `ContactForm` per page is supported.
+Supporting several instances would require an id-prefix prop; not planned.
+
+#### 4.1.3 State model
+
+```text
+                 submit
+   ┌──────────┐ ───────▶ ┌──────────┐  Ok(())   ┌──────────────────────┐
+   │   idle   │          │ pending  │ ────────▶ │ success              │
+   │          │ ◀─────── │ button   │           │ form removed,        │
+   └──────────┘  result  │ disabled │           │ status message shown │
+     ▲   ▲   ▲           └──────────┘           └──────────────────────┘
+     │   │   │                │
+     │   │   └── Err(field payload) ──▶ idle + per-field errors
+     │   │                                (inputs preserved: target, P-10)
+     │   │                                (focus → first invalid: target, P-16)
+     │   └────── Err(other) ──────────▶ idle + generic banner
+     └────────── visitor edits (errors stay until next submit)
+```
+
+| State | Visible | Announced | Current status |
+|-------|---------|-----------|----------------|
+| idle | form | — | Met |
+| pending | form, button disabled, text = `labels.sending` | `aria-busy` | Met |
+| success | success message only | polite | Met with JS; no-JS Gap (P-13) |
+| field-error | form, message under each failed field | polite alert per field | **Gap**: never rendered (P-02); input wiped on re-render (P-10) |
+| generic-error | form + banner with `labels.error` | assertive | Met |
+
+Design rule: the form element and its inputs MUST be created once and kept
+across result changes; only the error and success regions react.  The
+hidden token MUST be captured from the SSR-rendered DOM or from state that
+survives re-renders (target for P-10/P-11).
+
+#### 4.1.4 Behaviour with and without JavaScript
+
+| Event | With WASM | Without WASM (plain POST) |
+|-------|-----------|---------------------------|
+| Submit | `fetch` POST, form-encoded; page stays | Browser POST; server answers `302` to the Referer |
+| Success | state → success | **current**: page reloads showing an empty form, no confirmation.  **target** (P-13): confirmation shown, for example via a success marker the SSR renderer reads |
+| Field errors | payload parsed, shown per field (P-02) | framework appends `__err=<encoded>` to the Referer; SSR renders the action value from it and shows field errors [FR-PE-02]; input is lost by the reload |
+| Generic error | banner | same `__err` mechanism → banner |
+| Token | hidden field from SSR; **must survive re-render** (P-11) | fresh token on every render; always valid |
+
+### 4.2 HTTP interface
+
+| Property | Value |
+|----------|-------|
+| Path | `/api/submit_contact` (fixed by `endpoint = "submit_contact"`; the `/api` prefix is the Leptos default) |
+| Method | `POST` |
+| Request content type | `application/x-www-form-urlencoded` (Leptos default `PostUrl` encoding, identical for `<form>` and `fetch`) |
+| Response, WASM client | server-function encoding of `Result<(), ServerFnError>` |
+| Response, browser form | `302` redirect to the Referer; on error the framework appends `__err` |
+| HTTP status on error | determined by the Leptos server-function runtime; clients MUST rely on the encoded error, not on the status code |
+
+#### 4.2.1 Request fields
+
+| Field | Required | Server treatment |
+|-------|----------|------------------|
+| `name` | yes | trim; 1–80 chars; no CR/LF |
+| `email` | yes | trim; valid address |
+| `subject` | no | trim; blank → absent; ≤ 120 chars; no CR/LF; may be required by policy |
+| `message` | yes | trim; 1–4 000 chars; policy may lower the ceiling |
+| `website` | must be empty | non-empty → honeypot: success response, no delivery |
+| `csrf_token` | when `csrf` enabled | verified before anything else; absent = invalid |
+
+Unknown fields are ignored by the deserialiser.  Field order is irrelevant.
+
+#### 4.2.2 Error classes
+
+| Situation | Variant | Text (current, English) | Client rendering |
+|-----------|---------|-------------------------|------------------|
+| Field validation or policy failure | `ServerFnError::Args` | `field_errors:{"name":…,"email":…,"subject":…,"message":…}` | per field |
+| Token invalid or expired | `ServerFnError::Args` | "Invalid or expired security token. Please reload the page." | generic banner |
+| Token config missing | `ServerFnError::ServerError` | "Contact form security is not configured. …" | generic banner |
+| Delivery context missing | `ServerFnError::ServerError` | "Contact form is not configured. …" | generic banner |
+| Delivery failed | `ServerFnError::ServerError` | "Failed to send message. Please try again later." | generic banner |
+
+#### 4.2.3 Field-error payload protocol
+
+Current wire form: the `Args` message string is the sentinel `field_errors:`
+followed by compact JSON with four optional string members.  The client
+locates the sentinel inside the framework's `Display` output, which
+prefixes it with `error deserializing server function arguments: ` (this
+prefix is why the current `starts_with` check fails, P-02).  The client
+MUST therefore search for the sentinel as a substring, or match the error
+variant directly.
+
+Target form (P-14, to be decided in its RFC): the same sentinel, but each
+member carries a **code** rather than English text, for example
+`{"name":"length","email":"format","message":"length"}` plus an optional
+`limit` where relevant.  The component maps codes to `labels` entries.  The
+generic-error situations above likewise carry codes (`token_invalid`,
+`not_configured`, `delivery_failed`).  Text strings are then never composed
+on the server.  Both forms MUST be accepted by the client during one minor
+release to allow rolling upgrades.
+
+### 4.3 Server-side integration interface
+
+Covered by §2.2.  Additional guarantees:
+
+- `submit_contact` never panics on missing context; it logs and returns an
+  error.
+- Context values are read once per request; no global state.
+- `ContactServerPolicy` can only tighten limits.  Values above the hard
+  ceiling are clamped to it (target, P-07).
+
+### 4.4 Delivery interface
+
+#### 4.4.1 Trait contract
+
+`ContactDelivery::deliver(&self, input: ContactInput) -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>>`
+
+| Guarantee | Detail |
+|-----------|--------|
+| Input | already trimmed, validated, honeypot-checked, policy-checked [FR-DEL-02] |
+| Concurrency | may be called concurrently; implementations hold no per-call mutable state |
+| Errors | four categories: `Configuration`, `Transport`, `MessageBuild`, `Internal`; detail is logged by the crate, never shown to the visitor |
+| Time | **current**: unbounded; **target**: integrators wrap slow backends with a timeout, and a queue adapter exists (Future) [FR-DEL-08] |
+
+#### 4.4.2 Email message specification (SMTP backend)
+
+| Header / part | Value | Source |
+|---------------|-------|--------|
+| `From` | `from_address` | server config only |
+| `To` | `to_address` | server config only |
+| `Reply-To` | `"<name>" <email>` built with `Mailbox::new`, display name encoded per RFC 5322 / RFC 2047 | visitor (validated) |
+| `Subject` | `<subject_prefix> <subject or "(no subject)">`, both CR/LF-sanitised | config + visitor |
+| `Content-Type` | `text/plain; charset=utf-8` | fixed |
+| Body | see template | visitor |
+
+Body template:
+
+```text
+New contact form submission
+===========================
+
+Name:
+<name>
+
+Email:
+<email>
+
+Subject:
+<subject or "(none)">
+
+Message:
+<message>
+```
+
+The visitor's address is never used in `From` (SPF/DKIM alignment and
+anti-spoofing).  Message body text is not sanitised beyond the length limit
+because it is body content, not a header.
+
+#### 4.4.3 Backend behaviour matrix
+
+| Backend | Feature | Transport | TLS modes | Logs |
+|---------|---------|-----------|-----------|------|
+| `NoopDelivery` | none | discards | — | `debug` "discarding contact form submission" |
+| `LettreSmtpDelivery` | `smtp-lettre` | SMTP via `lettre`, tokio, native TLS | `StartTls` (587, default), `Tls` (465), `DangerousPlaintext` | `info` on success, `error` with transport detail on failure |
+| custom | — | integrator-defined | — | integrator-defined; MUST follow [FR-OBS-02] |
+
+### 4.5 Configuration interface
+
+#### 4.5.1 Feature flags
+
+| Flag | Implies | Adds |
+|------|---------|------|
+| `hydrate` | — | client hydration |
+| `ssr` | — | server function body, SSR |
+| `islands` | — | Islands mode |
+| `smtp-lettre` | `ssr` | `delivery::smtp` |
+| `axum-helpers` | `ssr` | `axum_helpers` |
+| `csrf` | `ssr` | `csrf` module, token field verification |
+
+`default = []`.  Features are additive; enabling one never removes an API.
+
+#### 4.5.2 Typed configuration
+
+| Type | Fields | Secret | Notes |
+|------|--------|--------|-------|
+| `SmtpConfig` | host, port, username, password, from_address, to_address, subject_prefix, tls_mode | password (redacted in `Debug`) | never serialised |
+| `CsrfConfig` | secret_key (≥ 32 random bytes recommended), token_ttl_secs (default 3 600) | secret_key (redacted) | never serialised |
+| `ContactServerPolicy` | require_subject, max_message_len | — | tighten-only |
+| `ContactFormOptions` | show_subject, require_subject, max_message_len | — | UI only, not a security boundary |
+
+#### 4.5.3 Environment variable conventions
+
+The crate reads no environment variables [FR-SUB-10].  Examples and
+documentation use these names consistently so integrators can copy them:
+
+`SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `CONTACT_TO`,
+`CSRF_SECRET`, `ALLOWED_ORIGIN`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET`.
+
+### 4.6 Observability interface
+
+| Level | Event | Structured fields | PII |
+|-------|-------|-------------------|-----|
+| `warn` | honeypot triggered | — | none |
+| `debug` | validation failed | `name_err`, `email_err`, `subject_err`, `message_err` (booleans) | none |
+| `warn` | CSRF token verification failed | — | none |
+| `debug` | token expired / future timestamp | `timestamp`, `now` | none |
+| `error` | `CsrfConfigContext` not provided | — | none |
+| `error` | `ContactDeliveryContext` not provided | — | none |
+| `error` | delivery failed | `error` (category + transport text) | none by contract; relays may echo addresses in SMTP replies, integrators SHOULD review log retention |
+| `info` | delivered via SMTP | — | none |
+| `debug` | no-op backend discarded submission | — | none |
+
+---
+
+## 5. Security external design
+
+### 5.1 Assets
+
+SMTP credentials; token secret; operator inbox (its reachability and
+reputation); visitor PII in transit; the application's availability.
+
+### 5.2 Threat model
+
+| # | Threat | Vector | Control | Owner | Status |
+|---|--------|--------|---------|-------|--------|
+| T1 | Email header injection | CR/LF in name or subject | validator rejects; `sanitize_header_value` at build; `Mailbox::new` encoding | crate | Met |
+| T2 | Sender spoofing / SPF failure | visitor address as `From` | `From` always server-configured | crate | Met |
+| T3 | Credential or recipient leak to client | serialising config into WASM or responses | config types exist only server-side; redacted `Debug` | crate | Met |
+| T4 | Automated spam | bots posting the form | honeypot; token (proof of prior page fetch); rate limit; Turnstile | crate + app | Met (layers documented) |
+| T5 | Cross-site request forgery | victim's browser posts from another origin | **Origin / Referer validation** (app); token alone does not prevent this (§5.4) | app | Documented; naming decision pending (P-12) |
+| T6 | Token replay | reuse of one token within TTL | not prevented by design (stateless); TTL bounds the window; rate limit bounds volume | — | Accepted risk pending P-12 |
+| T7 | Flooding / resource exhaustion | many POSTs, large bodies | rate limit; 32 KiB body limit; 4 000-char message ceiling | app + crate | Met |
+| T8 | Information disclosure through errors | stack traces or relay errors reaching the visitor | generic messages; details only in logs | crate | Met |
+| T9 | PII leakage through logs | logging fields | no PII in events | crate | Met |
+| T10 | Timing attack on token | byte-by-byte comparison | constant-time comparison | crate | Met |
+| T11 | Clock skew abuse | far-future timestamps | 60 s future tolerance, TTL | crate | Met |
+| T12 | Silent insecure misconfiguration | missing context, default secret | fail-closed; examples require env vars | crate + examples | Met |
+| T13 | Stored XSS through the form | echoing input in HTML | input never echoed; Leptos escapes | crate | Met |
+| T14 | Relay abuse as open relay | attacker-controlled `To` | `To` fixed by config | crate | Met |
+| T15 | Slow relay holding connections | delivery without timeout | none today | crate | Gap [FR-DEL-08] |
+
+### 5.3 Anti-abuse layering
+
+Ordered from the edge inward; each layer removes cheap attacks before more
+expensive checks run.
+
+1. TLS termination and WAF (proxy).
+2. Request body limit (app layer).
+3. Rate limit keyed by client IP (app layer).
+4. Origin / Referer strict match on POST (app middleware). **This is the
+   CSRF control.**
+5. Anti-forgery / anti-automation token (crate, `csrf` feature): proves the
+   sender fetched a page from this server within the TTL.
+6. Honeypot (crate).
+7. Field validation and server policy (crate).
+8. Optional CAPTCHA verification (app today; adapter under consideration).
+
+### 5.4 Anti-forgery token: current design and decision
+
+**Current.** `{unix_seconds}|{16-byte nonce hex}|{HMAC-SHA256 hex}`, signed
+with `secret_key`, valid for `token_ttl_secs`, constant-time verified.  It
+is issued to any SSR request and is not tied to a cookie, session, or IP.
+
+**What it proves.** The bearer obtained a token from this server within the
+TTL.  **What it does not prove.** That the bearer is the visitor whose
+browser is now submitting.  An attacker can fetch a token and embed it in a
+cross-site form; the victim's browser will submit it and verification
+succeeds.  For an unauthenticated contact form the harm of such forgery is
+low (the attacker could post directly), which is why the honest description
+is "anti-automation", not "CSRF protection".
+
+**Options for the RFC (P-12).**
+
+| Option | Description | Pros | Cons |
+|--------|-------------|------|------|
+| A. Cookie binding (double submit) | Also set a `SameSite=Lax`, `HttpOnly` cookie containing the nonce (or a signed value); verify hidden field and cookie agree | Real CSRF property; stateless | Needs response-header access: feasible in `axum-helpers`, not in the framework-neutral core; cookie consent considerations |
+| B. Session binding | Bind token to an application session id supplied via context | Strongest | Requires the app to have sessions; most static sites do not |
+| C. Reposition and rename | Keep the token as an anti-automation "form token"; document Origin validation as the CSRF control; rename feature/API in a minor release with deprecation aliases | Honest, cheap, keeps the useful bot friction | Rename churn |
+| D. Remove | Drop the feature | Simplest | Loses useful bot friction |
+
+**Architect recommendation.** C now (documentation and naming truthfulness
+belong in M1/M2), with A offered as an opt-in inside `axum-helpers` in the
+same RFC so Axum users get a genuine CSRF property without sessions.  Final
+decision is the owner's.
+
+### 5.5 Data classification and retention
+
+| Data | Class | Retention by crate |
+|------|-------|--------------------|
+| name, email, message | PII | none; passes through to delivery |
+| client IP | PII | never seen by the crate; used by the app's rate limiter |
+| token | non-secret, short-lived | none |
+| secrets | secret | in-memory config only |
+
+---
+
+## 6. Internationalisation design
+
+| Aspect | Current | Target |
+|--------|---------|--------|
+| Component strings | `ContactFormLabels`, all overridable | unchanged; add presets (P-20), for example `ContactFormLabels::ja()` |
+| Server-originated messages | English composed on the server | codes on the wire (§4.2.3); component maps code → `labels` entry (P-14).  New label fields: per-field `length`/`format`/`required` texts, `token_invalid`, `not_configured` |
+| Text direction | not set by the component | unchanged; integrator sets `dir` on the host page or wrapper class |
+| Length limits | characters (validator), bytes (policy) | characters everywhere (P-04) |
+| Email header encoding | RFC 2047 via lettre | unchanged |
+| Language attribute | not set | unchanged; belongs to the page |
+
+Design rule: the crate never chooses a language.  It renders whatever
+strings it is given and, after P-14, never composes visitor-facing text on
+the server.
+
+---
+
+## 7. Accessibility contract
+
+The full behaviour is in [Accessibility](../guides/accessibility.md).  The
+contract, in one table:
+
+| Aspect | Guarantee |
+|--------|-----------|
+| Labels | explicit `<label for>` for every control |
+| Required | `required` + `aria-required` |
+| Errors | `aria-invalid`, `aria-describedby`, polite `role="alert"` per field |
+| Status | polite live region on success, assertive on generic error |
+| Busy | `aria-busy` and text change on the button |
+| Honeypot | `aria-hidden`, out of tab order, off-screen |
+| Focus | native outlines untouched; **target**: focus to first invalid field after failure (P-16) |
+| Colour | none shipped; state always in text |
+
+---
+
+## 8. UX design principles applied
+
+The project rule is "less is more".  Applied here:
+
+- **Three required fields and one optional.**  Nothing else is shown by
+  default.  Phone, company, consent checkboxes are deliberately absent; an
+  integrator who needs them wraps the component or waits for the slot API
+  (Future).
+- **One primary action.**  The button is the only control besides inputs.
+- **Feedback where the eye is.**  Field errors sit under their field; the
+  success message replaces the form so the visitor cannot double-submit.
+- **Never punish the visitor for a server-side decision.**  Typed input is
+  preserved on error (target); the token never expires under a visitor who
+  took a while to write (one-hour TTL by default).
+- **No CAPTCHA by default.**  Friction is added only when the integrator
+  decides the threat justifies it; layers are opt-in in documented order.
+- **Advanced controls exist for mature integrators** (policy, token, custom
+  delivery) but are invisible to a first-time integrator following the
+  Quick Start.
+
+---
+
+## 9. Compatibility and versioning
+
+| Change | Classified as |
+|--------|---------------|
+| New optional prop, new feature flag, new label field with a default | non-breaking |
+| Change to element ids, field names, class hook names, ARIA attributes | breaking (minor in 0.x, with migration note) |
+| Change to the error payload format | breaking unless the client accepts both forms for one minor release (§4.2.3) |
+| Rename of the `csrf` feature or API | breaking; ship deprecation aliases for one minor |
+| MSRV bump | minor |
+| Defect fix that changes observable behaviour to match this document | patch |
+
+---
+
+## 10. Pending design decisions
+
+| ID | Topic | Options | Architect recommendation | Decides |
+|----|-------|---------|--------------------------|---------|
+| P-12 | Anti-forgery token | A cookie binding / B session / C reposition + rename / D remove | C, plus A as opt-in in `axum-helpers` | owner |
+| P-10/11/13/16 | Form state model | (i) keep single closure, stash inputs in signals; (ii) build form once, react only in error/success regions; (iii) controlled inputs | (ii): smallest change that satisfies FR-UI-07, FR-UI-12 and keeps no-JS identical | architect via RFC |
+| P-13 | No-JS success signal | (i) redirect with `?sent=1` read by SSR; (ii) render success from a server-set cookie; (iii) accept limitation and document | (i): stateless, no cookie, harmless if JS is on | architect via RFC |
+| P-14 | Error codes | (i) codes in existing JSON members; (ii) new JSON shape with version key | (i) with dual-accept period | architect via RFC |
+| P-23 | Cloudflare Workers | in scope / out of scope | out of scope for 0.4; revisit with P-22 adapters | owner |
+| P-21 | Turnstile adapter | bundle / keep as guide | bundle behind `turnstile` feature once P-14 lands (needs a localisable "complete the check" message) | owner |
+| FR-VAL-08 | Message ceiling | constant 4 000 / configurable with documented max | keep constant; raise only on evidence | owner |
+
+---
+
+## 11. Traceability
+
+| Requirement group | Design sections |
+|-------------------|-----------------|
+| FR-UI | 4.1 |
+| FR-SUB, FR-VAL | 4.2, 4.3 |
+| FR-ABUSE | 1.2, 5.2, 5.3, 5.4 |
+| FR-DEL | 4.4 |
+| FR-CFG | 2.2, 4.5 |
+| FR-I18N | 6 |
+| FR-A11Y | 4.1.2, 7 |
+| FR-PE | 2.3, 4.1.4 |
+| FR-OBS, NFR-PRIV | 3, 4.6, 5.5 |
+| NFR-SEC | 5 |
+| NFR-COMPAT | 4.1.2, 9 |
+| NFR-PORT | 1, 10 |
+
+---
+
+## 12. Change history
+
+| Date | Version | Change |
+|------|---------|--------|
+| 2026-09-12 | Draft 1 | Initial external design from architect baseline review of `0.3.3` |
