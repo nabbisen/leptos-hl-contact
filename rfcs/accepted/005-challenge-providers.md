@@ -214,6 +214,16 @@ into handoff 02:
   nonce, and is inserted only if absent; the server render keeps it in the
   form so hydration matches.
 
+## Amendment 2026-09-13 (3) — optional prop and no redirects
+
+- **D1.**  `ContactForm`'s `challenge` prop is `Option<ChallengeWidget>`
+  with `#[prop(optional_no_strip)]`, so a widget that exists only when keys
+  are configured is one form, not two.
+- **D4.**  `HttpChallengeVerifier` builds its client with redirects disabled.
+  The request body carries the vendor secret and `reqwest` re-attaches a body
+  when it follows a redirect; no siteverify endpoint redirects in normal
+  operation, so a 3xx is `Unavailable`.
+
 ## Alternatives considered
 
 | Alternative | Why not |

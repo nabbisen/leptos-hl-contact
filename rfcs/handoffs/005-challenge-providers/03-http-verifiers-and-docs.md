@@ -72,6 +72,14 @@ CI (`--all-features` already covers the new feature).
   rendered directly because their `ready` does not fire after the script has
   loaded, and reCAPTCHA through `ready`.
 
+## Corrections C1–C3 required by review (2026-09-13)
+
+C1: `challenge` prop becomes `#[prop(optional_no_strip)] Option<ChallengeWidget>`;
+one form in the example.  C2: verify client built with
+`redirect::Policy::none()`, with a 307 test.  C3: the Turnstile blocking
+site key yields `challenge_required`, said under the test-key table.  Details
+in `.git-exclude/reviewed/005-challenge/03-http-verifiers-and-docs.md`.
+
 ## Acceptance criteria
 
 - Tests pass; gates green; `cargo test --features challenge-http -- --ignored`
