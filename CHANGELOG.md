@@ -50,18 +50,20 @@ No version assigned; the owner decides the release number.
 - `issue_form_token_with_nonce`, for wiring binding into a framework other
   than Axum: it signs a nonce the browser already holds, and refuses
   anything that is not 32 hex characters.
-- **Tokens for forms the server did not render.**  A form reached by
-  client-side navigation arrives with an empty token field; `ContactForm`
-  now notices that from the DOM after mount and fetches a token from the new
-  `issue_form_token_fn` server function (`POST /api/form_token`).  A
-  server-rendered form already has one and makes no request.  With binding
-  on, the fetched token reuses the browser's nonce, and
-  `axum_helpers::provide_form_token_issuer` re-sends the cookie through the
-  new `FormTokenIssuer` context.
-- **Refresh before expiry.**  `ContactFormOptions::token_refresh_secs`,
-  default `Some(3540)`, fetches a replacement token that long after issue,
-  so a form left open does not submit an expired one.  Set it to
-  `ttl_secs - 60` if you change the TTL; `None` disables it.
+- **Browser-side form tokens, off by default.**
+  `ContactFormOptions::token_refresh_secs` (default `None`) is the switch.
+  Set it to `ttl_secs - 60` when the server issues form tokens, and:
+  - a form reached by client-side navigation, which arrives with an empty
+    token field, fetches one from the new `issue_form_token_fn` server
+    function (`POST /api/form_token`);
+  - the token is refreshed before it expires — once immediately if the
+    mounted token is already overdue, and after that timed from each new
+    token's arrival, so a wrong browser clock cannot cause a request loop.
+
+  With `None` the browser never calls that endpoint; a server-rendered form
+  behaves as before.  With binding on, the fetched token reuses the
+  browser's nonce, and `axum_helpers::provide_form_token_issuer` re-sends
+  the cookie through the new `FormTokenIssuer` context.
 - `FormTokenConfig` builders `with_ttl`, `with_min_age`, `with_binding`.
 
 ### Migration
@@ -88,6 +90,11 @@ Two things do not move by themselves:
 - **`min_age_secs` defaults to 2**, which is new behaviour.  A test that
   submits instantly will now see `too_fast`; call `.with_min_age(0)` for the
   old behaviour.
+- **Two structs gain a field.**  `ContactFormOptions` gains
+  `token_refresh_secs` and `ContactErrorLabels` gains `too_fast`.  An
+  exhaustive struct literal of either must add the field;
+  `..Default::default()` is unaffected.  `token_refresh_secs` defaults to
+  `None`, which is off.
 
 ### Documentation
 

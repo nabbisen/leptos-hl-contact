@@ -247,15 +247,20 @@ pub struct ContactFormOptions {
     /// input.  Client-side only.  Defaults to `true`.
     pub focus_first_error: bool,
 
-    /// Seconds after a form token's issue time at which the browser fetches
-    /// a replacement, so a form left open never submits an expired token.
-    /// Client-side only.  Defaults to `Some(3540)`.
+    /// Set this when the server issues form tokens.  It lets the browser
+    /// fetch a token for a form reached by client-side navigation, and fetch
+    /// a replacement before a token left open expires.  Client-side only.
     ///
-    /// The browser does not know the server's TTL, so this **should be
-    /// `ttl_secs - 60`**.  Values of 60 or less schedule nothing — they
-    /// correspond to a TTL of two minutes or less, where a refresh would race
-    /// the expiry.  `None` disables the refresh.  Has no effect without the
-    /// form token.
+    /// `ttl_secs - 60` is the right value — `Some(3540)` for the default
+    /// one-hour TTL — because the browser does not know the server's TTL.
+    /// Values of 60 or less still fetch a missing token but never refresh:
+    /// they mean a TTL of two minutes or less, where a refresh would race the
+    /// expiry.
+    ///
+    /// `None`, the default, means the browser never calls the token endpoint.
+    /// A server-rendered token is still submitted as rendered, but a form
+    /// reached by client-side navigation submits an empty token and shows the
+    /// token-invalid message.
     pub token_refresh_secs: Option<u64>,
 }
 
@@ -266,7 +271,7 @@ impl Default for ContactFormOptions {
             require_subject: false,
             max_message_len: MESSAGE_MAX_LEN,
             focus_first_error: true,
-            token_refresh_secs: Some(3540),
+            token_refresh_secs: None,
         }
     }
 }

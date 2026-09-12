@@ -203,11 +203,11 @@ pub async fn submit_contact(
 /// Issue a form token for a form that was not rendered with one.
 ///
 /// Leptos server function compiled to `POST /api/form_token`.  `ContactForm`
-/// calls it from the browser in two cases: the form was created by
-/// client-side navigation, so no server render put a token in it; or the
-/// token it has is close to expiry and
+/// calls it from the browser only when
 /// [`ContactFormOptions::token_refresh_secs`](crate::config::ContactFormOptions::token_refresh_secs)
-/// schedules a replacement.
+/// is set, and then in two cases: the form was created by client-side
+/// navigation, so no server render put a token in it; or the token it has is
+/// due for a refresh.
 ///
 /// On the server it reads
 /// [`FormTokenContext`](crate::form_token::FormTokenContext); without it the
@@ -254,6 +254,22 @@ pub(crate) fn token_issued_at(token: &str) -> Option<u64> {
     // A bare number is not a token.
     rest.contains('|').then_some(())?;
     timestamp.parse().ok()
+}
+
+/// Seconds until the token a form *mounted* with is due for refresh.
+///
+/// `issued` is that token's server timestamp and `now` the browser's clock.
+/// An overdue token yields `0`: refresh once, immediately.  Only the mounted
+/// token is measured this way.  A token received from the endpoint is
+/// refreshed `refresh` seconds after it arrives, on the browser clock alone,
+/// so however wrong that clock is, this function costs at most one early
+/// request per mount.
+#[cfg_attr(
+    not(all(feature = "hydrate", not(feature = "ssr"))),
+    allow(dead_code, reason = "used by the client refresh and by tests")
+)]
+pub(crate) fn mounted_refresh_delay(issued: u64, now: u64, refresh: u64) -> u64 {
+    issued.saturating_add(refresh).saturating_sub(now)
 }
 
 // ---------------------------------------------------------------------------

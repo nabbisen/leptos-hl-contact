@@ -67,6 +67,13 @@ fn HomePage() -> impl IntoView {
 
 #[component]
 fn ContactPage() -> impl IntoView {
+    // This server issues form tokens, so let the browser fetch one for a form
+    // reached by client-side navigation and refresh it: `ttl_secs - 60`.
+    let options = ContactFormOptions {
+        token_refresh_secs: Some(3540),
+        ..Default::default()
+    };
+
     view! {
         <main style="max-width: 600px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
             <h1>"Contact us (secured)"</h1>
@@ -85,7 +92,7 @@ fn ContactPage() -> impl IntoView {
                     success:  "contact-success".into(),
                 }
                 labels=ContactFormLabels::default()
-                options=ContactFormOptions::default()
+                options=options
             />
         </main>
     }

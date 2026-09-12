@@ -123,27 +123,54 @@ itself; the core never parses cookies.
 
 ## Tokens in the browser: acquisition and refresh
 
-A server render puts a token in the hidden field.  Two situations leave the
-browser without a usable one, and `ContactForm` handles both itself when the
-page is hydrated.
+A server render puts a token in the hidden field.  Two situations leave a
+hydrated form without a usable one: the visitor reached the form by
+client-side navigation, so no server rendered it; or the page stayed open
+long enough for the token to expire.
 
-**Client-side navigation.**  A visitor who reaches the form through a
-client-side link — `<A href="/contact">` — gets a form the server never
-rendered, so the field is empty.  After mount the component reads the
-field's value from the DOM; if it is empty, it calls the
+**Handling either takes two switches.**  The browser cannot learn how your
+server is configured — a server without form tokens and a client-side
+navigation both leave the field empty — so it calls the token endpoint only
+when the component is told to:
+
+1. the server issues form tokens (the `form-token` feature, with
+   `FormTokenContext` in the context closure — see [Setup](#setup)); **and**
+2. the component sets `ContactFormOptions::token_refresh_secs` to
+   `ttl_secs - 60`:
+
+   ```rust,ignore
+   <ContactForm options=ContactFormOptions {
+       token_refresh_secs: Some(3540), // default TTL 3600, minus 60
+       ..Default::default()
+   } />
+   ```
+
+If you do only the first, server-rendered forms work exactly as before, but
+**a form reached by client-side navigation submits an empty token and the
+visitor sees the token-invalid message**.  With the option at its default,
+`None`, the browser never calls `/api/form_token`, which is correct for a
+server without form tokens, where that route does not exist.
+
+**Client-side navigation.**  With the option set, after mount the component
+reads the field's value from the DOM; if it is empty, it calls the
 `issue_form_token_fn` server function (`POST /api/form_token`) and puts the
 result in the field.  A form that *was* server-rendered already has a value
 and makes no request.  The check is on the DOM, not on whether the page is
 hydrating, so it is right in both cases.
 
-**A form left open.**  A token expires after `ttl_secs`.  While the page
-stays open, the component fetches a replacement
-`ContactFormOptions::token_refresh_secs` seconds after the current token was
-issued — by default 3 540, a minute before the default one-hour TTL.  The
-browser does not know your TTL, so **set it to `ttl_secs - 60`** if you
-change the TTL.  Values of 60 or less schedule nothing, and `None` turns the
-refresh off.  A token already past its refresh point when the page loads is
-not refreshed.
+**Refresh.**  The token the form mounted with is refreshed
+`token_refresh_secs` after it was issued — or once, immediately, if that
+moment has already passed, as it has for a page restored from the
+back/forward cache.  Every token fetched after that is refreshed
+`token_refresh_secs` after it *arrived*, timed on the browser's clock alone.
+A browser clock that is wrong therefore costs at most one extra request per
+page, never a loop; a clock that is slow can postpone the first refresh past
+the mounted token's expiry.  Values of 60 or less fetch a missing token but
+never refresh.
+
+A fetch that fails — a `429` from your rate limiter, say — is not retried.
+If no later refresh succeeds, the token eventually expires and the visitor
+sees the token-invalid message, as they would have without the refresh.
 
 With binding on, a fetched token reuses the browser's existing nonce, exactly
 as a page render does, so fetching one never invalidates a form open in

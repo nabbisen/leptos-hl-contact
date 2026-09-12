@@ -76,12 +76,18 @@ fn FieldError(
 /// # Form token in the browser
 ///
 /// The hidden token field is a signal, initialised from the server render.
-/// After mount the browser reads the field's **DOM** value: if the server put
-/// a token there, nothing happens; if it is empty — the form was created by
-/// client-side navigation — the component fetches one from
-/// [`issue_form_token_fn`](crate::server::issue_form_token_fn).  While the
-/// page stays open, [`ContactFormOptions::token_refresh_secs`] schedules a
-/// replacement before the token expires.
+/// The browser contacts the token endpoint only when
+/// [`ContactFormOptions::token_refresh_secs`] is `Some` — set it when the
+/// server issues form tokens.  Then, after mount, the browser reads the
+/// field's **DOM** value: a token the server put there is kept; an empty
+/// field — the form was created by client-side navigation — fetches one from
+/// [`issue_form_token_fn`](crate::server::issue_form_token_fn).
+///
+/// Refreshes follow.  The token the form mounted with is refreshed once its
+/// refresh point is reached, immediately if that is already past.  Every
+/// token fetched after that is refreshed `token_refresh_secs` after it
+/// *arrived*, on the browser clock alone, so a wrong clock cannot make the
+/// refreshes loop.
 ///
 /// # Accessibility
 ///
@@ -199,17 +205,48 @@ pub fn ContactForm(
         });
     }
 
-    // ---- form token: acquire when missing, refresh before expiry ------------
+    // ---- form token in the browser: only when the page asks for it ---------
 
     // Same gate as the focus effect above: this needs a DOM and a real client.
+    // `token_refresh_secs` is the switch.  The browser cannot tell a server
+    // without form tokens from a form reached by client-side navigation — both
+    // leave the field empty — so with `None` it never calls the endpoint.
     #[cfg(all(feature = "hydrate", not(feature = "ssr")))]
-    {
-        use crate::server::{IssueFormTokenFn, token_issued_at};
+    if let Some(refresh) = options.with_value(|o| o.token_refresh_secs) {
+        use crate::server::{IssueFormTokenFn, mounted_refresh_delay, token_issued_at};
 
         let issue = ServerAction::<IssueFormTokenFn>::new();
+        // Values of 60 or less mean a TTL of two minutes or less, where a
+        // refresh would race the expiry: acquire a missing token, never refresh.
+        let refreshes = refresh > 60;
 
-        // The DOM value, not a hydration flag, decides: a server render leaves
-        // a token in the field, client-side navigation leaves it empty.
+        // At most one refresh is ever pending; scheduling replaces it.
+        let pending = StoredValue::new(None::<TimeoutHandle>);
+        let schedule = move |delay_secs: u64| {
+            if let Some(handle) = pending.get_value() {
+                handle.clear();
+            }
+            let handle = set_timeout_with_handle(
+                move || {
+                    pending.set_value(None);
+                    // The form is gone after a successful submission.
+                    if token_ref.get_untracked().is_some() {
+                        issue.dispatch(IssueFormTokenFn {});
+                    }
+                },
+                std::time::Duration::from_secs(delay_secs),
+            )
+            .ok();
+            pending.set_value(handle);
+        };
+        on_cleanup(move || {
+            if let Some(handle) = pending.get_value() {
+                handle.clear();
+            }
+        });
+
+        // Mount.  The DOM value, not a hydration flag, decides: a server render
+        // leaves a token in the field, client-side navigation leaves it empty.
         Effect::new(move |_| {
             let Some(el) = token_ref.get() else {
                 return;
@@ -217,49 +254,33 @@ pub fn ContactForm(
             let rendered = el.value();
             if rendered.is_empty() {
                 issue.dispatch(IssueFormTokenFn {});
-            } else if token.with_untracked(|t| *t != rendered) {
-                // The browser build has no `FormToken` context, so the signal
-                // starts empty even when the server rendered a token.  Adopt
-                // the rendered value, or the refresh below would read an empty
-                // signal and never schedule.  The DOM already shows this value,
-                // so nothing visible changes.
-                token.set(rendered);
+                return;
+            }
+            // The browser build has no `FormToken` context, so the signal
+            // starts empty even when the server rendered a token.  Adopt it;
+            // the DOM already shows this value, so nothing visible changes.
+            if token.with_untracked(|t| *t != rendered) {
+                token.set(rendered.clone());
+            }
+            // The only place a server timestamp meets the browser clock.  An
+            // overdue token refreshes once, now; that cannot repeat, because
+            // every later refresh is timed from arrival, below.
+            if refreshes && let Some(issued) = token_issued_at(&rendered) {
+                let now = (leptos::web_sys::js_sys::Date::now() / 1000.0) as u64;
+                schedule(mounted_refresh_delay(issued, now, refresh));
             }
         });
 
+        // Arrival.  Timed on the browser clock alone, never from the token's
+        // server timestamp, so a skewed clock cannot shorten the interval.
         Effect::new(move |_| {
             if let Some(Ok(t)) = issue.value().get() {
                 token.set(t);
+                if refreshes {
+                    schedule(refresh);
+                }
             }
         });
-
-        // Values of 60 or less mean a TTL of two minutes or less, where a
-        // refresh would race the expiry.
-        if let Some(refresh) = options
-            .with_value(|o| o.token_refresh_secs)
-            .filter(|secs| *secs > 60)
-        {
-            // Re-runs whenever the token changes, replacing the pending timer.
-            Effect::new(move |previous: Option<Option<TimeoutHandle>>| {
-                if let Some(Some(handle)) = previous {
-                    handle.clear();
-                }
-                let issued = token.with(|t| token_issued_at(t))?;
-                let now = (leptos::web_sys::js_sys::Date::now() / 1000.0) as u64;
-                let due = issued.saturating_add(refresh);
-                (due > now).then_some(())?;
-                set_timeout_with_handle(
-                    move || {
-                        // The form is gone after a successful submission.
-                        if token_ref.get_untracked().is_some() {
-                            issue.dispatch(IssueFormTokenFn {});
-                        }
-                    },
-                    std::time::Duration::from_secs(due - now),
-                )
-                .ok()
-            });
-        }
     }
 
     // ---- markup ------------------------------------------------------------

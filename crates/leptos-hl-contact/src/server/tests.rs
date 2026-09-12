@@ -110,3 +110,40 @@ fn token_issued_at_is_none_for_anything_but_a_token() {
         assert_eq!(crate::server::token_issued_at(bad), None, "{bad:?}");
     }
 }
+
+// ---------------------------------------------------------------------------
+// mounted_refresh_delay — review C2
+// ---------------------------------------------------------------------------
+
+#[test]
+fn a_mounted_token_refreshes_at_its_refresh_point() {
+    assert_eq!(crate::server::mounted_refresh_delay(1_000, 1_010, 70), 60);
+}
+
+/// A page restored late, or hydrated long after it was rendered: refresh
+/// once, now, rather than submit an expired token.
+#[test]
+fn an_overdue_mounted_token_refreshes_immediately() {
+    assert_eq!(crate::server::mounted_refresh_delay(1_000, 1_070, 70), 0);
+    assert_eq!(crate::server::mounted_refresh_delay(1_000, 50_000, 70), 0);
+}
+
+/// Two hours fast makes the mounted token look overdue: one immediate fetch.
+/// It cannot repeat, because a fetched token is timed from its arrival.
+#[test]
+fn a_fast_browser_clock_costs_one_immediate_refresh() {
+    assert_eq!(
+        crate::server::mounted_refresh_delay(1_000, 1_000 + 7_200, 70),
+        0
+    );
+}
+
+/// Two hours slow postpones the first refresh instead.  It never loops; the
+/// mounted token may expire first, which the docs state.
+#[test]
+fn a_slow_browser_clock_postpones_the_first_refresh() {
+    assert_eq!(
+        crate::server::mounted_refresh_delay(10_000, 10_000 - 7_200, 70),
+        7_270
+    );
+}
