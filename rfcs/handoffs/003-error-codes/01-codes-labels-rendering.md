@@ -115,6 +115,10 @@ text rendered as a text node.
 
 ## Known risks
 
+- `server_fn` 0.8.13 deprecates `NoCustomError` and `WrappedServerError`
+  ahead of removal in 0.9.  Do not name either; rely on `ServerFnError`'s
+  default type parameter (as `error/tests.rs` does since handoff 001-03).
+
 `validator` may report an empty required string as `length` with only
 `min`; handle a missing `max` as `usize::MAX` and render `length` anyway
 (the default English text still reads correctly for `max = 4000`; note

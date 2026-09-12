@@ -115,6 +115,11 @@ release; the architect removes it in the release pass.
   Expected: the last command prints `aria-invalid="true"` three times and
   the three error paragraphs for name, email, and message.  Paste the
   output.  If the redirect location is relative, prefix the host.
+- **Routing checks (added by review 2026-09-12, permanent):** on the
+  field-error page `grep -c 'aria-live="assertive"'` is `0`; after a POST
+  with valid fields and `csrf_token=bogus`, the page has one assertive
+  banner and zero `aria-invalid="true"`.  Together they prove errors go to
+  exactly one of the two paths.
 - **Manual evidence, WASM path** is not required in M1 because the
   examples ship no client bundle; state this in the review request.
 
