@@ -87,10 +87,10 @@ the first non-blank one is the challenge token.
 | Challenge failed (not passed, score, action) | `ServerFnError::Args("contact_error:challenge_failed")` |
 | Challenge verifier error | `ServerFnError::ServerError("contact_error:challenge_unavailable")` |
 | Filter returned `Reject` | `ServerFnError::Args("contact_error:rejected")` |
-| Filter returned `SilentDrop` | `Ok(())` without delivery |
+| Filter returned `SilentDrop` | `Ok(())` without delivery; the success page applied exactly as for a delivered message |
 | Delivery failed | `ServerFnError::ServerError("contact_error:delivery_failed")` |
 | Unexpected | `ServerFnError::ServerError("contact_error:unexpected")` |
-| Honeypot filled | `Ok(())` without delivery |
+| Honeypot filled | `Ok(())` without delivery; the success page applied exactly as for a delivered message |
 
 **Feature:** `ssr` for the body; the client stub exists under any feature.
 

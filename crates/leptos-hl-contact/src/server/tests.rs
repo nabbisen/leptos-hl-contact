@@ -240,3 +240,30 @@ fn a_filter_rejection_is_args_with_the_prefix() {
     assert_eq!(msg, "contact_error:rejected");
     assert!(!msg.starts_with(FIELD_ERROR_PREFIX));
 }
+
+/// RFC 006 amendment: honeypot, `SilentDrop` and delivery all end through
+/// `succeed`, which applies the success page when one is configured and does
+/// nothing else otherwise.
+#[cfg(feature = "ssr")]
+#[test]
+fn succeed_applies_the_success_redirect_only_when_configured() {
+    use crate::config::ContactSuccessRedirect;
+    use std::sync::{Arc, Mutex};
+
+    let seen: Arc<Mutex<Vec<String>>> = Arc::default();
+    let sink = Arc::clone(&seen);
+    let redirect = ContactSuccessRedirect::new("/thanks", move |path| {
+        sink.lock().unwrap().push(path.to_owned());
+    })
+    .expect("site-relative path");
+
+    assert!(crate::server::succeed(Some(&redirect)).is_ok());
+    assert_eq!(*seen.lock().unwrap(), ["/thanks"]);
+
+    assert!(crate::server::succeed(None).is_ok());
+    assert_eq!(
+        seen.lock().unwrap().len(),
+        1,
+        "nothing is applied without one"
+    );
+}

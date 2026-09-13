@@ -4,6 +4,17 @@
 
 No version assigned; the owner decides the release number.
 
+### Security
+
+- **Honeypot detection could be observed (affects 0.4.0).**  With a success
+  page configured (`ContactSuccessRedirect`), a submission caught by the
+  honeypot returned success without the redirect, so an automated sender
+  could tell it had been detected by comparing responses.  Every successful
+  outcome — honeypot, filter `SilentDrop`, and delivery — now applies the
+  success redirect.  Sites using 0.4.0 with a success page should upgrade.
+  Deployments without a success page were not affected: every successful
+  outcome already returned the same response.
+
 ### Changed
 
 - **The `csrf` feature, module and items are renamed to `form-token` /

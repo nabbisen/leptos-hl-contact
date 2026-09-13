@@ -37,11 +37,12 @@ provide_context::<ContactFilterContext>(Arc::new(MaxLinks { max: 2 }));
 
 | Decision | The visitor sees | Delivered | Logged at `warn` |
 |----------|------------------|-----------|------------------|
-| `Accept` | success | yes | — |
+| `Accept` | success — the configured success page, if any | yes | — |
 | `Reject` | `labels.errors.rejected`: "Your message could not be accepted." | no | `submission rejected by filter`, with the filter's name |
-| `SilentDrop` | success, exactly as if it had been delivered | no | `submission silently dropped by filter`, with the filter's name |
+| `SilentDrop` | success, exactly as if it had been delivered — including the configured success page | no | `submission silently dropped by filter`, with the filter's name |
 
-`SilentDrop` behaves like the honeypot: the sender learns nothing.  Use
+`SilentDrop` behaves like the honeypot: the response is the one a delivered
+message gets, redirect included, so the sender learns nothing.  Use
 `Reject` when a genuine visitor could have written the message and deserves
 to know it did not arrive.
 

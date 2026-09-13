@@ -77,8 +77,10 @@ use crate::{
 /// # Success redirect
 ///
 /// When [`ContactSuccessRedirect`](crate::config::ContactSuccessRedirect) is
-/// provided via context, a successful delivery runs it before returning, so
-/// the visitor is sent to the configured page with or without JavaScript.
+/// provided via context, every successful outcome runs it before returning —
+/// delivery, a honeypot hit and a filter's `SilentDrop` alike — so the
+/// visitor is sent to the configured page with or without JavaScript, and a
+/// sender cannot tell from the response which of them happened.
 /// Without it, behaviour is unchanged: a JavaScript client shows the inline
 /// success message and a no-JavaScript client reloads the form page.
 ///
@@ -168,10 +170,16 @@ pub async fn submit_contact(
         // 2. Normalise raw input.
         let input = ContactInput::from_raw(name, email, subject, message, website);
 
-        // 3. Honeypot — silent success.
+        // Read now: the honeypot below can already end the submission, and
+        // every successful ending must apply it (see `succeed`).
+        let success_redirect = use_context::<crate::config::ContactSuccessRedirect>();
+
+        // 3. Honeypot — silent success, ending exactly like a delivery.
         match input.check_honeypot() {
             Ok(()) => {}
-            Err(ContactValidationError::HoneypotTriggered) => return Ok(()),
+            Err(ContactValidationError::HoneypotTriggered) => {
+                return succeed(success_redirect.as_ref());
+            }
             Err(e) => {
                 tracing::error!(error = %e, "unexpected honeypot error");
                 return Err(ServerFnError::ServerError(
@@ -213,7 +221,6 @@ pub async fn submit_contact(
                 ContactErrorCode::NotConfigured.into_server_fn_message(),
             ));
         };
-        let success_redirect = use_context::<crate::config::ContactSuccessRedirect>();
         let challenge_ctx = use_context::<crate::challenge::ChallengeContext>();
         let filter = use_context::<crate::filter::ContactFilterContext>();
 
@@ -291,7 +298,7 @@ pub async fn submit_contact(
                 }
                 FilterDecision::SilentDrop => {
                     span.in_scope(|| tracing::warn!("submission silently dropped by filter"));
-                    return Ok(());
+                    return succeed(success_redirect.as_ref());
                 }
             }
         }
@@ -304,16 +311,28 @@ pub async fn submit_contact(
             ));
         }
 
-        // 10. Success redirect, so the no-JS path can confirm too.
-        if let Some(redirect) = success_redirect {
-            redirect.apply();
-        }
-
-        return Ok(());
+        return succeed(success_redirect.as_ref());
     }
 
     #[allow(unreachable_code)]
     Err(ServerFnError::ServerError("SSR not enabled".into()))
+}
+
+/// End a submission as a success: apply the configured success page, if any,
+/// and return `Ok`.
+///
+/// Every successful ending of `submit_contact` goes through here — delivery,
+/// a honeypot hit, and a filter's `SilentDrop`.  If any of them skipped the
+/// redirect, its response would differ from a delivered submission's, and a
+/// sender could tell it had been caught.
+#[cfg(feature = "ssr")]
+pub(crate) fn succeed(
+    success_redirect: Option<&crate::config::ContactSuccessRedirect>,
+) -> Result<(), ServerFnError> {
+    if let Some(redirect) = success_redirect {
+        redirect.apply();
+    }
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------

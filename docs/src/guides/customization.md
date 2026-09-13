@@ -123,6 +123,11 @@ takes the path and a closure that performs the redirect in your framework.
 
 [`ContactSuccessRedirect::new`]: https://docs.rs/leptos-hl-contact/latest/leptos_hl_contact/config/struct.ContactSuccessRedirect.html
 
+Every successful outcome lands there, not only a delivered message: a
+submission caught by the honeypot, or silently dropped by a
+[filter](../security/filter.md), gets the same redirect, so the sender cannot
+tell from the response that it was caught.
+
 ## ContactServerPolicy
 
 Server-side enforcement, independent of what the client claims.  Provide it

@@ -31,7 +31,7 @@ question; pick the one whose question is yours.
 | Mechanism | The question it answers | Configured by | Runs | Visitor sees on failure |
 |-----------|-------------------------|---------------|------|-------------------------|
 | [Honeypot](../reference/api.md#contactinput) | Did a bot fill the hidden field? | nothing | always | success (silent) |
-| [Form token](./form-token.md) | Did the sender fetch our page recently, not too fast, (bound to this browser)? | `FormTokenContext` | when configured | "reload" / "wait a moment" |
+| [Form token](./form-token.md) | Did the sender fetch our page recently and wait before submitting — and, with binding, from this browser? | `FormTokenContext` | when configured | "reload" / "wait a moment" |
 | [Server policy](../guides/customization.md#contactserverpolicy) | Does the input meet this site's structural limits? | `ContactServerPolicy` | when configured | field error |
 | [Challenge](./challenge.md) | Did a vendor judge the sender human? | `ChallengeContext` + `challenge` prop | when configured | "complete the check" |
 | [Filter](./filter.md) | Does this site want this content? | `ContactFilterContext` | when configured | generic rejection or silent |
