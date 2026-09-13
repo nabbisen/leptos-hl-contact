@@ -20,8 +20,8 @@ Tags are `X.Y.Z` with **no** `v` prefix.
 ## Steps
 
 1. **Scope.**  Confirm every roadmap item and RFC in the release is
-   implemented and reviewed; move RFCs to `rfcs/done/` with the version in
-   their Status field; update `rfcs/README.md`.
+   implemented and reviewed.  RFCs stay in `rfcs/accepted/` until the
+   release is published; they move in step 12.
 2. **Version.**  Bump `version` in the workspace `Cargo.toml` and in both
    example manifests, then run `cargo check` in each example directory so
    their lock files pick up the new path-crate version.
@@ -40,8 +40,9 @@ Tags are `X.Y.Z` with **no** `v` prefix.
 7. **Documentation check.**  Every page in this book describes the
    behaviour being released; `mdbook build` succeeds (its output
    `docs/book/` is ignored by git); no page outside `development/` names
-   a past version; the known-issues table lists only what still holds;
-   the README matches.
+   a past version, except an upgrade note that names the release removing
+   something; known issues are stated in the release-candidate request and,
+   when they affect integrators, in the CHANGELOG; the README matches.
 8. **Mutation run.**  Once per milestone, before the readiness report:
    `cargo mutants -p leptos-hl-contact --all-features` (output under
    `mutants.out/`, git-ignored).  The architect reads the surviving mutants
