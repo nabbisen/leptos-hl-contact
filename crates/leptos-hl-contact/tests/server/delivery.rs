@@ -1,6 +1,10 @@
 //! The happy path.
 
-use crate::support::{DELIVERY_ERROR_DETAIL, Harness, Setup};
+use std::{sync::Arc, time::Duration};
+
+use leptos_hl_contact::DeliveryTimeout;
+
+use crate::support::{DELIVERY_ERROR_DETAIL, Harness, NeverDelivery, Setup};
 
 /// FR-PE-01, FR-PE-04: a valid submission is delivered exactly once and
 /// answers success, in both request forms; without a success page the
@@ -73,5 +77,39 @@ async fn a_delivery_error_reaches_the_client_only_as_delivery_failed() {
     assert!(!nojs.location().unwrap_or_default().contains("relay"));
 
     assert_eq!(h.failing.count(), 2);
+    assert_eq!(h.deliveries(), 0);
+}
+
+/// FR-SUB-09, FR-UI-09, FR-I18N-02, FR-DEL-08, NFR-PERF-03, T15 (RFC 009 D3): a
+/// delivery that does not finish within its deadline reaches the client as
+/// `delivery_timeout` — which says the message may have been sent — in both
+/// request forms.  The clock is paused, so the deadline passes without
+/// waiting.
+#[tokio::test(start_paused = true)]
+async fn a_delivery_timeout_reaches_the_client_as_delivery_timeout() {
+    let h = Harness::new(Setup {
+        delivery_context: Some(Arc::new(DeliveryTimeout::new(
+            NeverDelivery,
+            Duration::from_millis(50),
+        ))),
+        ..Setup::default()
+    });
+
+    let fetch = h.submit_fetch(&h.fields()).await;
+    assert_eq!(
+        fetch.contact_error().as_deref(),
+        Some("delivery_timeout"),
+        "{}",
+        fetch.body
+    );
+
+    let nojs = h.submit_nojs(&h.fields()).await;
+    assert!(nojs.is_nojs_error(), "{:?}", nojs.location());
+    assert_eq!(
+        h.follow(&nojs).await.banner().as_deref(),
+        Some(
+            "Sending took too long. Your message may have been sent — please wait a few minutes before trying again."
+        )
+    );
     assert_eq!(h.deliveries(), 0);
 }

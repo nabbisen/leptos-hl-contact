@@ -251,3 +251,22 @@ fn field_errors_get_returns_the_right_field() {
     );
     assert!(errs.get(ContactField::Name).is_none());
 }
+
+/// FR-I18N-02 (RFC 009 D3): `delivery_timeout` travels as a code and parses
+/// back from either server-function variant.
+#[test]
+fn delivery_timeout_round_trips_through_the_wire_string() {
+    let code = ContactErrorCode::DeliveryTimeout;
+    assert_eq!(code.as_str(), "delivery_timeout");
+    assert_eq!(
+        code.into_server_fn_message(),
+        "contact_error:delivery_timeout"
+    );
+    assert_eq!(
+        ContactErrorCode::from_str_code("delivery_timeout"),
+        Some(code)
+    );
+    let err: TestServerFnError =
+        leptos::server_fn::error::ServerFnError::ServerError(code.into_server_fn_message());
+    assert_eq!(ContactErrorCode::from_server_fn_error(&err), Some(code));
+}

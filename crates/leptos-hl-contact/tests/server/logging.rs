@@ -5,8 +5,8 @@ use std::sync::Arc;
 use leptos_hl_contact::{ChallengeContext, ChallengePolicy, FilterDecision};
 
 use crate::support::{
-    DELIVERY_ERROR_DETAIL, Fields, FixedFilter, Harness, ScriptedVerifier, Setup, TEST_SECRET,
-    TokenMode, capture_logs, nonce_of,
+    DELIVERY_ERROR_DETAIL, Fields, FixedFilter, Harness, NeverDelivery, ScriptedVerifier, Setup,
+    TEST_SECRET, TokenMode, capture_logs, nonce_of,
 };
 
 const NAME: &str = "Zelda Quimby-Marker";
@@ -26,13 +26,14 @@ fn personal(fields: Fields) -> Fields {
 /// T9, FR-OBS-02, NFR-PRIV-01: across a representative set of outcomes — a
 /// delivery, the honeypot, a validation failure, a token failure, a binding
 /// failure, a failed challenge, a filter's `Reject` and `SilentDrop`, a
-/// delivery error, and missing configuration — no log event or span field contains the visitor's
+/// delivery error, a delivery timeout, and missing configuration — no log event or span field contains the visitor's
 /// name, email, subject or message, the form token, the binding cookie's
 /// value, the challenge token, or the form-token secret.
 ///
 /// The capture is checked first: each outcome's own event must be present,
 /// so the test cannot pass by capturing nothing.
-#[tokio::test]
+// The clock is paused so the delivery timeout below passes without waiting.
+#[tokio::test(start_paused = true)]
 async fn no_personal_data_or_secret_is_logged() {
     let (logs, _guard) = capture_logs();
     let mut forbidden = vec![
@@ -98,6 +99,16 @@ async fn no_personal_data_or_secret_is_logged() {
     });
     failing.submit_fetch(&personal(failing.fields())).await;
 
+    // A delivery timeout: logged with the limit only.
+    let slow = Harness::new(Setup {
+        delivery_context: Some(Arc::new(leptos_hl_contact::DeliveryTimeout::new(
+            NeverDelivery,
+            std::time::Duration::from_millis(50),
+        ))),
+        ..Setup::default()
+    });
+    slow.submit_fetch(&personal(slow.fields())).await;
+
     // Missing configuration.
     let unconfigured = Harness::new(Setup {
         delivery: false,
@@ -114,6 +125,7 @@ async fn no_personal_data_or_secret_is_logged() {
         "submission silently dropped by filter",
         "ContactDeliveryContext not provided",
         "contact form delivery failed",
+        "contact form delivery timed out",
     ] {
         assert!(
             logs.any_contains(expected),

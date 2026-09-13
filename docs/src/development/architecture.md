@@ -109,7 +109,8 @@ default = []      types compile with no server or client code
 hydrate           client
 ssr               server function body, SSR
 islands           Leptos Islands
-smtp-lettre       + lettre, tokio            (server)
+smtp-lettre       + lettre, tokio            (server; enables delivery-timeout)
+delivery-timeout  + tokio (time)             (server)
 axum-helpers      + axum, leptos_axum        (server)
 form-token        + hmac, sha2, rand, hex    (server)
 ```
@@ -130,6 +131,7 @@ crates/leptos-hl-contact/src/
   form_token.rs          form_token/tests.rs
   delivery.rs            delivery/noop.rs  delivery/noop/tests.rs
                          delivery/smtp.rs  delivery/smtp/tests.rs
+                         delivery/timeout.rs  delivery/timeout/tests.rs
   axum_helpers.rs        axum_helpers/tests.rs
 examples/
   axum-basic/            local development only

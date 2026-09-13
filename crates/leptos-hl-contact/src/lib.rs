@@ -21,7 +21,8 @@
 //! | `hydrate`      | Enables Leptos hydration for the client side.   |
 //! | `ssr`          | Enables server-side rendering and server fns.   |
 //! | `islands`      | Enables Leptos Islands architecture.            |
-//! | `smtp-lettre`  | Enables the SMTP delivery adapter.             |
+//! | `smtp-lettre`  | Enables the SMTP delivery adapter (and `delivery-timeout`). |
+//! | `delivery-timeout` | `DeliveryTimeout`, a deadline for any delivery backend. |
 //! | `axum-helpers` | Enables Axum-specific integration helpers.     |
 //! | `form-token`   | Stateless HMAC-SHA256 form token; `submit_contact` requires `FormTokenContext` (fail-closed). |
 //!
@@ -79,6 +80,9 @@ pub use config::{
     InvalidRedirectPath, NoJsPolicy,
 };
 pub use delivery::{ContactDelivery, ContactDeliveryContext};
+
+#[cfg(feature = "delivery-timeout")]
+pub use delivery::timeout::DeliveryTimeout;
 pub use error::{
     ContactDeliveryError, ContactErrorCode, ContactField, ContactFieldErrors,
     ContactValidationError, FieldError, FieldErrorCode,

@@ -246,6 +246,7 @@ rendered on the client from `ContactFormLabels::errors` [FR-I18N-02].
 | Token config missing | `ServerFnError::ServerError` | `contact_error:not_configured` | banner, `errors.not_configured` |
 | Delivery context missing | `ServerFnError::ServerError` | `contact_error:not_configured` | banner, `errors.not_configured` |
 | Delivery failed | `ServerFnError::ServerError` | `contact_error:delivery_failed` | banner, `errors.delivery_failed` |
+| Delivery timed out | `ServerFnError::ServerError` | `contact_error:delivery_timeout` | banner, `errors.delivery_timeout` |
 | Unexpected | `ServerFnError::ServerError` | `contact_error:unexpected` | banner, `errors.delivery_failed` |
 
 An unrecognised code — from a newer server — yields no match and the client
@@ -305,7 +306,8 @@ Covered by §2.2.  Additional guarantees:
 | Concurrency | may be called concurrently; implementations hold no per-call mutable state |
 | Errors | four categories: `Configuration`, `Transport`, `MessageBuild`, `Internal`; detail is logged by the crate, never shown to the visitor |
 | Error text | logged verbatim for operators: the category and transport detail (status codes, the relay's reply), never the submission — no name, email address, subject, message, token or credential [FR-OBS-02, FR-OBS-03] |
-| Time | **current**: unbounded; **target**: integrators wrap slow backends with a timeout, and a queue adapter exists (Future) [FR-DEL-08] |
+| Time | bounded (0.6.0, RFC 009): the SMTP backend stops at `SmtpConfig::timeout` (default 30 s, connect through the final reply); any other backend is bounded by wrapping it in `DeliveryTimeout`.  On expiry the delivery is dropped and the visitor sees `delivery_timeout`.  A queue adapter remains a Future item [FR-DEL-08] |
+| Cancellation | a delivery may be cancelled at any `.await` when wrapped in a timeout; implementations do not leave shared state half-updated across an `.await` |
 
 #### 4.4.2 Email message specification (SMTP backend)
 
@@ -358,7 +360,8 @@ because it is body content, not a header.
 | `hydrate` | — | client hydration |
 | `ssr` | — | server function body, SSR |
 | `islands` | — | Islands mode |
-| `smtp-lettre` | `ssr` | `delivery::smtp` |
+| `smtp-lettre` | `ssr`, `delivery-timeout` | `delivery::smtp` |
+| `delivery-timeout` | `ssr` | `delivery::timeout` (`DeliveryTimeout`) |
 | `axum-helpers` | `ssr` | `axum_helpers` |
 | `form-token` | `ssr` | `form_token` module, token field verification |
 
@@ -391,6 +394,7 @@ documentation use these names consistently so integrators can copy them:
 | `debug` | token expired / future timestamp | `timestamp`, `now` | none |
 | `error` | `FormTokenContext` not provided | — | none |
 | `error` | `ContactDeliveryContext` not provided | — | none |
+| `error` | delivery timed out | `limit_secs` | none |
 | `error` | delivery failed | `error` (category + transport text) | none by contract; relays may echo addresses in SMTP replies, integrators SHOULD review log retention |
 | `info` | delivered via SMTP | — | none |
 | `debug` | no-op backend discarded submission | — | none |
@@ -425,7 +429,7 @@ reputation); visitor PII in transit; the application's availability.
 | T12 | Silent insecure misconfiguration | missing context, default secret | fail-closed; examples require env vars | crate + examples | Met |
 | T13 | Stored XSS through the form | echoing input in HTML | input never echoed; Leptos escapes | crate | Met |
 | T14 | Relay abuse as open relay | attacker-controlled `To` | `To` fixed by config | crate | Met |
-| T15 | Slow relay holding connections | delivery without timeout | none today | crate | Gap [FR-DEL-08] |
+| T15 | Slow relay holding connections | delivery without timeout | the SMTP backend's deadline (`SmtpConfig::timeout`, 30 s by default, covering the whole exchange); `DeliveryTimeout` for any other backend; the visitor sees `delivery_timeout` | crate | Met (0.6.0); residual: a custom backend not wrapped in `DeliveryTimeout` |
 | T16 | Open redirect or header injection through the success page | a configured redirect path that leaves the site, or carries CR/LF into the `Location` header | `ContactSuccessRedirect::new` accepts only site-relative paths: it requires a leading `/`, rejects `//`, `\`, `://`, and every control or whitespace character, so neither an off-site target nor a header break survives construction.  The path is fixed at startup and never read from form input or a query parameter | crate | Met (0.4.0) |
 | T17 | Cookie tossing defeats binding | a sibling subdomain sets the binding cookie with `Domain` and `SameSite=None`, paired with a token the attacker fetched for that nonce | `__Host-` cookie prefix, applied when the cookie is `Secure` on `/`; a second `__Host-` cookie from our own origin fails closed (`BindingMismatch`); Origin validation still rejects the POST | crate + app | Met at defaults (0.5.0); not with `secure: false` or a non-root path, documented |
 | T18 | Detection oracle on silent outcomes | a bot compares the response to a honeypot hit or `SilentDrop` with a genuine submission's: with a success page configured, only the genuine one carried the redirect | every successful outcome applies the success redirect through one helper | crate | Met (0.5.0, `67c1ac1`); regressed in 0.4.0 |

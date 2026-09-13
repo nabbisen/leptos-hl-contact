@@ -101,6 +101,9 @@ pub enum ContactErrorCode {
     NotConfigured,
     /// The delivery backend refused or failed.
     DeliveryFailed,
+    /// Delivery did not finish within its deadline.  The message may have
+    /// been delivered, so the visitor is asked to wait before retrying.
+    DeliveryTimeout,
     /// Something unforeseen went wrong.
     Unexpected,
     /// A challenge is configured but the submission carried no token.
@@ -122,6 +125,7 @@ impl ContactErrorCode {
             Self::TooFast => "too_fast",
             Self::NotConfigured => "not_configured",
             Self::DeliveryFailed => "delivery_failed",
+            Self::DeliveryTimeout => "delivery_timeout",
             Self::Unexpected => "unexpected",
             Self::ChallengeRequired => "challenge_required",
             Self::ChallengeFailed => "challenge_failed",
@@ -139,6 +143,7 @@ impl ContactErrorCode {
             "too_fast" => Some(Self::TooFast),
             "not_configured" => Some(Self::NotConfigured),
             "delivery_failed" => Some(Self::DeliveryFailed),
+            "delivery_timeout" => Some(Self::DeliveryTimeout),
             "unexpected" => Some(Self::Unexpected),
             "challenge_required" => Some(Self::ChallengeRequired),
             "challenge_failed" => Some(Self::ChallengeFailed),
@@ -296,6 +301,13 @@ pub enum ContactDeliveryError {
     /// An unexpected internal error.
     #[error("internal error: {0}")]
     Internal(String),
+
+    /// The delivery did not finish within its deadline (`DeliveryTimeout`, or
+    /// `SmtpConfig::timeout`).  The message may have been delivered: the
+    /// deadline can pass after the relay accepted it but before its reply
+    /// arrived.
+    #[error("delivery timed out after {0:?}")]
+    Timeout(std::time::Duration),
 }
 
 // ---------------------------------------------------------------------------

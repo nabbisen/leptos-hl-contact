@@ -20,7 +20,10 @@ default = []
 hydrate = ["leptos/hydrate"]
 ssr = ["leptos/ssr"]
 islands = ["leptos/islands"]
-smtp-lettre = ["ssr", "dep:lettre", "dep:tokio"]
+smtp-lettre = ["ssr", "dep:lettre", "dep:tokio", "delivery-timeout"]
+# `DeliveryTimeout`: a deadline for any delivery backend.  Its timer is
+# declared here rather than left to arrive through lettre.
+delivery-timeout = ["ssr", "dep:tokio", "tokio/time"]
 axum-helpers = ["ssr", "dep:leptos_axum", "dep:axum"]
 form-token = ["ssr", "dep:hmac", "dep:sha2", "dep:rand", "dep:hex"]
 # Built-in verifiers that call the vendors' siteverify endpoints.
@@ -57,7 +60,8 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 # `net`, `io-util`, `sync` and `time` run the local siteverify responder in
 # the challenge-http tests.
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time"] }
+# `test-util` pauses the clock, so no test waits for a delivery deadline.
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time", "test-util"] }
 # Server integration suite (tests/server): the router is driven in process
 # with `tower::ServiceExt::oneshot`; `leptos_router` gives the test app a
 # `/contact` route; `tracing-subscriber` captures log events.

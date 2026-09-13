@@ -34,6 +34,7 @@ let delivery = LettreSmtpDelivery {
         to_address:     std::env::var("CONTACT_TO")?,
         subject_prefix: "[Contact]".into(),
         tls_mode:       SmtpTlsMode::StartTls,
+        timeout:        SmtpConfig::DEFAULT_TIMEOUT,
     },
 };
 ```
@@ -48,6 +49,7 @@ let delivery = LettreSmtpDelivery {
 | `to_address` | Where enquiries are delivered |
 | `subject_prefix` | Prepended to every subject, e.g. `[Contact]` |
 | `tls_mode` | See below |
+| `timeout` | Deadline for one delivery, from connecting to the relay's final reply.  Use `SmtpConfig::DEFAULT_TIMEOUT` (30 s) unless the relay is known to be slow; it must be greater than zero.  When it passes the visitor sees `delivery_timeout`, which says the message may have been sent |
 
 ### TLS modes
 
@@ -115,7 +117,24 @@ Contract for implementations:
   for operators.  Put the category and the transport detail in it — status
   codes, the relay's reply.  Never put the submission in it, and never log it
   yourself: no name, email address, subject, message, token or credential.
-- The call is not time-limited by the crate.  Wrap slow APIs in a timeout.
+- A delivery may be cancelled at any `.await` when it is wrapped in a
+  timeout.  Do not leave shared state half-updated across an `.await`.  An
+  HTTP API call cancelled mid-flight may still complete on the vendor's side.
+
+The built-in SMTP backend already has a deadline (`SmtpConfig::timeout`).
+Give your own backend the same bound by wrapping it (feature
+`delivery-timeout`, which `smtp-lettre` turns on):
+
+```rust,ignore
+use std::time::Duration;
+use leptos_hl_contact::DeliveryTimeout;
+
+let delivery: ContactDeliveryContext =
+    Arc::new(DeliveryTimeout::new(MyCustomDelivery, Duration::from_secs(30)));
+```
+
+When the deadline passes, the delivery is dropped and the visitor is told the
+message may have been sent (`delivery_timeout`), not that it failed.
 
 ## Testing delivery locally
 
@@ -133,6 +152,7 @@ SmtpConfig {
     username: String::new(),
     password: String::new(),
     tls_mode: SmtpTlsMode::DangerousPlaintext,
+    timeout:  SmtpConfig::DEFAULT_TIMEOUT,
     // …
 }
 ```

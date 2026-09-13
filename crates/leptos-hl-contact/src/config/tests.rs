@@ -229,6 +229,7 @@ fn error_label_defaults_are_non_empty() {
         ("token_invalid", &l.token_invalid),
         ("not_configured", &l.not_configured),
         ("delivery_failed", &l.delivery_failed),
+        ("delivery_timeout", &l.delivery_timeout),
     ] {
         assert!(!text.trim().is_empty(), "{name} must have a default");
     }
@@ -503,4 +504,26 @@ fn rejected_label_has_the_rfc_default_and_is_distinct() {
     ] {
         assert_ne!(&l.rejected, other);
     }
+}
+
+/// FR-UI-09, FR-I18N-02 (RFC 009 D3): `delivery_timeout` renders its own label,
+/// which says the message may have been sent, and a translation replaces it.
+#[test]
+fn code_text_renders_delivery_timeout() {
+    use crate::error::ContactErrorCode as C;
+    let l = ContactErrorLabels::default();
+    assert_eq!(
+        l.code_text(C::DeliveryTimeout),
+        "Sending took too long. Your message may have been sent — please wait a few minutes before trying again."
+    );
+    assert_ne!(l.code_text(C::DeliveryTimeout), l.delivery_failed);
+
+    let ja = ContactErrorLabels {
+        delivery_timeout: "送信に時間がかかりすぎました。".into(),
+        ..Default::default()
+    };
+    assert_eq!(
+        ja.code_text(C::DeliveryTimeout),
+        "送信に時間がかかりすぎました。"
+    );
 }

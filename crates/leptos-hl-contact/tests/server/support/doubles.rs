@@ -73,6 +73,19 @@ impl ContactDelivery for FailingDelivery {
     }
 }
 
+/// A delivery backend whose relay never answers: its future never completes.
+#[derive(Debug, Default)]
+pub struct NeverDelivery;
+
+impl ContactDelivery for NeverDelivery {
+    fn deliver(
+        &self,
+        _input: ContactInput,
+    ) -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>> {
+        Box::pin(std::future::pending())
+    }
+}
+
 /// A `ChallengeVerifier` with a scripted answer that records the tokens it
 /// was asked about.
 pub struct ScriptedVerifier {

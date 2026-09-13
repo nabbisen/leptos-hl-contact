@@ -68,6 +68,7 @@ let delivery: ContactDeliveryContext = Arc::new(LettreSmtpDelivery {
         to_address:     std::env::var("CONTACT_TO")?,
         subject_prefix: "[Contact]".into(),
         tls_mode:       SmtpTlsMode::StartTls,
+        timeout:        SmtpConfig::DEFAULT_TIMEOUT,
     },
 });
 let ctx = delivery_context_fn(delivery);

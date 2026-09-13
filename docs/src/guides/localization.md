@@ -45,6 +45,7 @@ let labels = ContactFormLabels {
         too_fast:        "少し時間をおいてから、もう一度お試しください。".into(),
         not_configured:  "現在このフォームはご利用いただけません。".into(),
         delivery_failed: "送信できませんでした。しばらくしてからお試しください。".into(),
+        delivery_timeout: "送信に時間がかかりすぎました。メッセージは送信された可能性があります。数分待ってから再度お試しください。".into(),
         challenge_required:    "セキュリティ確認を完了してください。".into(),
         challenge_failed:      "セキュリティ確認に失敗しました。もう一度お試しください。".into(),
         challenge_unavailable: "現在セキュリティ確認を利用できません。しばらくしてからお試しください。".into(),
@@ -66,6 +67,7 @@ let labels = ContactFormLabels {
 | `too_fast` | the form was submitted sooner after loading than the token's minimum age; retryable |
 | `not_configured` | the server is missing a required context value |
 | `delivery_failed` | the backend refused or failed, and for any unexpected error |
+| `delivery_timeout` | delivery did not finish within its deadline; the message may have been sent, so the text asks the visitor to wait before retrying |
 | `challenge_required` | a [challenge](../security/challenge.md) is configured and the submission carried no token |
 | `challenge_failed` | the challenge vendor rejected the token, or its score or action did not satisfy the policy |
 | `challenge_unavailable` | the challenge vendor could not be reached |
@@ -102,6 +104,7 @@ let labels = ContactFormLabels {
         too_fast:        "少し時間をおいてから、もう一度お試しください。".into(),
         not_configured:  "現在このフォームはご利用いただけません。".into(),
         delivery_failed: "送信できませんでした。しばらくしてからお試しください。".into(),
+        delivery_timeout: "送信に時間がかかりすぎました。メッセージは送信された可能性があります。数分待ってから再度お試しください。".into(),
         challenge_required:    "セキュリティ確認を完了してください。".into(),
         challenge_failed:      "セキュリティ確認に失敗しました。もう一度お試しください。".into(),
         challenge_unavailable: "現在セキュリティ確認を利用できません。しばらくしてからお試しください。".into(),

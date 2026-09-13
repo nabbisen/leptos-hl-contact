@@ -8,6 +8,9 @@ pub mod noop;
 #[cfg(feature = "smtp-lettre")]
 pub mod smtp;
 
+#[cfg(feature = "delivery-timeout")]
+pub mod timeout;
+
 use std::{future::Future, pin::Pin, sync::Arc};
 
 use crate::{error::ContactDeliveryError, model::ContactInput};
@@ -40,6 +43,13 @@ use crate::{error::ContactDeliveryError, model::ContactInput};
 /// the submission in it: no name, email address, subject, message, token or
 /// credential.  This is the same rule the crate follows for its own log
 /// events.
+///
+/// # Cancellation
+///
+/// A delivery may be cancelled at any `.await` when it is wrapped in a
+/// timeout — `DeliveryTimeout`, or the SMTP backend's own deadline.  Do not
+/// leave shared state half-updated across an `.await`.  An HTTP API call
+/// cancelled mid-flight may still complete on the vendor's side.
 ///
 /// # Security
 ///

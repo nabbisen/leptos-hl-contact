@@ -9,7 +9,12 @@
 //! The suite needs the server, the Axum helpers and the form token, which
 //! `cargo test --all-features` enables.
 
-#![cfg(all(feature = "ssr", feature = "axum-helpers", feature = "form-token"))]
+#![cfg(all(
+    feature = "ssr",
+    feature = "axum-helpers",
+    feature = "form-token",
+    feature = "delivery-timeout"
+))]
 
 mod support;
 

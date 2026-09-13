@@ -88,6 +88,7 @@ the first non-blank one is the challenge token.
 | Filter returned `Reject` | `ServerFnError::Args("contact_error:rejected")` |
 | Filter returned `SilentDrop` | `Ok(())` without delivery; the success page applied exactly as for a delivered message |
 | Delivery failed | `ServerFnError::ServerError("contact_error:delivery_failed")` |
+| Delivery timed out (`ContactDeliveryError::Timeout`) | `ServerFnError::ServerError("contact_error:delivery_timeout")` |
 | Unexpected | `ServerFnError::ServerError("contact_error:unexpected")` |
 | Honeypot filled | `Ok(())` without delivery; the success page applied exactly as for a delivered message |
 
@@ -100,7 +101,7 @@ pub struct ContactFormClasses { pub root, field, label, input, textarea, button,
 pub struct ContactFormLabels  { pub name, email, subject, message, submit, sending, success, error, honeypot_label: String, pub errors: ContactErrorLabels }
 pub struct ContactErrorLabels {
     pub required, length, format_email, format, line_breaks, token_invalid, too_fast,
-        not_configured, delivery_failed,
+        not_configured, delivery_failed, delivery_timeout,
         challenge_required, challenge_failed, challenge_unavailable, challenge_requires_js,
         rejected: String,
 }
@@ -251,7 +252,7 @@ impl ContactFieldErrors {
 
 #[serde(rename_all = "snake_case")]
 pub enum ContactErrorCode {
-    TokenInvalid, TooFast, NotConfigured, DeliveryFailed, Unexpected,
+    TokenInvalid, TooFast, NotConfigured, DeliveryFailed, DeliveryTimeout, Unexpected,
     ChallengeRequired, ChallengeFailed, ChallengeUnavailable, Rejected,
 }
 impl ContactErrorCode {
@@ -261,7 +262,7 @@ impl ContactErrorCode {
     pub fn from_server_fn_error<E>(err: &ServerFnError<E>) -> Option<Self>;  // Args or ServerError
 }
 
-pub enum ContactDeliveryError { Configuration(String), Transport(String), MessageBuild(String), Internal(String) }
+pub enum ContactDeliveryError { Configuration(String), Transport(String), MessageBuild(String), Internal(String), Timeout(Duration) }
 pub enum ContactValidationError { InvalidInput(String), HoneypotTriggered }
 ```
 
@@ -281,6 +282,7 @@ Wire examples:
 field_errors:{"email":{"kind":"format"},"name":{"kind":"length","min":1,"max":80}}
 contact_error:token_invalid
 contact_error:delivery_failed
+contact_error:delivery_timeout
 contact_error:rejected
 ```
 
@@ -298,6 +300,21 @@ pub type ContactDeliveryContext = Arc<dyn ContactDelivery>;
 
 Unit struct; discards and logs at `debug`.  No feature flag.
 
+### `delivery::timeout::DeliveryTimeout` (feature `delivery-timeout`)
+
+```rust,ignore
+pub struct DeliveryTimeout<D> { /* private */ }
+impl<D: ContactDelivery> DeliveryTimeout<D> {
+    pub fn new(inner: D, limit: Duration) -> Self;
+    pub fn limit(&self) -> Duration;
+}
+impl<D: ContactDelivery> ContactDelivery for DeliveryTimeout<D> { /* inner, bounded by limit */ }
+```
+
+Re-exported at the crate root.  On expiry the inner delivery is dropped and
+the result is `ContactDeliveryError::Timeout(limit)`, which reaches the
+client as `delivery_timeout`.  `smtp-lettre` enables the feature.
+
 ### `delivery::smtp` (feature `smtp-lettre`)
 
 ```rust,ignore
@@ -310,7 +327,9 @@ pub struct SmtpConfig {
     pub host: String, pub port: u16, pub username: String, pub password: String,
     pub from_address: String, pub to_address: String, pub subject_prefix: String,
     pub tls_mode: SmtpTlsMode,
+    pub timeout: Duration,             // connect through the relay's final reply
 }
+impl SmtpConfig { pub const DEFAULT_TIMEOUT: Duration; }  // 30 s
 pub enum SmtpTlsMode { StartTls /* default */, Tls, DangerousPlaintext }
 ```
 

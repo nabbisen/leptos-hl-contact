@@ -60,7 +60,8 @@ network.
 cargo test --all-features --test server
 ```
 
-The suite is compiled only with `ssr`, `axum-helpers` and `form-token`, which
+The suite is compiled only with `ssr`, `axum-helpers`, `form-token` and
+`delivery-timeout`, which
 `--all-features` enables; `cargo test --all-features` runs it with everything
 else, and so does CI.
 
@@ -78,7 +79,10 @@ else, and so does CI.
 - **Test doubles:** `RecordingDelivery` counts deliveries and keeps the last
   input, so "delivered or not" is asserted directly.  `FailingDelivery`
   refuses every message with a transport error and counts its calls
-  (`Setup { failing_delivery: true, .. }`).  `ScriptedVerifier` answers a
+  (`Setup { failing_delivery: true, .. }`).  `NeverDelivery` never finishes;
+  wrap it in `DeliveryTimeout` and pass it as `Setup::delivery_context`, with
+  a paused clock (`#[tokio::test(start_paused = true)]`), to reach a timeout
+  without waiting.  `ScriptedVerifier` answers a
   challenge with a set result and records the tokens it saw.  `FixedFilter`
   returns a set decision and counts its calls.
 - **`capture_logs`** records every log event and span field for the test.
@@ -201,7 +205,7 @@ tests from the code side.
 | FR-UI-06 | — | `delivery::the_success_page_is_applied_when_configured` | — | inline success with JavaScript: review |
 | FR-UI-07 | — | — | `focus::focus_moves_to_the_first_invalid_field` | — |
 | FR-UI-08 | `config::field_text_renders_required_and_line_breaks` | `validation::field_errors_round_trip_without_javascript` | — | — |
-| FR-UI-09 | `config::code_text_maps_unexpected_to_delivery_failed` | `delivery::a_delivery_error_reaches_the_client_only_as_delivery_failed`, `routing::a_missing_delivery_context_is_not_configured`, `validation::a_banner_error_sets_no_field_error` | — | — |
+| FR-UI-09 | `config::code_text_maps_unexpected_to_delivery_failed`, `config::code_text_renders_delivery_timeout` | `delivery::a_delivery_error_reaches_the_client_only_as_delivery_failed`, `routing::a_missing_delivery_context_is_not_configured`, `validation::a_banner_error_sets_no_field_error`, `delivery::a_delivery_timeout_reaches_the_client_as_delivery_timeout` | — | — |
 | FR-UI-10 | `components::attributes::the_honeypot_is_hidden_from_everyone` | — | — | — |
 | FR-UI-11 | `config::options_default_shows_subject`, `config::options_effective_len_is_clamped`, `components::subject_hidden_when_option_false`, `components::attributes::required_fields_carry_both_required_attributes`, `components::attributes::maxlength_matches_the_validator` | — | — | — |
 | FR-UI-12 | `components::hidden_token_is_rendered_from_context`, `components::the_reactive_token_attribute_renders_the_ssr_value`, `server::a_mounted_token_refreshes_at_its_refresh_point`, `server::an_overdue_mounted_token_refreshes_immediately`, `server::a_fast_browser_clock_costs_one_immediate_refresh`, `server::a_slow_browser_clock_is_capped_at_the_interval`, `config::options_default_never_calls_the_token_endpoint` | `binding::binding_reuses_the_browser_nonce_across_renders`, `binding::the_token_endpoint_reuses_the_nonce` | `token::without_refresh_the_token_endpoint_is_never_called`, `token::an_empty_token_field_acquires_exactly_once`, `token::an_overdue_mounted_token_refreshes_once`, `token::a_fetched_token_schedules_its_refresh_from_arrival`, `token::the_hidden_token_survives_a_failed_submission` | — |
@@ -213,7 +217,7 @@ tests from the code side.
 | FR-SUB-06 | `error::field_errors_roundtrip_json`, `server::field_error_message_has_prefix` | `validation::each_rule_rejects_with_its_field_code`, `validation::field_errors_round_trip_without_javascript` | — | — |
 | FR-SUB-07 | `config::policy_check_requires_subject_when_set`, `config::policy_check_counts_characters_not_bytes`, `config::policy_check_reports_both_errors_at_once` | `policy::server_policy_requires_the_subject`, `policy::server_policy_counts_the_message_in_characters` | — | — |
 | FR-SUB-08 | — | `routing::a_missing_delivery_context_is_not_configured`, `logging::no_personal_data_or_secret_is_logged` | — | — |
-| FR-SUB-09 | — | `delivery::a_delivery_error_reaches_the_client_only_as_delivery_failed`, `logging::no_personal_data_or_secret_is_logged` | — | — |
+| FR-SUB-09 | — | `delivery::a_delivery_error_reaches_the_client_only_as_delivery_failed`, `logging::no_personal_data_or_secret_is_logged`, `delivery::a_delivery_timeout_reaches_the_client_as_delivery_timeout` | — | — |
 | FR-SUB-10 | **none** | **none** | — | review: `std::env` appears in `src/` only inside rustdoc examples |
 | FR-VAL-01 | `model::empty_name_fails`, `model::newline_in_name_fails`, `model::over_long_name_still_yields_length_code`, `model::newline_in_name_yields_line_breaks_code` | `validation::each_rule_rejects_with_its_field_code` | — | — |
 | FR-VAL-02 | `model::invalid_email_fails`, `model::bad_email_yields_format_code`, `model::email::reply_to_addresses_are_accepted`, `model::email::a_single_label_domain_is_a_format_error`, `model::email::an_address_literal_is_a_format_error`, `model::email::an_empty_domain_label_is_a_format_error`, `model::email::a_254_character_address_is_accepted`, `model::email::a_255_character_address_is_a_length_error`, `model::email::a_long_invalid_address_reports_its_length`, `model::email::a_blank_email_keeps_its_format_code` | `validation::each_rule_rejects_with_its_field_code`, `validation::field_errors_round_trip_without_javascript` | — | — |
@@ -248,7 +252,7 @@ tests from the code side.
 | FR-CFG-04 | `form_token::debug_redacts_the_secret`, `challenge::http::debug_redacts_the_secret`, `config::redirect_debug_does_not_expose_the_executor`, `delivery::smtp::debug_redacts_the_password` | — | — | — |
 | FR-CFG-05 | `form_token::default_config_has_a_two_second_minimum_age`, `axum_helpers::cookie_defaults_are_the_documented_ones`, `config::policy_default_matches_ceiling`, `config::no_js_policy_defaults_to_reject`, `challenge::the_policy_defaults_are_the_documented_ones`, `challenge::http::the_default_timeout_is_five_seconds` | — | — | the STARTTLS default and the one-hour token TTL: review |
 | FR-I18N-01 | `config::field_text_substitutes_in_a_translated_label`, `components::the_noscript_message_escapes_label_and_class` | — | — | — |
-| FR-I18N-02 | `error::contact_error_code_round_trips_through_the_wire_string`, `config::code_text_maps_unexpected_to_delivery_failed`, `config::field_text_substitutes_min_and_max` | `validation::field_errors_round_trip_without_javascript` | — | — |
+| FR-I18N-02 | `error::contact_error_code_round_trips_through_the_wire_string`, `config::code_text_maps_unexpected_to_delivery_failed`, `config::field_text_substitutes_min_and_max`, `error::delivery_timeout_round_trips_through_the_wire_string`, `config::code_text_renders_delivery_timeout` | `validation::field_errors_round_trip_without_javascript`, `delivery::a_delivery_timeout_reaches_the_client_as_delivery_timeout` | — | — |
 | FR-I18N-04 | **none** | **none** | — | review: the rendered markup carries no `dir`, `lang` or locale formatting |
 | FR-I18N-05 | `model::message_length_counts_characters`, `delivery::smtp::reply_to_with_special_chars_in_name` | `validation::each_rule_rejects_with_its_field_code` (a non-ASCII message) | — | a non-ASCII value reaching delivery unchanged, and header encoding: review (lettre) |
 | FR-A11Y-01 | `components::attributes::every_input_has_a_label_for_it` | — | — | — |

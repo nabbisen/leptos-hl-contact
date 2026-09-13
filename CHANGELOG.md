@@ -4,6 +4,21 @@
 
 No version assigned; the owner decides the release number.
 
+### Added
+
+- **A bound on delivery time.**  `DeliveryTimeout` (feature
+  `delivery-timeout`) wraps any delivery backend and gives up at a deadline,
+  dropping the delivery.  `SmtpConfig::timeout` and
+  `SmtpConfig::DEFAULT_TIMEOUT` (30 seconds) give the SMTP backend the same
+  bound over the whole exchange, not only the connect.
+- **`delivery_timeout`.**  `ContactErrorCode::DeliveryTimeout`,
+  `ContactDeliveryError::Timeout(Duration)` and
+  `ContactErrorLabels::delivery_timeout` ("Sending took too long. Your
+  message may have been sent — please wait a few minutes before trying
+  again.").  A timeout may have delivered the message, so it is not reported
+  as a failure.  It is logged at `error` as `contact form delivery timed out`
+  with the limit only.
+
 ### Removed
 
 - **The deprecated 0.4 names**, as the 0.5.0 release promised: the `csrf`
@@ -15,6 +30,10 @@ No version assigned; the owner decides the release number.
 
 ### Changed
 
+- **The SMTP backend stops at 30 seconds by default.**  A relay that accepts
+  the connection and then stalls no longer holds the request until a proxy
+  gives up; the visitor sees `delivery_timeout` instead of a proxy error
+  page.  `smtp-lettre` now enables `delivery-timeout`.
 - **Stricter email addresses.**  `email` is refused, with the existing
   `format_email` text, when its domain is an address literal
   (`user@[127.0.0.1]`), a single label (`user@localhost`), or has an empty
@@ -27,6 +46,15 @@ No version assigned; the owner decides the release number.
 **Newly refused addresses.**  `user@localhost`, `user@[127.0.0.1]` and
 addresses over 254 characters are now refused; they cannot be replied to
 from a public mailbox.
+
+**Delivery deadline.**
+
+- Add `timeout: SmtpConfig::DEFAULT_TIMEOUT` to every `SmtpConfig { … }`
+  literal; the struct has no `Default`.
+- A `match` on `ContactDeliveryError` or `ContactErrorCode` without a
+  wildcard needs the new `Timeout` / `DeliveryTimeout` arm.
+- A `ContactErrorLabels { … }` literal needs `delivery_timeout`, or
+  `..Default::default()`.
 
 | 0.4 name | Use |
 |----------|-----|

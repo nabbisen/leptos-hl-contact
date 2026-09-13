@@ -56,6 +56,8 @@ pub struct Setup {
     pub delivery: bool,
     /// Provide `FailingDelivery` instead of `RecordingDelivery`.
     pub failing_delivery: bool,
+    /// Provide this delivery context instead of either double.
+    pub delivery_context: Option<ContactDeliveryContext>,
     pub token: TokenMode,
     pub min_age_secs: u64,
     pub success_page: bool,
@@ -69,6 +71,7 @@ impl Default for Setup {
         Self {
             delivery: true,
             failing_delivery: false,
+            delivery_context: None,
             token: TokenMode::Plain,
             min_age_secs: 0,
             success_page: false,
@@ -137,6 +140,7 @@ impl Harness {
             let delivery = Arc::clone(&delivery);
             let failing = Arc::clone(&failing);
             let failing_delivery = setup.failing_delivery;
+            let delivery_context = setup.delivery_context;
             let token_config = Arc::clone(&token_config);
             let cookie = FormTokenCookie::default();
             let token_mode = setup.token;
@@ -146,7 +150,10 @@ impl Harness {
             let filter = setup.filter;
             move || {
                 if deliver {
-                    let delivery: ContactDeliveryContext = if failing_delivery {
+                    let delivery: ContactDeliveryContext = if let Some(context) = &delivery_context
+                    {
+                        Arc::clone(context)
+                    } else if failing_delivery {
                         failing.clone() as ContactDeliveryContext
                     } else {
                         delivery.clone() as ContactDeliveryContext

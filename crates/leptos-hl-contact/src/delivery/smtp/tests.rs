@@ -1,5 +1,7 @@
 // tests.rs — unit tests for the parent module.
 
+use std::future::pending;
+
 use super::*;
 fn sample_config() -> SmtpConfig {
     SmtpConfig {
@@ -11,6 +13,7 @@ fn sample_config() -> SmtpConfig {
         to_address: "admin@example.com".into(),
         subject_prefix: "[Contact]".into(),
         tls_mode: SmtpTlsMode::StartTls,
+        timeout: SmtpConfig::DEFAULT_TIMEOUT,
     }
 }
 
@@ -130,4 +133,48 @@ fn debug_redacts_the_password() {
     let printed = format!("{delivery:?}");
     assert!(printed.contains("<redacted>"), "{printed}");
     assert!(!printed.contains("hunter2-test"), "{printed}");
+}
+
+/// FR-DEL-08 (RFC 009 D2): the recommended deadline is 30 seconds.
+#[test]
+fn the_default_timeout_is_thirty_seconds() {
+    assert_eq!(SmtpConfig::DEFAULT_TIMEOUT, Duration::from_secs(30));
+}
+
+/// `Debug` shows the deadline next to the redacted password.
+#[test]
+fn debug_shows_the_timeout() {
+    let printed = format!("{:?}", sample_config());
+    assert!(printed.contains("timeout: 30s"), "{printed}");
+}
+
+/// FR-DEL-08, NFR-PERF-03, T15 (RFC 009 D2): a relay that accepts the
+/// connection and then never says a word is abandoned at the deadline.  The
+/// clock is paused, so the 30 seconds pass as soon as nothing else can run.
+#[tokio::test(start_paused = true)]
+async fn a_relay_that_never_answers_times_out() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let relay = tokio::spawn(async move {
+        let (_socket, _) = listener.accept().await.unwrap();
+        pending::<()>().await;
+    });
+
+    let delivery = LettreSmtpDelivery {
+        config: SmtpConfig {
+            host: "127.0.0.1".into(),
+            port,
+            username: String::new(),
+            password: String::new(),
+            tls_mode: SmtpTlsMode::DangerousPlaintext,
+            ..sample_config()
+        },
+    };
+    let result = delivery.deliver(sample_input()).await;
+
+    assert!(
+        matches!(result, Err(ContactDeliveryError::Timeout(limit)) if limit == SmtpConfig::DEFAULT_TIMEOUT),
+        "{result:?}"
+    );
+    relay.abort();
 }

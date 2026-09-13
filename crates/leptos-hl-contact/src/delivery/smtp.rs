@@ -2,7 +2,7 @@
 //
 // Enabled by the `smtp-lettre` feature flag.
 
-use std::{future::Future, pin::Pin};
+use std::{future::Future, pin::Pin, time::Duration};
 
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
@@ -71,6 +71,7 @@ pub enum SmtpTlsMode {
 ///     to_address:     std::env::var("CONTACT_TO").unwrap(),
 ///     subject_prefix: "[Contact]".into(),
 ///     tls_mode:       SmtpTlsMode::StartTls,
+///     timeout:        SmtpConfig::DEFAULT_TIMEOUT,
 /// };
 /// ```
 #[derive(Clone)]
@@ -95,6 +96,19 @@ pub struct SmtpConfig {
     pub subject_prefix: String,
     /// TLS negotiation mode.
     pub tls_mode: SmtpTlsMode,
+    /// Deadline for one delivery: from connecting to the relay's final reply.
+    ///
+    /// Use [`SmtpConfig::DEFAULT_TIMEOUT`] unless the relay is known to be
+    /// slow.  It must be greater than zero.  When it passes, the delivery is
+    /// abandoned and the visitor sees `delivery_timeout`, which says the
+    /// message may have been sent.
+    pub timeout: Duration,
+}
+
+impl SmtpConfig {
+    /// The recommended [`timeout`](Self::timeout): 30 seconds, well under the
+    /// 60 s and 100 s limits common proxies put on a request.
+    pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(30);
 }
 
 impl std::fmt::Debug for SmtpConfig {
@@ -108,6 +122,7 @@ impl std::fmt::Debug for SmtpConfig {
             .field("to_address", &self.to_address)
             .field("subject_prefix", &self.subject_prefix)
             .field("tls_mode", &self.tls_mode)
+            .field("timeout", &self.timeout)
             .finish()
     }
 }
@@ -145,6 +160,7 @@ impl std::fmt::Debug for SmtpConfig {
 ///         to_address:     "admin@example.com".into(),
 ///         subject_prefix: "[Contact]".into(),
 ///         tls_mode:       SmtpTlsMode::StartTls,
+///         timeout:        SmtpConfig::DEFAULT_TIMEOUT,
 ///     },
 /// });
 /// ```
@@ -163,6 +179,9 @@ impl std::fmt::Debug for LettreSmtpDelivery {
 
 impl LettreSmtpDelivery {
     /// Build an [`AsyncSmtpTransport`] from the stored configuration.
+    ///
+    /// lettre applies its own timeout to the connect only; it is set to the
+    /// same deadline so a slow connect fails as quickly as a silent relay.
     fn build_transport(&self) -> Result<AsyncSmtpTransport<Tokio1Executor>, ContactDeliveryError> {
         let creds = Credentials::new(self.config.username.clone(), self.config.password.clone());
 
@@ -172,17 +191,20 @@ impl LettreSmtpDelivery {
                     .map_err(|e| ContactDeliveryError::Configuration(e.to_string()))?
                     .port(self.config.port)
                     .credentials(creds)
+                    .timeout(Some(self.config.timeout))
                     .build()
             }
             SmtpTlsMode::Tls => AsyncSmtpTransport::<Tokio1Executor>::relay(&self.config.host)
                 .map_err(|e| ContactDeliveryError::Configuration(e.to_string()))?
                 .port(self.config.port)
                 .credentials(creds)
+                .timeout(Some(self.config.timeout))
                 .build(),
             SmtpTlsMode::DangerousPlaintext => {
                 AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(&self.config.host)
                     .port(self.config.port)
                     .credentials(creds)
+                    .timeout(Some(self.config.timeout))
                     .build()
             }
         };
@@ -253,18 +275,23 @@ impl ContactDelivery for LettreSmtpDelivery {
         &self,
         input: ContactInput,
     ) -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>> {
-        Box::pin(async move {
-            let transport = self.build_transport()?;
-            let message = self.build_message(&input)?;
+        // The whole exchange runs under one deadline; lettre bounds only the
+        // connect.  A timeout is logged once, by `submit_contact`.
+        Box::pin(crate::delivery::timeout::with_deadline(
+            self.config.timeout,
+            async move {
+                let transport = self.build_transport()?;
+                let message = self.build_message(&input)?;
 
-            transport.send(message).await.map_err(|e| {
-                tracing::error!(error = %e, "SMTP delivery failed");
-                ContactDeliveryError::Transport(e.to_string())
-            })?;
+                transport.send(message).await.map_err(|e| {
+                    tracing::error!(error = %e, "SMTP delivery failed");
+                    ContactDeliveryError::Transport(e.to_string())
+                })?;
 
-            tracing::info!("contact form submission delivered via SMTP");
-            Ok(())
-        })
+                tracing::info!("contact form submission delivered via SMTP");
+                Ok(())
+            },
+        ))
     }
 }
 

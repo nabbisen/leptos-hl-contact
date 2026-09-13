@@ -1,6 +1,6 @@
 # Requirements Specification
 
-> **Document status.** Draft 15, 2026-09-13, against release `0.5.0`.
+> **Document status.** Draft 16, 2026-09-13, against release `0.5.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
 > M1–M3 are released and M4 is owner-authorized; the document as a whole
 > awaits formal approval.
@@ -189,13 +189,13 @@ input the browser accepted.
 | FR-DEL-05 | The email MUST use the server-configured `From` and `To`; the visitor's address MUST appear only in `Reply-To`, with the display name encoded safely; the subject MUST be prefix + sanitised subject | MUST | Met |
 | FR-DEL-06 | The body MUST be plain text UTF-8 containing name, email, subject, and message | MUST | Met |
 | FR-DEL-07 | Custom backends MUST be possible without modifying the UI or the server function | MUST | Met |
-| FR-DEL-08 | Delivery SHOULD complete within a bounded time so a slow relay cannot hold a request indefinitely; delivery MAY be offloaded to a queue | SHOULD | Gap (no timeout; queue adapter is a Future item) |
+| FR-DEL-08 | Delivery SHOULD complete within a bounded time so a slow relay cannot hold a request indefinitely; delivery MAY be offloaded to a queue | SHOULD | Met (0.6.0): the SMTP backend's 30 s deadline; any backend wrapped in `DeliveryTimeout` |
 
 ### 5.6 Configuration and integration (FR-CFG)
 
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
-| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr`), `axum-helpers` (implies `ssr`), `form-token` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met (0.6.0) |
+| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr` and `delivery-timeout`), `delivery-timeout` (implies `ssr`), `axum-helpers` (implies `ssr`), `form-token` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met (0.6.0) |
 | FR-CFG-02 | Required context values MUST be documented for the context closure, and helpers MUST exist for Axum | MUST | Met (RFC 007) |
 | FR-CFG-03 | Misconfiguration MUST surface loudly (startup panic in examples, `error` log in the crate) and MUST NOT fall back to an insecure default | MUST | Met |
 | FR-CFG-04 | Types holding secrets MUST redact them in `Debug` output | MUST | Met |
@@ -288,7 +288,7 @@ input the browser accepted.
 |----|-------------|--------|
 | NFR-PERF-01 | The request path MUST perform no blocking I/O; the only awaited operation is delivery | Met |
 | NFR-PERF-02 | Per-request CPU work MUST be bounded by input size limits (validation is linear in input length) | Met |
-| NFR-PERF-03 | Delivery latency is relay latency; it SHOULD be bounded (see FR-DEL-08) | Gap |
+| NFR-PERF-03 | Delivery latency is relay latency; it SHOULD be bounded (see FR-DEL-08) | Met (0.6.0): the SMTP backend's 30 s deadline; any backend wrapped in `DeliveryTimeout` |
 
 ### 6.6 Dependencies (NFR-DEP)
 
@@ -351,7 +351,6 @@ input the browser accepted.
 
 | Requirement | Status | Roadmap item |
 |-------------|--------|--------------|
-| FR-DEL-08, NFR-PERF-03 | Gap | P-32 (proposed), queue adapter (Future) |
 | FR-I18N-03 | Planned | P-20 |
 | NFR-PORT-02 | Decision | P-23 |
 | NFR-DEP-02 | Partial | P-24 |
@@ -379,6 +378,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 16 | RFC 009: FR-DEL-08 and NFR-PERF-03 Met (SMTP deadline, `DeliveryTimeout`); `delivery-timeout` added to FR-CFG-01; gap row removed |
 | 2026-09-13 | Draft 15 | RFC 010 D2: FR-VAL-02 refuses address literals, single-label domains, empty labels, and addresses over 254 characters |
 | 2026-09-13 | Draft 14 | RFC 010 D1: `csrf` alias removed (FR-CFG-01) |
 | 2026-09-13 | Draft 13 | RFC 008 handoff 04: NFR-TEST-02 Met; testing gaps removed from the gap summary |

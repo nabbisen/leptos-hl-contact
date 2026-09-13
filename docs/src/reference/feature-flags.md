@@ -8,7 +8,8 @@ downstream crates choose exactly what they activate.
 | `hydrate` | — | Leptos client-side hydration |
 | `ssr` | — | Server-side rendering and the `submit_contact` body |
 | `islands` | — | Leptos Islands architecture |
-| `smtp-lettre` | `ssr` | `delivery::smtp` (`lettre`, `tokio`) |
+| `smtp-lettre` | `ssr`, `delivery-timeout` | `delivery::smtp` (`lettre`, `tokio`) |
+| `delivery-timeout` | `ssr` | `DeliveryTimeout`, a deadline for any delivery backend (`tokio` with `time`) |
 | `axum-helpers` | `ssr` | `axum_helpers` (`axum`, `leptos_axum`) |
 | `form-token` | `ssr` | `form_token` module; token verification in `submit_contact` (`hmac`, `sha2`, `rand`, `hex`) |
 | `challenge-http` | `ssr` | `HttpChallengeVerifier`, which calls the vendors' siteverify endpoints (`reqwest` with rustls only) |

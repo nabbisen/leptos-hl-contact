@@ -85,6 +85,9 @@ pub struct ContactErrorLabels {
     pub not_configured: String,
     /// The delivery backend refused or failed.
     pub delivery_failed: String,
+    /// Delivery did not finish within its deadline.  The message may have been
+    /// sent, so the text should not say it failed.
+    pub delivery_timeout: String,
     /// A challenge is configured but the submission carried no token.
     pub challenge_required: String,
     /// The challenge did not pass.
@@ -111,6 +114,7 @@ impl Default for ContactErrorLabels {
             too_fast: "Please wait a moment and try again.".into(),
             not_configured: "This form is not available right now.".into(),
             delivery_failed: "Failed to send message. Please try again later.".into(),
+            delivery_timeout: "Sending took too long. Your message may have been sent — please wait a few minutes before trying again.".into(),
             challenge_required: "Please complete the security check.".into(),
             challenge_failed: "The security check did not pass. Please try again.".into(),
             challenge_unavailable:
@@ -159,6 +163,7 @@ impl ContactErrorLabels {
             C::TooFast => self.too_fast.clone(),
             C::NotConfigured => self.not_configured.clone(),
             C::DeliveryFailed | C::Unexpected => self.delivery_failed.clone(),
+            C::DeliveryTimeout => self.delivery_timeout.clone(),
             C::ChallengeRequired => self.challenge_required.clone(),
             C::ChallengeFailed => self.challenge_failed.clone(),
             C::ChallengeUnavailable => self.challenge_unavailable.clone(),

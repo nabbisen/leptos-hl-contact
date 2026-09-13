@@ -296,10 +296,22 @@ pub async fn submit_contact(
 
         // 9. Deliver.
         if let Err(e) = delivery.deliver(input).await {
-            tracing::error!(error = %e, "contact form delivery failed");
-            return Err(ServerFnError::ServerError(
-                ContactErrorCode::DeliveryFailed.into_server_fn_message(),
-            ));
+            // A timeout may have delivered the message, so it has its own code
+            // (RFC 009 D3).  Both are `ServerError`, so both reach the banner.
+            let code = match e {
+                crate::error::ContactDeliveryError::Timeout(limit) => {
+                    tracing::error!(
+                        limit_secs = limit.as_secs(),
+                        "contact form delivery timed out"
+                    );
+                    ContactErrorCode::DeliveryTimeout
+                }
+                e => {
+                    tracing::error!(error = %e, "contact form delivery failed");
+                    ContactErrorCode::DeliveryFailed
+                }
+            };
+            return Err(ServerFnError::ServerError(code.into_server_fn_message()));
         }
 
         return succeed(success_redirect.as_ref());
