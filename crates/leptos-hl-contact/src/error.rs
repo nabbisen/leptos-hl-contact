@@ -110,6 +110,8 @@ pub enum ContactErrorCode {
     ChallengeFailed,
     /// The challenge vendor could not be asked.  Fail-closed.
     ChallengeUnavailable,
+    /// A `ContactFilter` refused the submission.
+    Rejected,
 }
 
 impl ContactErrorCode {
@@ -124,6 +126,7 @@ impl ContactErrorCode {
             Self::ChallengeRequired => "challenge_required",
             Self::ChallengeFailed => "challenge_failed",
             Self::ChallengeUnavailable => "challenge_unavailable",
+            Self::Rejected => "rejected",
         }
     }
 
@@ -140,6 +143,7 @@ impl ContactErrorCode {
             "challenge_required" => Some(Self::ChallengeRequired),
             "challenge_failed" => Some(Self::ChallengeFailed),
             "challenge_unavailable" => Some(Self::ChallengeUnavailable),
+            "rejected" => Some(Self::Rejected),
             _ => None,
         }
     }

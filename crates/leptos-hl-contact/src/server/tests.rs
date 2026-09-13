@@ -231,3 +231,12 @@ async fn hyphenated_challenge_fields_decode_through_the_generated_type() {
             .await;
     assert_eq!(args.cf_turnstile_response, None);
 }
+
+/// RFC 006: a filter's rejection is the submission's, so it is `Args`, and it
+/// carries the prefix like every other code.
+#[test]
+fn a_filter_rejection_is_args_with_the_prefix() {
+    let msg = crate::error::ContactErrorCode::Rejected.into_server_fn_message();
+    assert_eq!(msg, "contact_error:rejected");
+    assert!(!msg.starts_with(FIELD_ERROR_PREFIX));
+}

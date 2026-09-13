@@ -305,6 +305,7 @@ fn code_text_maps_unexpected_to_delivery_failed() {
         l.code_text(C::ChallengeUnavailable),
         l.challenge_unavailable
     );
+    assert_eq!(l.code_text(C::Rejected), l.rejected);
 }
 
 #[test]
@@ -482,4 +483,24 @@ fn widget_script_urls_carry_the_language_where_the_vendor_reads_it() {
         ),
         "https://www.google.com/recaptcha/api.js?render=SITE&hl=fr"
     );
+}
+
+/// RFC 006 D1's default, distinct from every token and challenge label so a
+/// reader can tell which layer acted.
+#[test]
+fn rejected_label_has_the_rfc_default_and_is_distinct() {
+    let l = ContactErrorLabels::default();
+    assert_eq!(l.rejected, "Your message could not be accepted.");
+    for other in [
+        &l.token_invalid,
+        &l.too_fast,
+        &l.not_configured,
+        &l.delivery_failed,
+        &l.challenge_required,
+        &l.challenge_failed,
+        &l.challenge_unavailable,
+        &l.challenge_requires_js,
+    ] {
+        assert_ne!(&l.rejected, other);
+    }
 }

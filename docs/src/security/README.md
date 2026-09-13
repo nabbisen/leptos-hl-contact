@@ -21,6 +21,25 @@ full threat model is in [External Design](../development/external-design.md#5-se
 | Request body limit | example | ✅ layer |
 | TLS | — | ✅ proxy |
 | [Challenge](./challenge.md) — Turnstile, hCaptcha, reCAPTCHA | ✅ widget and verification (`challenge-http`) | ✅ vendor keys, if needed |
+| [Filter](./filter.md) — your own content rules | ✅ the hook | ✅ your rules, if needed |
+
+## Which layer decides what
+
+Five mechanisms inside the crate can stop a submission.  Each answers one
+question; pick the one whose question is yours.
+
+| Mechanism | The question it answers | Configured by | Runs | Visitor sees on failure |
+|-----------|-------------------------|---------------|------|-------------------------|
+| [Honeypot](../reference/api.md#contactinput) | Did a bot fill the hidden field? | nothing | always | success (silent) |
+| [Form token](./form-token.md) | Did the sender fetch our page recently, not too fast, (bound to this browser)? | `FormTokenContext` | when configured | "reload" / "wait a moment" |
+| [Server policy](../guides/customization.md#contactserverpolicy) | Does the input meet this site's structural limits? | `ContactServerPolicy` | when configured | field error |
+| [Challenge](./challenge.md) | Did a vendor judge the sender human? | `ChallengeContext` + `challenge` prop | when configured | "complete the check" |
+| [Filter](./filter.md) | Does this site want this content? | `ContactFilterContext` | when configured | generic rejection or silent |
+
+Every value in "Configured by" is provided the same way, in the one context
+closure passed to `leptos_routes_with_context`; none of them reads
+environment variables or global state.  Each mechanism is explained on its
+own page only.
 
 ## Layers, from the edge inward
 
@@ -30,27 +49,15 @@ Cheap checks first, so expensive ones rarely run:
 2. [Request body limit](./hardening.md#request-body-limit)
 3. [Rate limit](./hardening.md#rate-limiting) keyed by real client IP
 4. [Origin / Referer validation](./hardening.md#origin--referer-validation) on POST
-5. [Form token](./form-token.md): proves the sender fetched a page from this server within the last hour, and waited at least a moment before submitting
+5. [Form token](./form-token.md)
 6. Honeypot
 7. Field validation and [server policy](../guides/customization.md#contactserverpolicy)
-8. Optional [challenge](./challenge.md), verified with the vendor before delivery
-
-## About the token
-
-The `form-token` feature issues a stateless HMAC-SHA256 token per page render and
-verifies it on submit.  By default it is **not bound to the visitor's
-browser**, so on its own it does not stop a cross-site request: an attacker
-can fetch a token and place it in a form on another site.  What it does well
-is force bots to fetch a page first and wait before submitting.
-
-`Binding::Cookie` ties the token to an `HttpOnly`, `SameSite=Lax`,
-`__Host-`-prefixed cookie, which makes it a second check against cross-site
-submissions.  It is defence in depth: **the control that rejects cross-site
-POSTs is the Origin / Referer check, with or without binding.**  Read
-[Form Token](./form-token.md) for the exact guarantees and their limits.
+8. Optional [challenge](./challenge.md)
+9. Optional [filter](./filter.md)
 
 ## Pages in this section
 
 - [Form Token](./form-token.md) — the `form-token` feature
 - [Hardening](./hardening.md) — rate limiting, origin validation, body limit, secrets
 - [Challenge](./challenge.md) — Turnstile, hCaptcha or reCAPTCHA
+- [Filter](./filter.md) — your own content rules, before delivery

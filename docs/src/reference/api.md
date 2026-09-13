@@ -12,7 +12,11 @@ examples.
 `ContactValidationError`, `ContactInput`, `MESSAGE_MAX_LEN`,
 `ContactSuccessRedirect`, `InvalidRedirectPath`, `ContactErrorCode`,
 `ContactErrorLabels`, `ContactField`, `FieldError`, `FieldErrorCode`,
-`submit_contact`, and with the
+`submit_contact`, `ChallengeProvider`, `ChallengeTheme`, `ChallengeWidget`,
+`InvalidChallengeConfig`, `NoJsPolicy`; with `ssr` `ChallengeContext`,
+`ChallengeError`, `ChallengeOutcome`, `ChallengePolicy`, `ChallengeVerifier`,
+`ContactFilter`, `ContactFilterContext`, `FilterChain`, `FilterDecision`; with
+`challenge-http` `HttpChallengeVerifier`; and with the
 `form-token` feature `Binding`, `FormToken`, `FormTokenConfig`,
 `FormTokenBinding`, `FormTokenContext`, `FormTokenError`,
 `FormTokenIssuer`, `issue_form_token`, `issue_form_token_fn`,
@@ -68,7 +72,8 @@ the first non-blank one is the challenge token.
 
 `POST /api/submit_contact`, form-encoded.  Order of work: token check
 (`form-token`) → `ContactInput::from_raw` → `check_honeypot` → `validate_fields`
-→ `ContactServerPolicy` → challenge (`ChallengeContext`) → `ContactDelivery::deliver` →
+→ `ContactServerPolicy` → challenge (`ChallengeContext`) → filter
+(`ContactFilterContext`) → `ContactDelivery::deliver` →
 `ContactSuccessRedirect` when one is in context.
 
 | Outcome | Returned as |
@@ -81,6 +86,8 @@ the first non-blank one is the challenge token.
 | No challenge token under `NoJsPolicy::Reject` | `ServerFnError::Args("contact_error:challenge_required")` |
 | Challenge failed (not passed, score, action) | `ServerFnError::Args("contact_error:challenge_failed")` |
 | Challenge verifier error | `ServerFnError::ServerError("contact_error:challenge_unavailable")` |
+| Filter returned `Reject` | `ServerFnError::Args("contact_error:rejected")` |
+| Filter returned `SilentDrop` | `Ok(())` without delivery |
 | Delivery failed | `ServerFnError::ServerError("contact_error:delivery_failed")` |
 | Unexpected | `ServerFnError::ServerError("contact_error:unexpected")` |
 | Honeypot filled | `Ok(())` without delivery |
@@ -95,7 +102,8 @@ pub struct ContactFormLabels  { pub name, email, subject, message, submit, sendi
 pub struct ContactErrorLabels {
     pub required, length, format_email, format, line_breaks, token_invalid, too_fast,
         not_configured, delivery_failed,
-        challenge_required, challenge_failed, challenge_unavailable, challenge_requires_js: String,
+        challenge_required, challenge_failed, challenge_unavailable, challenge_requires_js,
+        rejected: String,
 }
 pub enum NoJsPolicy { Reject /* default */, AcceptWithHoneypotOnly }
 
@@ -243,7 +251,10 @@ impl ContactFieldErrors {
 }
 
 #[serde(rename_all = "snake_case")]
-pub enum ContactErrorCode { TokenInvalid, NotConfigured, DeliveryFailed, Unexpected }
+pub enum ContactErrorCode {
+    TokenInvalid, TooFast, NotConfigured, DeliveryFailed, Unexpected,
+    ChallengeRequired, ChallengeFailed, ChallengeUnavailable, Rejected,
+}
 impl ContactErrorCode {
     pub fn as_str(self) -> &'static str;
     pub fn from_str_code(s: &str) -> Option<Self>;
@@ -271,6 +282,7 @@ Wire examples:
 field_errors:{"email":{"kind":"format"},"name":{"kind":"length","min":1,"max":80}}
 contact_error:token_invalid
 contact_error:delivery_failed
+contact_error:rejected
 ```
 
 ## `delivery`
@@ -427,6 +439,31 @@ this table:
 
 An empty or whitespace-only token counts as absent.  The token itself is
 never logged.
+
+## `filter` module
+
+Feature `ssr`; no feature flag of its own, and no built-in filters.
+
+```rust,ignore
+pub enum FilterDecision { Accept, Reject, SilentDrop }
+
+pub trait ContactFilter: Send + Sync + 'static {
+    fn filter(&self, input: &ContactInput)
+        -> Pin<Box<dyn Future<Output = FilterDecision> + Send + '_>>;
+    fn name(&self) -> &'static str { std::any::type_name::<Self>() }
+}
+pub type ContactFilterContext = Arc<dyn ContactFilter>;
+
+pub struct FilterChain(/* private */);
+impl FilterChain { pub fn new(filters: Vec<Arc<dyn ContactFilter>>) -> Self; }
+impl ContactFilter for FilterChain { /* first non-Accept wins; later filters are not called */ }
+```
+
+Runs after the challenge and before delivery, on validated input only.
+`Reject` is `contact_error:rejected`; `SilentDrop` is `Ok(())` without
+delivery.  Both are logged at `warn` inside a `contact_filter` span: `filter`
+names the filter in context, and for a `FilterChain`, `decided_by` names the
+member that decided.  Guide and examples: [Filter](../security/filter.md).
 
 ## `csrf` module — deprecated
 

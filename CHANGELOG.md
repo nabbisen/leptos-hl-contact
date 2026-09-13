@@ -95,6 +95,14 @@ No version assigned; the owner decides the release number.
   submission as `challenge_unavailable`.  The secret is redacted from
   `Debug`, and `with_verify_url` supports a forwarding proxy.  Redirects are
   not followed, so the secret is never resent to a `Location` header.
+- **Filter hook.**  A `ContactFilter` provided as `ContactFilterContext`
+  sees the validated submission after the challenge and before delivery,
+  and returns `FilterDecision::Accept`, `Reject` (`contact_error:rejected`,
+  label `rejected`: "Your message could not be accepted.") or `SilentDrop`
+  (success without delivery, like the honeypot).  `FilterChain` runs several
+  in order; the first non-`Accept` wins.  Decisions are logged at `warn`
+  with the deciding filter's name, never with content.  The crate ships no
+  filters; `security/filter.md` has examples.
 
 ### Migration
 
@@ -122,13 +130,17 @@ Two things do not move by themselves:
   old behaviour.
 - **Two structs gain fields.**  `ContactFormOptions` gains
   `token_refresh_secs`; `ContactErrorLabels` gains `too_fast`,
-  `challenge_required`, `challenge_failed`, `challenge_unavailable` and
-  `challenge_requires_js`.  An exhaustive struct literal of either must add
+  `challenge_required`, `challenge_failed`, `challenge_unavailable`,
+  `challenge_requires_js` and `rejected`.  An exhaustive struct literal of either must add
   them; `..Default::default()` is unaffected.  `token_refresh_secs` defaults
   to `None`, which is off.
 
 ### Documentation
 
+- The Security overview has one table, "Which layer decides what", mapping
+  each of the five mechanisms to the question it answers, how it is
+  configured, and what the visitor sees; each mechanism is explained on its
+  own page only.  New page `security/filter.md`.
 - `security/turnstile.md` is now `security/challenge.md`, covering all four
   providers, the server's decision table, the no-JavaScript policy and its
   weakness, CSP and privacy per vendor, and the vendors' test keys.  The old

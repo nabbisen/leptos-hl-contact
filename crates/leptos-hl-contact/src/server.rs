@@ -46,6 +46,14 @@ use crate::{
 /// no token under `NoJsPolicy::Reject` is `challenge_required`; a failed
 /// check is `challenge_failed`; a verifier error is `challenge_unavailable`.
 ///
+/// # Filter
+///
+/// With [`ContactFilterContext`](crate::filter::ContactFilterContext) in
+/// context, the validated input is passed to the filter after the challenge
+/// and before delivery.  `Reject` is `rejected`; `SilentDrop` returns
+/// success without delivering, like the honeypot.  Both are logged at `warn`
+/// with the name of the filter that decided, and never with content.
+///
 /// # Form token
 ///
 /// When the `form-token` feature is enabled **and**
@@ -207,6 +215,7 @@ pub async fn submit_contact(
         };
         let success_redirect = use_context::<crate::config::ContactSuccessRedirect>();
         let challenge_ctx = use_context::<crate::challenge::ChallengeContext>();
+        let filter = use_context::<crate::filter::ContactFilterContext>();
 
         // 7. Challenge — after every local check, so invalid input never costs
         // a vendor call.  Never log the token.
@@ -259,7 +268,35 @@ pub async fn submit_contact(
             }
         }
 
-        // 8. Deliver.
+        // 8. Filter — the site's own content rules, on validated input only.
+        // The log names the filter: `filter` is the one in context, and a
+        // chain fills `decided_by` with the member that decided.  That name
+        // cannot live on the chain, which concurrent requests share.
+        if let Some(filter) = filter {
+            use crate::filter::{FILTER_SPAN, FilterDecision};
+            use tracing::Instrument;
+
+            let span = tracing::warn_span!(
+                FILTER_SPAN,
+                filter = filter.name(),
+                decided_by = tracing::field::Empty
+            );
+            match filter.filter(&input).instrument(span.clone()).await {
+                FilterDecision::Accept => {}
+                FilterDecision::Reject => {
+                    span.in_scope(|| tracing::warn!("submission rejected by filter"));
+                    return Err(ServerFnError::Args(
+                        ContactErrorCode::Rejected.into_server_fn_message(),
+                    ));
+                }
+                FilterDecision::SilentDrop => {
+                    span.in_scope(|| tracing::warn!("submission silently dropped by filter"));
+                    return Ok(());
+                }
+            }
+        }
+
+        // 9. Deliver.
         if let Err(e) = delivery.deliver(input).await {
             tracing::error!(error = %e, "contact form delivery failed");
             return Err(ServerFnError::ServerError(
@@ -267,7 +304,7 @@ pub async fn submit_contact(
             ));
         }
 
-        // 9. Success redirect, so the no-JS path can confirm too.
+        // 10. Success redirect, so the no-JS path can confirm too.
         if let Some(redirect) = success_redirect {
             redirect.apply();
         }

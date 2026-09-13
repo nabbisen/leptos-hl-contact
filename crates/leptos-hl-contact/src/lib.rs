@@ -64,6 +64,10 @@ pub mod csrf;
 #[cfg(feature = "ssr")]
 pub mod challenge;
 
+// Pre-delivery filter hook — the site's own content rules; no built-in rules.
+#[cfg(feature = "ssr")]
+pub mod filter;
+
 // Axum integration helpers — compiled only when `axum-helpers` is active.
 #[cfg(feature = "axum-helpers")]
 pub mod axum_helpers;
@@ -94,6 +98,9 @@ pub use challenge::{
 
 #[cfg(feature = "challenge-http")]
 pub use challenge::http::HttpChallengeVerifier;
+
+#[cfg(feature = "ssr")]
+pub use filter::{ContactFilter, ContactFilterContext, FilterChain, FilterDecision};
 
 #[cfg(feature = "form-token")]
 pub use form_token::{

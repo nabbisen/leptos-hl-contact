@@ -49,6 +49,7 @@ let labels = ContactFormLabels {
         challenge_failed:      "セキュリティ確認に失敗しました。もう一度お試しください。".into(),
         challenge_unavailable: "現在セキュリティ確認を利用できません。しばらくしてからお試しください。".into(),
         challenge_requires_js: "このフォームでは、人による操作であることの確認に JavaScript が必要です。".into(),
+        rejected:              "お送りいただいたメッセージは受け付けられませんでした。".into(),
     },
     ..Default::default()
 };
@@ -69,6 +70,7 @@ let labels = ContactFormLabels {
 | `challenge_failed` | the challenge vendor rejected the token, or its score or action did not satisfy the policy |
 | `challenge_unavailable` | the challenge vendor could not be reached |
 | `challenge_requires_js` | shown inside `<noscript>` next to the widget, under `NoJsPolicy::Reject` |
+| `rejected` | a [filter](../security/filter.md) returned `Reject`; deliberately generic |
 
 `{min}` and `{max}` are the only placeholders, and they are replaced by plain
 string substitution — there is no format syntax, so translated text may put
@@ -104,6 +106,7 @@ let labels = ContactFormLabels {
         challenge_failed:      "セキュリティ確認に失敗しました。もう一度お試しください。".into(),
         challenge_unavailable: "現在セキュリティ確認を利用できません。しばらくしてからお試しください。".into(),
         challenge_requires_js: "このフォームでは、人による操作であることの確認に JavaScript が必要です。".into(),
+        rejected:              "お送りいただいたメッセージは受け付けられませんでした。".into(),
     },
 };
 ```

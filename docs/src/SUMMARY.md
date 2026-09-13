@@ -24,6 +24,7 @@
   - [Form Token](./security/form-token.md)
   - [Hardening](./security/hardening.md)
   - [Challenge (CAPTCHA)](./security/challenge.md)
+  - [Filter](./security/filter.md)
 
 # Reference
 

@@ -93,6 +93,9 @@ pub struct ContactErrorLabels {
     pub challenge_unavailable: String,
     /// Shown inside `<noscript>` when the challenge needs JavaScript.
     pub challenge_requires_js: String,
+    /// A `ContactFilter` refused the submission.  Deliberately generic, and
+    /// distinct from every token and challenge label.
+    pub rejected: String,
 }
 
 impl Default for ContactErrorLabels {
@@ -113,6 +116,7 @@ impl Default for ContactErrorLabels {
             challenge_unavailable:
                 "The security check is unavailable right now. Please try again later.".into(),
             challenge_requires_js: "This form needs JavaScript to verify you are human.".into(),
+            rejected: "Your message could not be accepted.".into(),
         }
     }
 }
@@ -158,6 +162,7 @@ impl ContactErrorLabels {
             C::ChallengeRequired => self.challenge_required.clone(),
             C::ChallengeFailed => self.challenge_failed.clone(),
             C::ChallengeUnavailable => self.challenge_unavailable.clone(),
+            C::Rejected => self.rejected.clone(),
         }
     }
 }
