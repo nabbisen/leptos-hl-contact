@@ -14,6 +14,7 @@ jobs:
         uses: dtolnay/rust-toolchain@1.91
         with:
           components: clippy, rustfmt
+          targets: wasm32-unknown-unknown
 
       - name: fmt
         run: cargo fmt --all --check
@@ -25,6 +26,11 @@ jobs:
       # other feature combinations are invisible to the step above.
       - name: clippy (ssr without csrf)
         run: cargo clippy --all-targets --no-default-features --features ssr,smtp-lettre,axum-helpers -- -D warnings
+
+      # `default = []` on wasm32 (NFR-PORT-01): nothing else in CI builds the
+      # crate for wasm32 without `hydrate`.
+      - name: check (wasm32, default features)
+        run: cargo check -p leptos-hl-contact --target wasm32-unknown-unknown
 
       - name: test
         run: cargo test --all-features

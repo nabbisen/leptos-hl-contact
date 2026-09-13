@@ -19,6 +19,19 @@ impl FetchStub {
     /// `respond` maps a request URL to a status and body.  Success bodies are
     /// JSON; errors are `Variant|message` with a 4xx or 5xx status.
     pub fn install(respond: impl Fn(&str) -> (u16, String) + 'static) -> Self {
+        Self::install_answering(move |url| Some(respond(url)))
+    }
+
+    /// Requests ending with `path` never get an answer, so the submission
+    /// stays in flight; anything else is an unexpected request.
+    pub fn never_answering(path: &'static str) -> Self {
+        Self::install_answering(move |url| {
+            (!url.ends_with(path)).then(|| (500, UNEXPECTED.to_owned()))
+        })
+    }
+
+    /// `answer` returns `None` for a request that must never be answered.
+    fn install_answering(answer: impl Fn(&str) -> Option<(u16, String)> + 'static) -> Self {
         let window = web_sys::window().expect("window");
         let original = js_sys::Reflect::get(&window, &JsValue::from_str("fetch")).expect("fetch");
         let urls = Rc::new(RefCell::new(Vec::new()));
@@ -31,7 +44,9 @@ impl FetchStub {
                     .or_else(|| request.as_string())
                     .unwrap_or_default();
                 log.borrow_mut().push(url.clone());
-                let (status, body) = respond(&url);
+                let Some((status, body)) = answer(&url) else {
+                    return js_sys::Promise::new(&mut |_resolve, _reject| {});
+                };
                 let init = web_sys::ResponseInit::new();
                 init.set_status(status);
                 let response = web_sys::Response::new_with_opt_str_and_init(Some(&body), &init)

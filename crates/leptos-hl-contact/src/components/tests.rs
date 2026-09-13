@@ -28,6 +28,8 @@ fn count(haystack: &str, needle: &str) -> usize {
     haystack.matches(needle).count()
 }
 
+mod attributes;
+
 #[test]
 fn form_renders_all_ids_once() {
     let html = render(|| view! { <ContactForm /> }.into_any());

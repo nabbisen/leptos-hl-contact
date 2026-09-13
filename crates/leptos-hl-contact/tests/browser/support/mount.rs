@@ -5,7 +5,7 @@ use leptos::{
     prelude::*,
     tachys::view::any_view::AnyViewState,
 };
-use leptos_hl_contact::{ChallengeWidget, ContactForm, ContactFormOptions};
+use leptos_hl_contact::{ChallengeWidget, ContactForm, ContactFormLabels, ContactFormOptions};
 use wasm_bindgen::{JsCast, JsValue};
 
 pub fn document() -> web_sys::Document {
@@ -27,6 +27,10 @@ pub struct Mounted {
 impl Mounted {
     pub fn new(options: ContactFormOptions) -> Self {
         Self::mount(move || view! { <ContactForm options=options /> }.into_any())
+    }
+
+    pub fn with_labels(labels: ContactFormLabels) -> Self {
+        Self::mount(move || view! { <ContactForm labels=labels /> }.into_any())
     }
 
     pub fn with_challenge(widget: ChallengeWidget) -> Self {
@@ -72,6 +76,14 @@ impl Mounted {
             &JsValue::from_str(value),
         )
         .expect("set value");
+    }
+
+    pub fn submit_button(&self) -> web_sys::HtmlElement {
+        self.host
+            .query_selector("button[type=\"submit\"]")
+            .expect("selector")
+            .expect("a submit button")
+            .unchecked_into()
     }
 
     pub fn token(&self) -> String {

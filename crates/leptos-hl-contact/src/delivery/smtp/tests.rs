@@ -113,3 +113,21 @@ fn reply_to_uses_mailbox_new_not_string_parse() {
         "user email must not be in From"
     );
 }
+
+/// FR-CFG-04: the relay password never appears in `Debug` output — neither the
+/// configuration's nor that of the backend holding it.
+#[test]
+fn debug_redacts_the_password() {
+    let config = SmtpConfig {
+        password: "hunter2-test".into(),
+        ..sample_config()
+    };
+    let printed = format!("{config:?}");
+    assert!(printed.contains("<redacted>"), "{printed}");
+    assert!(!printed.contains("hunter2-test"), "{printed}");
+
+    let delivery = LettreSmtpDelivery { config };
+    let printed = format!("{delivery:?}");
+    assert!(printed.contains("<redacted>"), "{printed}");
+    assert!(!printed.contains("hunter2-test"), "{printed}");
+}

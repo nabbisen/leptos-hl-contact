@@ -21,6 +21,11 @@ No version assigned; the owner decides the release number.
   and no vendor script is loaded.  CI runs them in a new `browser` job on
   every push.  Tests, development dependencies and CI only; the published
   crate is unchanged.
+- Development: tests for the rendered accessibility attributes (labels,
+  `required` and `aria-required`, the hidden honeypot, `maxlength`), the SMTP
+  password's redaction, and the submit button's pending state; CI also builds
+  the crate for wasm32 with default features.  `development/testing.md`'s
+  requirement table now lists 102 MUST rows.
 
 ## [0.5.0] — 2026-09-13
 
