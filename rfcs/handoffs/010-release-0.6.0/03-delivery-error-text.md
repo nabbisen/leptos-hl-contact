@@ -1,6 +1,6 @@
 # Handoff 010-03 — Delivery error text is logged
 
-**RFC.** [RFC 010](../../accepted/010-release-0.6.0.md) D3
+**RFC.** [RFC 010](../../done/010-release-0.6.0.md) D3
 **Roadmap.** P-33
 **Requirements.** FR-OBS-02, FR-OBS-03, FR-DEL-07
 **Depends on.** Handoff 01 merged.

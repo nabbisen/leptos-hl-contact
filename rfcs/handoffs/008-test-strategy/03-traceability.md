@@ -1,6 +1,6 @@
 # Handoff 03 — Requirement-to-test traceability
 
-**RFC.** [008](../../accepted/008-test-strategy.md), D5.
+**RFC.** [008](../../done/008-test-strategy.md), D5.
 **Requirements.** NFR-TEST-02.
 
 ## Purpose

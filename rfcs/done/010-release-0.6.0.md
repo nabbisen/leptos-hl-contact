@@ -1,6 +1,6 @@
 # RFC 010 — Release 0.6.0: removals, email syntax, delivery-error rule
 
-**Status.** Accepted — 2026-09-13.  The owner approved the 0.6.0 scope the
+**Status.** Implemented (0.6.0) — released 2026-09-13, tag `0.6.0` on commit `33fc677`, published to crates.io.  Accepted 2026-09-13.  The owner approved the 0.6.0 scope the
 same day: the promised removals, P-34 and P-33, with P-32 through RFC 009.
 **Tracks.** Roadmap P-37 (new), P-34, P-33.  Requirements FR-CFG-01,
 FR-VAL-02, FR-OBS-02.  0.6.0 also carries RFC 009 (P-32).

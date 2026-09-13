@@ -1,6 +1,6 @@
 # RFC 008 — Test strategy
 
-**Status.** Accepted — 2026-09-13.  Milestone M4 theme and both open
+**Status.** Implemented (0.6.0) — released 2026-09-13, tag `0.6.0` on commit `33fc677`, published to crates.io.  Accepted 2026-09-13.  Milestone M4 theme and both open
 questions decided by the owner the same day (see §Owner decisions).
 **Handoffs.** [`../handoffs/008-test-strategy/README.md`](../handoffs/008-test-strategy/README.md)
 **Tracks.** Roadmap P-15.  Requirements NFR-TEST-02 (Partial), NFR-TEST-03

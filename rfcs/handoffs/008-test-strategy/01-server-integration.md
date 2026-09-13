@@ -1,6 +1,6 @@
 # Handoff 01 — Server integration suite
 
-**RFC.** [008](../../accepted/008-test-strategy.md), D2 and D3.
+**RFC.** [008](../../done/008-test-strategy.md), D2 and D3.
 **Requirements.** NFR-TEST-03; regression guards for T5, T9, T17, T18, T19.
 
 ## Purpose

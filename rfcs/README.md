@@ -21,9 +21,7 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Handoff |
 |----|-------|---------|
-| 008 | [Test strategy](./accepted/008-test-strategy.md) | [handoffs/008-test-strategy/](./handoffs/008-test-strategy/README.md) (all approved) |
-| 009 | [A bound on delivery time](./accepted/009-delivery-time-bound.md) | [handoffs/009-delivery-time-bound/](./handoffs/009-delivery-time-bound/README.md) |
-| 010 | [Release 0.6.0: removals, email syntax, delivery-error rule](./accepted/010-release-0.6.0.md) | [handoffs/010-release-0.6.0/](./handoffs/010-release-0.6.0/README.md) (all approved) |
+| — | *(none)* | |
 
 ## Implemented
 
@@ -37,6 +35,9 @@ Planned topics that do not yet have a file are listed in
 | 004 | [Form token: rename, minimum age, cookie binding, client acquisition](./done/004-form-token.md) | 0.5.0 (2026-09-13) — [handoffs](./handoffs/004-form-token/README.md) |
 | 005 | [Challenge providers: Turnstile, hCaptcha, reCAPTCHA](./done/005-challenge-providers.md) | 0.5.0 (2026-09-13) — [handoffs](./handoffs/005-challenge-providers/README.md) |
 | 006 | [Pre-delivery filter hook](./done/006-contact-filter.md) | 0.5.0 (2026-09-13) — [handoffs](./handoffs/006-contact-filter/README.md) |
+| 008 | [Test strategy](./done/008-test-strategy.md) | 0.6.0 (2026-09-13) — [handoffs](./handoffs/008-test-strategy/README.md) |
+| 009 | [A bound on delivery time](./done/009-delivery-time-bound.md) | 0.6.0 (2026-09-13) — [handoffs](./handoffs/009-delivery-time-bound/README.md) |
+| 010 | [Release 0.6.0: removals, email syntax, delivery-error rule](./done/010-release-0.6.0.md) | 0.6.0 (2026-09-13) — [handoffs](./handoffs/010-release-0.6.0/README.md) |
 
 ## Archive
 

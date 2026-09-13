@@ -1,6 +1,6 @@
 # Handoff 010-02 — Email addresses a form can reply to
 
-**RFC.** [RFC 010](../../accepted/010-release-0.6.0.md) D2
+**RFC.** [RFC 010](../../done/010-release-0.6.0.md) D2
 **Roadmap.** P-34
 **Requirements.** FR-VAL-02, FR-VAL-07
 **Depends on.** Handoff 01 merged.

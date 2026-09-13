@@ -1,6 +1,6 @@
 # Handoff 010-01 — Remove the deprecated 0.4 names
 
-**RFC.** [RFC 010](../../accepted/010-release-0.6.0.md) D1
+**RFC.** [RFC 010](../../done/010-release-0.6.0.md) D1
 **Roadmap.** P-37
 **Requirements.** FR-CFG-01, NFR-COMPAT-04
 

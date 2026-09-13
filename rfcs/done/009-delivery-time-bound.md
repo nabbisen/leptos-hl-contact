@@ -1,6 +1,6 @@
 # RFC 009 — A bound on delivery time
 
-**Status.** Accepted — 2026-09-13.  The owner approved all three
+**Status.** Implemented (0.6.0) — released 2026-09-13, tag `0.6.0` on commit `33fc677`, published to crates.io.  Accepted 2026-09-13.  The owner approved all three
 recommendations the same day (see §Owner decisions); scheduled for 0.6.0.
 **Tracks.** Roadmap P-32.  Requirements FR-DEL-08 (SHOULD, Gap),
 NFR-PERF-03 (Gap).  Threat T15 (Gap).

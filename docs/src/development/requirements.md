@@ -1,9 +1,8 @@
 # Requirements Specification
 
-> **Document status.** Draft 17, 2026-09-13, against release `0.5.0`.
+> **Document status.** Draft 18, 2026-09-13, against release `0.6.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
-> M1–M3 are released and M4 is owner-authorized; the document as a whole
-> awaits formal approval.
+> M1–M4 are released; the document as a whole awaits formal approval.
 > Once approved, this document is the requirements baseline; later changes
 > go through RFCs listed in [`rfcs/README.md`](https://github.com/nabbisen/leptos-hl-contact/blob/main/rfcs/README.md).
 >
@@ -378,6 +377,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 18 | 0.6.0 released: document status against `0.6.0`; M4 released |
 | 2026-09-13 | Draft 17 | 0.6.0 documentation check: FR-CFG-01 Met (the crate rustdoc feature table lists `challenge-http` and every flag's implications) |
 | 2026-09-13 | Draft 16 | RFC 009: FR-DEL-08 and NFR-PERF-03 Met (SMTP deadline, `DeliveryTimeout`); `delivery-timeout` added to FR-CFG-01; gap row removed |
 | 2026-09-13 | Draft 15 | RFC 010 D2: FR-VAL-02 refuses address literals, single-label domains, empty labels, and addresses over 254 characters |

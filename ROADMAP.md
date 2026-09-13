@@ -69,27 +69,20 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 - [x] Security fix: a honeypot hit was observable with a success page configured, since 0.4.0 (P-31)
 - [x] RFC 004, RFC 005, RFC 006 → `rfcs/done/`
 
+### 0.6.0 — Milestone M4, trust what shipped (2026-09-13)
+
+- [x] Server integration suite through the documented router, browser tests in CI on every push, all 102 MUST requirements traced to tests (P-15)
+- [x] Deprecated 0.4 names removed, as promised in 0.5.0 (P-37)
+- [x] Stricter email addresses: no address literals or single-label domains, 254-character limit on the server (P-34)
+- [x] Bounded delivery time: the SMTP backend stops at 30 s by default, `DeliveryTimeout` for any backend, a `delivery_timeout` message that says the message may have been sent (P-32; threat T15 Met)
+- [x] Delivery implementers told that their error text is logged and must not contain the submission (P-33)
+- [x] RFC 008, RFC 009, RFC 010 → `rfcs/done/`
+
 ---
 
 ## Current
 
-### M4 — Trust what shipped — **theme authorized 2026-09-13**
-
-Owner decisions 2026-09-13: M4 starts with the test strategy (done).  M4
-ships as **0.6.0**, with the removal of the deprecated 0.4 names promised in
-0.5.0 (P-37), stricter email syntax (P-34), the delivery-error rule (P-33)
-and a bound on delivery time (P-32).  RFC 010 tracks the first three and RFC 009
-carries P-32; both are implemented, so 0.6.0's scope is complete.  Release
-candidate `a4d4d46` verified 2026-09-13; the architect recommends approval,
-and 0.6.0 awaits the owner.
-
-| ID | Item | Priority | Kind | Evidence |
-|----|------|----------|------|----------|
-| P-15 | Test strategy: a server integration suite built as the integrator's router, browser tests for hydrate-only logic, requirement-to-test traceability.  Required cases recorded by reviews: the 0.4 `csrf_token` field still accepted; the component rendering an error code end to end; the field-error / banner routing pair; the one-context-closure routing property; every successful outcome applying the success redirect | **High** | [RFC 008](./rfcs/accepted/008-test-strategy.md) (accepted; browser tests on every push, mutation run once per milestone) | **done** 2026-09-13, handoffs 01–04 approved: 25 server integration tests through the documented router (`7520763`, `1bceb59`); 9 browser tests in headless Chrome, CI job on every push (`2a7b901`, `c3f3fba`); all 102 MUST requirements traced to their tests (`45fc00c`, `c3f3fba`).  RFC 008 moves to `rfcs/done/` with the next release |
-| P-33 | Tell `ContactDelivery` implementers that their error text is logged and must not contain the submission (FR-OBS-02 with FR-OBS-03); the built-in SMTP adapter already complies | Low — **approved** 2026-09-13 | [RFC 010](./rfcs/accepted/010-release-0.6.0.md) D3 — **done** (`37fcb1f`), ships in 0.6.0 | found in the RFC 008 handoff 01 review |
-| P-32 | Bounded delivery time: lettre's async transport times out the TCP connect only, so a stalled relay holds the request indefinitely; custom backends have no bound (FR-DEL-08, threat T15) | Medium — **approved** 2026-09-13 | [RFC 009](./rfcs/accepted/009-delivery-time-bound.md) (accepted 2026-09-13: 30 s SMTP default, `delivery_timeout` code, public `DeliveryTimeout`) — **done** (`c1785db`), ships in 0.6.0 | open since the baseline |
-| P-34 | Stricter email syntax: reject address literals (`a@[127.0.0.1]`) and single-label domains (`abc@bar`), which `validator` 0.20 accepts; enforce the 254-character limit on the server (FR-VAL-02) | Medium — **approved** 2026-09-13 | [RFC 010](./rfcs/accepted/010-release-0.6.0.md) D2 — **done** (`ebc37bb`), ships in 0.6.0 | owner question 2026-09-13; limit found in the RFC 008 handoff 04 review |
-| P-37 | Remove the deprecated 0.4 names: feature `csrf`, module `csrf`, the `csrf_token` field (FR-CFG-01) | **High** — promised in the 0.5.0 CHANGELOG | [RFC 010](./rfcs/accepted/010-release-0.6.0.md) D1 — **done** (`291e06c`), ships in 0.6.0 | 0.5.0 migration notes |
+No milestone in progress.  The next milestone is planned jointly with the owner; candidates are listed under Unscheduled below.
 
 ---
 
@@ -180,13 +173,26 @@ HTTP client behind a `challenge-http` feature.
 | P-30 | Cookie tossing from a subdomain defeats binding — **closed for the common case** in RFC 004 handoff 02 (`fe7e027`): `__Host-` prefix at the defaults, threat T17 | **High** | [RFC 004](./rfcs/done/004-form-token.md) | verified |
 | P-31 | **Regression shipped in 0.4.0:** with a success page configured, a honeypot hit was distinguishable from success — **fixed** in RFC 006 handoff 01 C1 (`67c1ac1`), threat T18.  Called out as a security fix in the 0.5.0 release notes; no formal advisory (owner, 2026-09-13: no production use yet beyond an internal team) | **High** | RFC 006 handoff 01 | fix reproduced |
 
+### M4 — Trust what shipped → 0.6.0
+
+Owner decisions of 2026-09-13: test strategy first (RFC 008: browser tests on every push, mutation run once per milestone); 0.6.0 scope = P-37, P-34, P-33 (RFC 010) and P-32 (RFC 009: 30 s SMTP default, distinct `delivery_timeout` code, public `DeliveryTimeout`).  Released 2026-09-13, tag `0.6.0` on `33fc677`.
+
+| ID | Item | Priority | Kind | Evidence |
+|----|------|----------|------|----------|
+| P-15 | Test strategy: a server integration suite built as the integrator's router, browser tests for hydrate-only logic, requirement-to-test traceability.  Required cases recorded by reviews: the 0.4 `csrf_token` field still accepted; the component rendering an error code end to end; the field-error / banner routing pair; the one-context-closure routing property; every successful outcome applying the success redirect | **High** | [RFC 008](./rfcs/done/008-test-strategy.md) (browser tests on every push, mutation run once per milestone) | **done** 2026-09-13, handoffs 01–04 approved: 25 server integration tests through the documented router (`7520763`, `1bceb59`); 9 browser tests in headless Chrome, CI job on every push (`2a7b901`, `c3f3fba`); all 102 MUST requirements traced to their tests (`45fc00c`, `c3f3fba`).  released in 0.6.0 |
+| P-33 | Tell `ContactDelivery` implementers that their error text is logged and must not contain the submission (FR-OBS-02 with FR-OBS-03); the built-in SMTP adapter already complies | Low — **approved** 2026-09-13 | [RFC 010](./rfcs/done/010-release-0.6.0.md) D3 — **done** (`37fcb1f`), released in 0.6.0 | found in the RFC 008 handoff 01 review |
+| P-32 | Bounded delivery time: lettre's async transport times out the TCP connect only, so a stalled relay holds the request indefinitely; custom backends have no bound (FR-DEL-08, threat T15) | Medium — **approved** 2026-09-13 | [RFC 009](./rfcs/done/009-delivery-time-bound.md) (accepted 2026-09-13: 30 s SMTP default, `delivery_timeout` code, public `DeliveryTimeout`) — **done** (`c1785db`), released in 0.6.0 | open since the baseline |
+| P-34 | Stricter email syntax: reject address literals (`a@[127.0.0.1]`) and single-label domains (`abc@bar`), which `validator` 0.20 accepts; enforce the 254-character limit on the server (FR-VAL-02) | Medium — **approved** 2026-09-13 | [RFC 010](./rfcs/done/010-release-0.6.0.md) D2 — **done** (`ebc37bb`), released in 0.6.0 | owner question 2026-09-13; limit found in the RFC 008 handoff 04 review |
+| P-37 | Remove the deprecated 0.4 names: feature `csrf`, module `csrf`, the `csrf_token` field (FR-CFG-01) | **High** — promised in the 0.5.0 CHANGELOG | [RFC 010](./rfcs/done/010-release-0.6.0.md) D1 — **done** (`291e06c`), released in 0.6.0 | 0.5.0 migration notes |
+
 ### Past decisions
 
 - 2026-09-12: milestones M1–M3 and their priorities approved.
 - 2026-09-12: anti-forgery token direction set in RFC 004; bundled challenge providers in scope.
-- 2026-09-12, 2026-09-13: versions 0.3.4, 0.4.0 and 0.5.0 approved and released.
+- 2026-09-12, 2026-09-13: versions 0.3.4, 0.4.0, 0.5.0 and 0.6.0 approved and released.
 - 2026-09-13: M4 theme approved, test strategy first.
 - 2026-09-13: RFC 008 — browser tests in CI on every push; mutation testing once per milestone before the release candidate, informational.
 - 2026-09-13: email — stricter syntax approved (P-34); opt-in mail-domain check approved at lower priority (P-35); confirm-before-forward recorded only.  Untranslatable messages (P-36) wait for the app team's confirmation.
 - 2026-09-13: RFC 008 complete.  M4 ships as 0.6.0: the 0.4 names removed (P-37), P-34, P-33 (approved) and P-32 (approved; RFC 009).  RFC 010 accepted for the first three.
 - 2026-09-13: RFC 009 accepted — the SMTP backend stops at 30 s by default, a timeout reports its own `delivery_timeout` code, and `DeliveryTimeout` is public for custom backends.
+- 2026-09-13: 0.6.0 released — tag `0.6.0` on `33fc677`, published by the architect under the owner's authorisation; M4 complete.

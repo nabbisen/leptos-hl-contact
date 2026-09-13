@@ -1,6 +1,6 @@
 # Handoff 008-04 — Close the cheap coverage gaps
 
-**RFC.** [RFC 008](../../accepted/008-test-strategy.md), D5 follow-up
+**RFC.** [RFC 008](../../done/008-test-strategy.md), D5 follow-up
 **Origin.** The handoff 03 review, 2026-09-13: the traceability table found
 rows that a small test or one CI step would cover.
 **Depends on.** Handoffs 01–03 (done).

@@ -1,6 +1,6 @@
 # Handoff 02 — Browser tests and their CI job
 
-**RFC.** [008](../../accepted/008-test-strategy.md), D4 and D6.
+**RFC.** [008](../../done/008-test-strategy.md), D4 and D6.
 **Owner decision 2026-09-13:** the browser tests run in CI **on every push**.
 
 ## Purpose

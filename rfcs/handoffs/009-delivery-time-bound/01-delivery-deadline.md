@@ -1,6 +1,6 @@
 # Handoff 009-01 — Delivery deadline, SMTP default, timeout code
 
-**RFC.** [RFC 009](../../accepted/009-delivery-time-bound.md) D1–D5
+**RFC.** [RFC 009](../../done/009-delivery-time-bound.md) D1–D5
 **Roadmap.** P-32
 **Requirements.** FR-DEL-08, NFR-PERF-03 (SHOULD); FR-CFG-01, FR-SUB-09,
 FR-UI-09, FR-I18N-02, FR-OBS-01..03 (MUST rows this touches).  Threat T15.

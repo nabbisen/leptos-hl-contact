@@ -1,6 +1,6 @@
 # Handoffs — RFC 010, Release 0.6.0
 
-Companion to [RFC 010](../../accepted/010-release-0.6.0.md).  Shared rules,
+Companion to [RFC 010](../../done/010-release-0.6.0.md).  Shared rules,
 gates and review-request format:
 [`../001-m1-green-baseline/README.md`](../001-m1-green-baseline/README.md).
 Review requests go to `.git-exclude/review-request/010-release-0.6.0/`.
@@ -20,7 +20,7 @@ Review requests go to `.git-exclude/review-request/010-release-0.6.0/`.
 
 ## State
 
-All three handoffs approved 2026-09-13 (01 `291e06c`, 02 `ebc37bb`, 03 `37fcb1f`).  RFC 010 moves to `done/` at the 0.6.0 release.
+All three handoffs approved 2026-09-13 (01 `291e06c`, 02 `ebc37bb`, 03 `37fcb1f`).  RFC 010 shipped in 0.6.0 (tag `0.6.0`).
 
 ## Rules added for this release
 
