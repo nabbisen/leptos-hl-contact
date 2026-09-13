@@ -15,13 +15,14 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Priority |
 |----|-------|----------|
-| — | *(none)* | |
+| 009 | [A bound on delivery time](./proposed/009-delivery-time-bound.md) | Medium (P-32, approved for 0.6.0; design decisions pending) |
 
 ## Accepted
 
 | ID | Title | Handoff |
 |----|-------|---------|
-| 008 | [Test strategy](./accepted/008-test-strategy.md) | [handoffs/008-test-strategy/](./handoffs/008-test-strategy/README.md) |
+| 008 | [Test strategy](./accepted/008-test-strategy.md) | [handoffs/008-test-strategy/](./handoffs/008-test-strategy/README.md) (all approved) |
+| 010 | [Release 0.6.0: removals, email syntax, delivery-error rule](./accepted/010-release-0.6.0.md) | [handoffs/010-release-0.6.0/](./handoffs/010-release-0.6.0/README.md) |
 
 ## Implemented
 

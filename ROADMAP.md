@@ -75,14 +75,19 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 
 ### M4 — Trust what shipped — **theme authorized 2026-09-13**
 
-Owner decision 2026-09-13: M4 starts with the test strategy.  The delivery
-timeout was recommended alongside it and is **not yet approved**.
+Owner decisions 2026-09-13: M4 starts with the test strategy (done).  M4
+ships as **0.6.0**, with the removal of the deprecated 0.4 names promised in
+0.5.0 (P-37), stricter email syntax (P-34), the delivery-error rule (P-33)
+and a bound on delivery time (P-32).  RFC 010 tracks the first three; RFC
+009 carries P-32 and awaits design decisions.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
 | P-15 | Test strategy: a server integration suite built as the integrator's router, browser tests for hydrate-only logic, requirement-to-test traceability.  Required cases recorded by reviews: the 0.4 `csrf_token` field still accepted; the component rendering an error code end to end; the field-error / banner routing pair; the one-context-closure routing property; every successful outcome applying the success redirect | **High** | [RFC 008](./rfcs/accepted/008-test-strategy.md) (accepted; browser tests on every push, mutation run once per milestone) | **done** 2026-09-13, handoffs 01–04 approved: 25 server integration tests through the documented router (`7520763`, `1bceb59`); 9 browser tests in headless Chrome, CI job on every push (`2a7b901`, `c3f3fba`); all 102 MUST requirements traced to their tests (`45fc00c`, `c3f3fba`).  RFC 008 moves to `rfcs/done/` with the next release |
-| P-33 | Tell `ContactDelivery` implementers that their error text is logged and must not contain the submission (FR-OBS-02 with FR-OBS-03); the built-in SMTP adapter already complies | Low | **proposed**, docs | found in the RFC 008 handoff 01 review |
-| P-32 | Delivery timeout: a slow relay can hold a request indefinitely (FR-DEL-08, threat T15) | Medium | **proposed**, awaiting owner approval | open since the baseline |
+| P-33 | Tell `ContactDelivery` implementers that their error text is logged and must not contain the submission (FR-OBS-02 with FR-OBS-03); the built-in SMTP adapter already complies | Low — **approved** 2026-09-13 | [RFC 010](./rfcs/accepted/010-release-0.6.0.md) D3, handoff 03 | found in the RFC 008 handoff 01 review |
+| P-32 | Bounded delivery time: lettre's async transport times out the TCP connect only, so a stalled relay holds the request indefinitely; custom backends have no bound (FR-DEL-08, threat T15) | Medium — **approved** 2026-09-13 | [RFC 009](./rfcs/proposed/009-delivery-time-bound.md) (proposed; three owner decisions) | open since the baseline |
+| P-34 | Stricter email syntax: reject address literals (`a@[127.0.0.1]`) and single-label domains (`abc@bar`), which `validator` 0.20 accepts; enforce the 254-character limit on the server (FR-VAL-02) | Medium — **approved** 2026-09-13 | [RFC 010](./rfcs/accepted/010-release-0.6.0.md) D2, handoff 02 | owner question 2026-09-13; limit found in the RFC 008 handoff 04 review |
+| P-37 | Remove the deprecated 0.4 names: feature `csrf`, module `csrf`, the `csrf_token` field (FR-CFG-01) | **High** — promised in the 0.5.0 CHANGELOG | [RFC 010](./rfcs/accepted/010-release-0.6.0.md) D1, handoff 01 | 0.5.0 migration notes |
 
 ---
 
@@ -95,7 +100,6 @@ timeout was recommended alongside it and is **not yet approved**.
 | P-23 | Cloudflare Workers compatibility: `lettre` with tokio and native TLS cannot run on Workers; needs a fetch-based delivery adapter and a runtime-neutral core | TBD (owner decision on target platforms) | RFC |
 | P-24 | Dependency and CI hygiene: consider `subtle` for constant-time comparison; CI on MSRV 1.85 plus stable; pin GitHub Actions by commit SHA rather than tag (the workflow uses `actions/checkout`, `dtolnay/rust-toolchain` and, since RFC 008, `taiki-e/install-action`).  `sha2` 0.10.9 beside our 0.11.0 comes only from a Leptos proc-macro and is not ours to unify; transitive advisories in Leptos's own dependencies (`paste`, `proc-macro-error2`, `anyhow`) remain as of 0.5.0 | Low | task |
 | P-26 | Scheduled CI job running the `#[ignore]` live vendor tests; deferred by the owner on 2026-09-12 because it carries a cost | TBD (owner) | RFC |
-| P-34 | Stricter email syntax by default: reject IP-literal domains (`a@[127.0.0.1]`) and dotless domains (`abc@bar`), which `validator` 0.20 accepts and no public contact address uses; and enforce the 254-character address limit on the server, which the form's `maxlength` already applies in the browser (found in the RFC 008 handoff 04 review).  Behaviour change, so a minor release (FR-VAL-02) | Medium — **approved** 2026-09-13, not yet scheduled | fix + test |
 | P-35 | Opt-in mail-domain check: a DNS lookup for a mail exchanger (falling back to an address record, RFC 5321 §5.1) behind a feature, time-bounded, reported as an error under the email field so a visitor can fix a typo; accepts with a `warn` log when DNS does not answer.  Catches non-existent domains, not non-existent mailboxes | Low — **approved** 2026-09-13, less prioritized | RFC |
 | P-36 | Messages the site cannot translate — **on hold** (owner, 2026-09-13): the app team upgrades after the anti-abuse releases, and the report is re-checked on the upgraded version; no questions sent, no schedule, no RFC.  Since 0.4.0 `labels.errors` covers every server message under a field.  Candidate gaps: the browser's own validation pop-ups from `required`, `type="email"` and `maxlength`, which no label reaches; one text per rule, not per field; the Customization page mentions `errors` only as a link | TBD | pending facts |
 
@@ -117,10 +121,8 @@ timeout was recommended alongside it and is **not yet approved**.
 
 ## Decisions required from the owner
 
-1. P-32: schedule the delivery timeout in M4, or later.
+1. RFC 009 (P-32): the SMTP default deadline (30 s recommended), a distinct `delivery_timeout` code, and a public `DeliveryTimeout` wrapper.
 2. P-23: is Cloudflare Workers a target platform for this crate?
-3. P-33: schedule the delivery-error documentation note in M4 (small), or later.
-4. M4 after P-15: which approved or proposed items complete M4 before its release.  The next minor is 0.6.0, which also removes the deprecated `csrf` aliases and the 0.4 `csrf_token` field, as the 0.5.0 CHANGELOG promised; P-34 is a behaviour change and fits the same release.
 
 ---
 
@@ -184,3 +186,4 @@ HTTP client behind a `challenge-http` feature.
 - 2026-09-13: M4 theme approved, test strategy first.
 - 2026-09-13: RFC 008 — browser tests in CI on every push; mutation testing once per milestone before the release candidate, informational.
 - 2026-09-13: email — stricter syntax approved (P-34); opt-in mail-domain check approved at lower priority (P-35); confirm-before-forward recorded only.  Untranslatable messages (P-36) wait for the app team's confirmation.
+- 2026-09-13: RFC 008 complete.  M4 ships as 0.6.0: the 0.4 names removed (P-37), P-34, P-33 (approved) and P-32 (approved; RFC 009).  RFC 010 accepted for the first three.
