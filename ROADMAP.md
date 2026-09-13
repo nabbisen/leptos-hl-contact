@@ -95,9 +95,13 @@ timeout was recommended alongside it and is **not yet approved**.
 | P-23 | Cloudflare Workers compatibility: `lettre` with tokio and native TLS cannot run on Workers; needs a fetch-based delivery adapter and a runtime-neutral core | TBD (owner decision on target platforms) | RFC |
 | P-24 | Dependency and CI hygiene: consider `subtle` for constant-time comparison; CI on MSRV 1.85 plus stable.  `sha2` 0.10.9 beside our 0.11.0 comes only from a Leptos proc-macro and is not ours to unify; transitive advisories in Leptos's own dependencies (`paste`, `proc-macro-error2`, `anyhow`) remain as of 0.5.0 | Low | task |
 | P-26 | Scheduled CI job running the `#[ignore]` live vendor tests; deferred by the owner on 2026-09-12 because it carries a cost | TBD (owner) | RFC |
+| P-34 | Stricter email syntax by default: reject IP-literal domains (`a@[127.0.0.1]`) and dotless domains (`abc@bar`), which `validator` 0.20 accepts and no public contact address uses.  Behaviour change, so a minor release (FR-VAL-02) | Medium — **approved** 2026-09-13, not yet scheduled | fix + test |
+| P-35 | Opt-in mail-domain check: a DNS lookup for a mail exchanger (falling back to an address record, RFC 5321 §5.1) behind a feature, time-bounded, reported as an error under the email field so a visitor can fix a typo; accepts with a `warn` log when DNS does not answer.  Catches non-existent domains, not non-existent mailboxes | Low — **approved** 2026-09-13, less prioritized | RFC |
+| P-36 | Messages the site cannot translate — **awaiting the app team's confirmation** (their version, and whether the untranslated text was a browser pop-up or under the field); no schedule, no RFC (owner, 2026-09-13).  Since 0.4.0 `labels.errors` covers every server message under a field.  Candidate gaps: the browser's own validation pop-ups from `required`, `type="email"` and `maxlength`, which no label reaches; one text per rule, not per field; the Customization page mentions `errors` only as a link | TBD | pending facts |
 
 ### Future
 
+- [ ] Confirm-before-forward: the submitter receives a link and the operator receives the message only after it is clicked, which removes fake addresses.  Needs integrator-supplied storage (the crate must not persist, FR-OBS-04) and abuse controls on mail sent to arbitrary addresses.  Recorded only (owner, 2026-09-13).  An unconfirmed notice to the submitter is **not** recommended: a missing mailbox bounces later, to the site, and the form becomes a way to mail anyone
 - [ ] Database persistence adapter
 - [ ] Queue-based delivery adapter (also addresses bounded delivery time)
 - [ ] Advanced slot / render prop API (submit button, success/error slots)
@@ -178,3 +182,4 @@ HTTP client behind a `challenge-http` feature.
 - 2026-09-12, 2026-09-13: versions 0.3.4, 0.4.0 and 0.5.0 approved and released.
 - 2026-09-13: M4 theme approved, test strategy first.
 - 2026-09-13: RFC 008 — browser tests in CI on every push; mutation testing once per milestone before the release candidate, informational.
+- 2026-09-13: email — stricter syntax approved (P-34); opt-in mail-domain check approved at lower priority (P-35); confirm-before-forward recorded only.  Untranslatable messages (P-36) wait for the app team's confirmation.
