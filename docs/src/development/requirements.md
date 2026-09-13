@@ -1,6 +1,6 @@
 # Requirements Specification
 
-> **Document status.** Draft 16, 2026-09-13, against release `0.5.0`.
+> **Document status.** Draft 17, 2026-09-13, against release `0.5.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
 > M1–M3 are released and M4 is owner-authorized; the document as a whole
 > awaits formal approval.
@@ -195,7 +195,7 @@ input the browser accepted.
 
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
-| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr` and `delivery-timeout`), `delivery-timeout` (implies `ssr`), `axum-helpers` (implies `ssr`), `form-token` (implies `ssr`), `challenge-http` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Partial (0.6.0): the book's feature-flags page lists all; the crate rustdoc table in `lib.rs` lacks `challenge-http` (0.5.0 drift, found 2026-09-13) — fixed in the 0.6.0 release-candidate documentation check |
+| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr` and `delivery-timeout`), `delivery-timeout` (implies `ssr`), `axum-helpers` (implies `ssr`), `form-token` (implies `ssr`), `challenge-http` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met (0.6.0) |
 | FR-CFG-02 | Required context values MUST be documented for the context closure, and helpers MUST exist for Axum | MUST | Met (RFC 007) |
 | FR-CFG-03 | Misconfiguration MUST surface loudly (startup panic in examples, `error` log in the crate) and MUST NOT fall back to an insecure default | MUST | Met |
 | FR-CFG-04 | Types holding secrets MUST redact them in `Debug` output | MUST | Met |
@@ -378,6 +378,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 17 | 0.6.0 documentation check: FR-CFG-01 Met (the crate rustdoc feature table lists `challenge-http` and every flag's implications) |
 | 2026-09-13 | Draft 16 | RFC 009: FR-DEL-08 and NFR-PERF-03 Met (SMTP deadline, `DeliveryTimeout`); `delivery-timeout` added to FR-CFG-01; gap row removed |
 | 2026-09-13 | Draft 15 | RFC 010 D2: FR-VAL-02 refuses address literals, single-label domains, empty labels, and addresses over 254 characters |
 | 2026-09-13 | Draft 14 | RFC 010 D1: `csrf` alias removed (FR-CFG-01) |

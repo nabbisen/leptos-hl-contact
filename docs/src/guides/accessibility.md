@@ -22,7 +22,7 @@ Example of the rendered error state:
 <input id="contact-name" aria-required="true" aria-invalid="true"
        aria-describedby="contact-name-error" />
 <p id="contact-name-error" role="alert" aria-live="polite">
-  Name must be 1–80 characters
+  Must be between 1 and 80 characters.
 </p>
 ```
 

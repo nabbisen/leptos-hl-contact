@@ -16,15 +16,16 @@
 //!
 //! ## Feature flags
 //!
-//! | Flag           | Effect                                          |
-//! |----------------|-------------------------------------------------|
-//! | `hydrate`      | Enables Leptos hydration for the client side.   |
-//! | `ssr`          | Enables server-side rendering and server fns.   |
-//! | `islands`      | Enables Leptos Islands architecture.            |
-//! | `smtp-lettre`  | Enables the SMTP delivery adapter (and `delivery-timeout`). |
-//! | `delivery-timeout` | `DeliveryTimeout`, a deadline for any delivery backend. |
-//! | `axum-helpers` | Enables Axum-specific integration helpers.     |
-//! | `form-token`   | Stateless HMAC-SHA256 form token; `submit_contact` requires `FormTokenContext` (fail-closed). |
+//! | Flag               | Implies                   | Effect |
+//! |--------------------|---------------------------|--------|
+//! | `hydrate`          | —                         | Leptos hydration for the client side. |
+//! | `ssr`              | —                         | Server-side rendering and the `submit_contact` body. |
+//! | `islands`          | —                         | Leptos Islands architecture. |
+//! | `smtp-lettre`      | `ssr`, `delivery-timeout` | The SMTP delivery backend (`lettre`, `tokio`). |
+//! | `delivery-timeout` | `ssr`                     | `DeliveryTimeout`, a deadline for any delivery backend (`tokio` with `time`). |
+//! | `axum-helpers`     | `ssr`                     | Axum integration helpers (`axum`, `leptos_axum`). |
+//! | `form-token`       | `ssr`                     | Stateless HMAC-SHA256 form token; `submit_contact` requires `FormTokenContext` (fail-closed). |
+//! | `challenge-http`   | `ssr`                     | `HttpChallengeVerifier`, which calls the vendors' siteverify endpoints (`reqwest`, rustls only). |
 //!
 //! ## Quick start
 //!

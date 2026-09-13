@@ -1,23 +1,9 @@
 # Changelog
 
-## [Unreleased]
+## [0.6.0] — 2026-09-13
 
-No version assigned; the owner decides the release number.
-
-### Added
-
-- **A bound on delivery time.**  `DeliveryTimeout` (feature
-  `delivery-timeout`) wraps any delivery backend and gives up at a deadline,
-  dropping the delivery.  `SmtpConfig::timeout` and
-  `SmtpConfig::DEFAULT_TIMEOUT` (30 seconds) give the SMTP backend the same
-  bound over the whole exchange, not only the connect.
-- **`delivery_timeout`.**  `ContactErrorCode::DeliveryTimeout`,
-  `ContactDeliveryError::Timeout(Duration)` and
-  `ContactErrorLabels::delivery_timeout` ("Sending took too long. Your
-  message may have been sent — please wait a few minutes before trying
-  again.").  A timeout may have delivered the message, so it is not reported
-  as a failure.  It is logged at `error` as `contact form delivery timed out`
-  with the limit only.
+This is the minor release in which the deprecated 0.4 names were removed.
+It also bounds delivery time and refuses email addresses a form cannot reply to.
 
 ### Removed
 
@@ -41,32 +27,20 @@ No version assigned; the owner decides the release number.
   characters, the limit the form's `maxlength` already applied.  No new
   error code or label.
 
-### Migration
+### Added
 
-**Newly refused addresses.**  `user@localhost`, `user@[127.0.0.1]` and
-addresses over 254 characters are now refused; they cannot be replied to
-from a public mailbox.
-
-**Delivery deadline.**
-
-- Add `timeout: SmtpConfig::DEFAULT_TIMEOUT` to every `SmtpConfig { … }`
-  literal; the struct has no `Default`.
-- A `match` on `ContactDeliveryError` or `ContactErrorCode` without a
-  wildcard needs the new `Timeout` / `DeliveryTimeout` arm.
-- A `ContactErrorLabels { … }` literal needs `delivery_timeout`, or
-  `..Default::default()`.
-
-| 0.4 name | Use |
-|----------|-----|
-| feature `csrf` | `form-token` |
-| module `csrf` | `form_token` |
-| `CsrfConfig` | `FormTokenConfig` |
-| `CsrfToken` | `FormToken` |
-| `CsrfConfigContext` | `FormTokenContext` |
-| `generate_csrf_token` | `issue_form_token` |
-| `verify_csrf_token(token, cfg) -> bool` | `verify_form_token(token, bound, cfg) -> Result<(), FormTokenError>` |
-| hidden field `csrf_token` | `form_token` |
-| env var `CSRF_SECRET` (docs and examples) | `FORM_TOKEN_SECRET` |
+- **A bound on delivery time.**  `DeliveryTimeout` (feature
+  `delivery-timeout`) wraps any delivery backend and gives up at a deadline,
+  dropping the delivery.  `SmtpConfig::timeout` and
+  `SmtpConfig::DEFAULT_TIMEOUT` (30 seconds) give the SMTP backend the same
+  bound over the whole exchange, not only the connect.
+- **`delivery_timeout`.**  `ContactErrorCode::DeliveryTimeout`,
+  `ContactDeliveryError::Timeout(Duration)` and
+  `ContactErrorLabels::delivery_timeout` ("Sending took too long. Your
+  message may have been sent — please wait a few minutes before trying
+  again.").  A timeout may have delivered the message, so it is not reported
+  as a failure.  It is logged at `error` as `contact form delivery timed out`
+  with the limit only.
 
 ### Documentation
 
@@ -94,6 +68,33 @@ from a public mailbox.
   password's redaction, and the submit button's pending state; CI also builds
   the crate for wasm32 with default features.  `development/testing.md`'s
   requirement table now lists 102 MUST rows.
+
+### Migration
+
+**Newly refused addresses.**  `user@localhost`, `user@[127.0.0.1]` and
+addresses over 254 characters are now refused; they cannot be replied to
+from a public mailbox.
+
+**Delivery deadline.**
+
+- Add `timeout: SmtpConfig::DEFAULT_TIMEOUT` to every `SmtpConfig { … }`
+  literal; the struct has no `Default`.
+- A `match` on `ContactDeliveryError` or `ContactErrorCode` without a
+  wildcard needs the new `Timeout` / `DeliveryTimeout` arm.
+- A `ContactErrorLabels { … }` literal needs `delivery_timeout`, or
+  `..Default::default()`.
+
+| 0.4 name | Use |
+|----------|-----|
+| feature `csrf` | `form-token` |
+| module `csrf` | `form_token` |
+| `CsrfConfig` | `FormTokenConfig` |
+| `CsrfToken` | `FormToken` |
+| `CsrfConfigContext` | `FormTokenContext` |
+| `generate_csrf_token` | `issue_form_token` |
+| `verify_csrf_token(token, cfg) -> bool` | `verify_form_token(token, bound, cfg) -> Result<(), FormTokenError>` |
+| hidden field `csrf_token` | `form_token` |
+| env var `CSRF_SECRET` (docs and examples) | `FORM_TOKEN_SECRET` |
 
 ## [0.5.0] — 2026-09-13
 

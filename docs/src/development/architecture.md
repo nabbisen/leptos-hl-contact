@@ -122,13 +122,16 @@ Axum is optional so the crate stays usable with other HTTP frameworks.
 ```text
 crates/leptos-hl-contact/src/
   lib.rs                 re-exports, feature gates
-  model.rs               model/tests.rs
+  model.rs               model/tests.rs  model/tests/email.rs
   config.rs              config/tests.rs
   error.rs               error/tests.rs
   security.rs            security/tests.rs
-  components.rs
+  components.rs          components/tests.rs  components/tests/attributes.rs
   server.rs              server/tests.rs
   form_token.rs          form_token/tests.rs
+  challenge.rs           challenge/tests.rs
+                         challenge/http.rs  challenge/http/tests.rs
+  filter.rs              filter/tests.rs
   delivery.rs            delivery/noop.rs  delivery/noop/tests.rs
                          delivery/smtp.rs  delivery/smtp/tests.rs
                          delivery/timeout.rs  delivery/timeout/tests.rs
@@ -141,7 +144,8 @@ rfcs/                    design records, see rfcs/README.md
 ```
 
 Each `foo.rs` declares `#[cfg(test)] mod tests;` and the tests live in
-`foo/tests.rs` (Rust 2018+ module style, no `mod.rs`).  Examples are not
+`foo/tests.rs` (Rust 2018+ module style, no `mod.rs`); a `tests.rs` that grows
+too large moves groups into `foo/tests/<group>.rs`.  Examples are not
 workspace members; run them with `cd examples/<name> && cargo run`.
 
 ## Related pages
