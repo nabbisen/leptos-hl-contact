@@ -170,12 +170,12 @@ input the browser accepted.
 | FR-ABUSE-06 | Origin / Referer validation is an application responsibility; the crate MUST document a strict scheme+host+port comparison and ship a working example | MUST | Met |
 | FR-ABUSE-07 | A request body size limit is an application responsibility; the crate MUST document it and include it in examples | MUST | Met |
 | FR-ABUSE-08 | The crate MUST document CAPTCHA integration; superseded for adapters by FR-ABUSE-10 | MUST | Docs Met (rewritten 2026-09-12) |
-| FR-ABUSE-09 | Bot-detection outcomes MUST NOT be distinguishable from success by the sender | MUST | Met |
+| FR-ABUSE-09 | Bot-detection outcomes MUST NOT be distinguishable from success by the sender, including the success redirect when one is configured | MUST | Regressed in 0.4.0 (honeypot skipped the success redirect); corrected in 0.5.0 by RFC 006 handoff 01 C1 |
 | FR-ABUSE-10 | The crate MUST offer opt-in challenge verification through one abstraction (`ChallengeVerifier`) with built-in providers Cloudflare Turnstile, hCaptcha, reCAPTCHA v2 and v3; the component renders the widget and the token field, the server function verifies before delivery | MUST | Planned (RFC 005) |
 | FR-ABUSE-11 | When a challenge is enabled, a submission without JavaScript MUST be rejected with a `<noscript>` explanation, fail-closed; an explicit opt-in MAY accept such submissions under honeypot-only protection | MUST | Planned (RFC 005); owner decision 2026-09-12 |
 | FR-ABUSE-12 | Challenge verification MUST fail closed on a missing secret, a failed verification, or an unreachable verify endpoint, MUST be time-bounded, and MUST log the reason without the token | MUST | Planned (RFC 005) |
 | FR-ABUSE-13 | The crate SHOULD reject a submission that arrives sooner than a configurable minimum age after the page render, using the issue time already carried by the form token | SHOULD | Met (0.5.0, default two seconds) |
-| FR-ABUSE-14 | The crate SHOULD offer a pre-delivery filter hook (`ContactFilter`) returning accept, reject, or silent drop for a validated submission | SHOULD | Planned (RFC 006) |
+| FR-ABUSE-14 | The crate SHOULD offer a pre-delivery filter hook (`ContactFilter`) returning accept, reject, or silent drop for a validated submission | SHOULD | Met (0.5.0) |
 
 ### 5.5 Delivery (FR-DEL)
 
@@ -352,7 +352,6 @@ input the browser accepted.
 |-------------|--------|--------------|
 | NFR-TEST-02, NFR-TEST-03 | Gap | P-15 |
 | FR-ABUSE-10..12 | Planned | P-21 / RFC 005 |
-| FR-ABUSE-14 | Planned | P-25 / RFC 006 |
 | FR-DEL-08, NFR-PERF-03 | Gap | Future (queue adapter) |
 | FR-I18N-03 | Planned | P-20 |
 | NFR-PORT-02 | Decision | P-23 |
@@ -381,6 +380,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 10 | FR-ABUSE-09 regression recorded; FR-ABUSE-14 Met |
 | 2026-09-13 | Draft 9 | RFC 004 handoff 03: FR-UI-12 Met for client-side navigation |
 | 2026-09-13 | Draft 8 | RFC 004 handoff 02: FR-ABUSE-02 Met |
 | 2026-09-13 | Draft 7 | RFC 004 handoff 01: form-token naming, FR-VAL-06 and FR-ABUSE-13 Met |

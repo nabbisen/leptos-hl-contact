@@ -195,6 +195,14 @@ Goals and acceptance criteria are unchanged except that "inputs
 preserved" and "field errors render under hydration" are regression guards
 rather than fixes.
 
+## Erratum 2026-09-13
+
+D3 applied the success redirect only after delivery.  A honeypot hit also
+returns success, but without the redirect, so with a success page configured
+the sender could tell its submission was caught (FR-ABUSE-09).  Shipped in
+0.4.0; found in review of RFC 006 handoff 01 and corrected there, with every
+successful outcome applying the redirect.  Roadmap P-31.
+
 ## Alternatives considered
 
 | Alternative | Why not |

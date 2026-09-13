@@ -107,6 +107,16 @@ read as one design:
   challenge and token label, so an integrator reading logs or labels can
   tell which layer acted.
 
+## Amendment 2026-09-13 — silent outcomes end like success
+
+Review of handoff 01 found that with a success page configured, a honeypot
+hit and a `SilentDrop` were distinguishable from a genuine submission: only
+delivery success applied the redirect, so the `Location` header and the
+server-function redirect header told the sender its submission was caught.
+Every successful outcome — honeypot, silent drop, delivery — now applies the
+success redirect through one helper.  The defect in the honeypot path shipped
+in 0.4.0 (erratum on RFC 002).
+
 ## Alternatives considered
 
 | Alternative | Why not |

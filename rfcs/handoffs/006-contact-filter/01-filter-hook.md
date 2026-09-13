@@ -53,6 +53,13 @@ No built-in filters; no request metadata; no change to earlier steps.
    mechanism from this page so each has one home.
 6. **API, localization, SUMMARY, CHANGELOG.**  As usual.
 
+## Corrections C1–C2 required by review (2026-09-13)
+
+C1: honeypot, silent drop and delivery success all apply the success redirect
+through one helper; `ContactSuccessRedirect` is read before the honeypot
+check.  C2: form token row wording in the layers table.  Details and required
+evidence in `.git-exclude/reviewed/006-filter/01-filter-hook.md`.
+
 ## Required tests
 
 `filter/tests.rs`: a filter returning each decision; chain returns the

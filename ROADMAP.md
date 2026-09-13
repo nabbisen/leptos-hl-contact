@@ -128,10 +128,11 @@ All three RFCs (004, 005, 006) were accepted on 2026-09-12; handoffs exist for e
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
 | P-12 | Form token redesign — **done** in RFC 004 handoffs 01–03, all approved 2026-09-13 (final `10a12a8`): rename with aliases, two-second minimum age, cookie binding with a per-browser nonce and `__Host-` prefix, client-side acquisition and loop-proof refresh (off by default) | **High** | [RFC 004](./rfcs/accepted/004-form-token.md) | verified by the architect |
-| P-21 | Challenge providers: `challenge` prop renders the widget and a hidden token field inside the form; `ChallengeVerifier` trait; built-in Turnstile, hCaptcha, reCAPTCHA v2/v3 behind `challenge-http`; fail-closed; no-JS policy per owner decision; vendor test keys in CI; verify-endpoint timeout and outage behaviour defined | **High** | [RFC 005](./rfcs/accepted/005-challenge-providers.md) | decided.  **Progress 2026-09-13:** handoffs 01 (server decision table, `85da076`) and 02 (widget, `96a2985`) approved; 03 (HTTP verifiers, `fc2078a`) conditionally approved on three small corrections |
-| P-25 | Pre-delivery filter hook: `ContactFilter` trait returning accept / reject / silent-drop for a validated submission, for content heuristics or third-party spam services | Medium | [RFC 006](./rfcs/accepted/006-contact-filter.md) | new 2026-09-12 |
+| P-21 | Challenge providers — **done** in RFC 005 handoffs 01–03, all approved 2026-09-13 (final `02cf7d7`): server decision table, widget with explicit rendering, HTTP verifiers with redirects disabled, verified against the real vendor endpoints | **High** | [RFC 005](./rfcs/accepted/005-challenge-providers.md) | verified by the architect |
+| P-25 | Pre-delivery filter hook — implemented in RFC 006 handoff 01 (`5e2e406`), conditionally approved 2026-09-13 on C1 (P-31) and a wording fix | Medium | [RFC 006](./rfcs/accepted/006-contact-filter.md) | verified by the architect |
 
-### M4 — Reach (proposed release: 0.6.x)
+### M4 — Reach (p| P-31 | **Regression shipped in 0.4.0:** with a success page configured, a honeypot hit returned success without the redirect, so a bot could tell it was caught (FR-ABUSE-09); `SilentDrop` would have inherited it.  Found in review of RFC 006 handoff 01; corrected there by applying the redirect on every successful outcome.  Threat model T18.  Consider noting it in the 0.5.0 release notes as a security fix | **High** | RFC 006 handoff 01, C1 | reproduced by the architect |
+roposed release: 0.6.x)
 
 | ID | Item | Priority | Kind |
 |----|------|----------|------|
