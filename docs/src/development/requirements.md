@@ -1,8 +1,9 @@
 # Requirements Specification
 
-> **Document status.** Draft 2, 2026-09-12, against baseline `0.3.3`
-> (commit `8d29d5a`).  Milestones M1 and the anti-abuse theme are owner-
-> authorized; the document as a whole awaits formal approval.
+> **Document status.** Draft 11, 2026-09-13, against release `0.5.0`.
+> First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
+> M1–M3 are released and M4 is owner-authorized; the document as a whole
+> awaits formal approval.
 > Once approved, this document is the requirements baseline; later changes
 > go through RFCs listed in [`rfcs/README.md`](https://github.com/nabbisen/leptos-hl-contact/blob/main/rfcs/README.md).
 >
@@ -13,7 +14,7 @@
 >
 > | Status | Meaning |
 > |--------|---------|
-> | **Met** | Implemented and observable in `0.3.3` |
+> | **Met** | Implemented and observable in the release named in the status, or in `0.3.3` when none is named |
 > | **Partial** | Implemented with a known defect or incomplete coverage |
 > | **Gap** | Required but not implemented |
 > | **Planned** | Not yet required to be implemented; scheduled in the roadmap |
@@ -98,7 +99,7 @@ crate's boundaries.  [Architecture](./architecture.md) describes internals.
 |------|------------|
 | **Submission** | One POST of the form's fields to the server function |
 | **Character** | One Unicode scalar value (Rust `char`).  All length limits in this document count characters, not bytes |
-| **Context site** | A place where the hosting application must provide Leptos context.  With Axum there are two: the server-function handler and the SSR renderer |
+| **Context closure** | The closure the hosting application passes to `leptos_routes_with_context`.  With Axum it serves both server functions and server rendering, so it is the one place context is provided (RFC 007; before 0.4.0 the documentation wrongly described two sites) |
 | **Fail-closed** | On missing or invalid security configuration the crate refuses the submission rather than proceeding unprotected |
 | **PII** | Personally identifiable information: visitor name, email, message body, IP address |
 | **Form token** | The value carried in the hidden `form_token` field when the `form-token` feature is enabled.  Called the anti-forgery or CSRF token before 0.5.0 |
@@ -171,9 +172,9 @@ input the browser accepted.
 | FR-ABUSE-07 | A request body size limit is an application responsibility; the crate MUST document it and include it in examples | MUST | Met |
 | FR-ABUSE-08 | The crate MUST document CAPTCHA integration; superseded for adapters by FR-ABUSE-10 | MUST | Docs Met (rewritten 2026-09-12) |
 | FR-ABUSE-09 | Bot-detection outcomes MUST NOT be distinguishable from success by the sender, including the success redirect when one is configured | MUST | Met (0.5.0); regressed in 0.4.0 when a success page was configured, fixed by `67c1ac1` |
-| FR-ABUSE-10 | The crate MUST offer opt-in challenge verification through one abstraction (`ChallengeVerifier`) with built-in providers Cloudflare Turnstile, hCaptcha, reCAPTCHA v2 and v3; the component renders the widget and the token field, the server function verifies before delivery | MUST | Planned (RFC 005) |
-| FR-ABUSE-11 | When a challenge is enabled, a submission without JavaScript MUST be rejected with a `<noscript>` explanation, fail-closed; an explicit opt-in MAY accept such submissions under honeypot-only protection | MUST | Planned (RFC 005); owner decision 2026-09-12 |
-| FR-ABUSE-12 | Challenge verification MUST fail closed on a missing secret, a failed verification, or an unreachable verify endpoint, MUST be time-bounded, and MUST log the reason without the token | MUST | Planned (RFC 005) |
+| FR-ABUSE-10 | The crate MUST offer opt-in challenge verification through one abstraction (`ChallengeVerifier`) with built-in providers Cloudflare Turnstile, hCaptcha, reCAPTCHA v2 and v3; the component renders the widget and the token field, the server function verifies before delivery | MUST | Met (0.5.0, RFC 005; verified against real vendor endpoints) |
+| FR-ABUSE-11 | When a challenge is enabled, a submission without JavaScript MUST be rejected with a `<noscript>` explanation, fail-closed; an explicit opt-in MAY accept such submissions under honeypot-only protection | MUST | Met (0.5.0, RFC 005); owner decision 2026-09-12 |
+| FR-ABUSE-12 | Challenge verification MUST fail closed on a missing secret, a failed verification, or an unreachable verify endpoint, MUST be time-bounded, and MUST log the reason without the token | MUST | Met (0.5.0, RFC 005) |
 | FR-ABUSE-13 | The crate SHOULD reject a submission that arrives sooner than a configurable minimum age after the page render, using the issue time already carried by the form token | SHOULD | Met (0.5.0, default two seconds) |
 | FR-ABUSE-14 | The crate SHOULD offer a pre-delivery filter hook (`ContactFilter`) returning accept, reject, or silent drop for a validated submission | SHOULD | Met (0.5.0) |
 
@@ -229,7 +230,7 @@ input the browser accepted.
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
 | FR-PE-01 | The form MUST submit and be processed as a plain HTML POST when no JavaScript or WASM runs | MUST | Met |
-| FR-PE-02 | Validation errors MUST be shown after a no-JS submission | MUST | Met † (framework redirects to the Referer with the error encoded in the URL, which the server-rendered action reads) |
+| FR-PE-02 | Validation errors MUST be shown after a no-JS submission | MUST | Met (framework redirects to the Referer with the error encoded in the URL, which the server-rendered action reads; reproduced by `field_errors_round_trip_without_javascript`) |
 | FR-PE-03 | Success MUST be shown after a no-JS submission | MUST | Met when a success page is configured (RFC 002 handoff 03); unconfigured deployments reload, documented |
 | FR-PE-04 | Validation and delivery behaviour MUST be identical in both modes | MUST | Met |
 
@@ -262,7 +263,7 @@ input the browser accepted.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | NFR-PRIV-01 | PII MUST be minimised in logs and never persisted by the crate | Met |
-| NFR-PRIV-02 | Any third-party processing added by an optional feature (challenge providers send visitor signals to the vendor) MUST be documented per provider, and the default form MUST load no third-party script | Planned (RFC 005) |
+| NFR-PRIV-02 | Any third-party processing added by an optional feature (challenge providers send visitor signals to the vendor) MUST be documented per provider, and the default form MUST load no third-party script | Met (0.5.0: per-provider notes in the challenge guide's Privacy section) |
 
 ### 6.3 Compatibility (NFR-COMPAT)
 
@@ -311,7 +312,7 @@ input the browser accepted.
 |----|-------------|--------|
 | NFR-TEST-01 | CI gates (fmt, clippy `-D warnings`, tests, doc) MUST be green on `main` at every tag | Met (M1; first green run 2026-09-12, plus a feature-combination clippy step and an examples job) |
 | NFR-TEST-02 | Test cases MUST be derived from this specification and the external design, not from the code | Partial (P-15, RFC 008 D5) |
-| NFR-TEST-03 | `submit_contact` MUST have integration tests covering: happy path, honeypot, each validation rule, policy, token fail-closed, token invalid, missing delivery context, delivery error | Gap (P-15, RFC 008 D2–D3) |
+| NFR-TEST-03 | `submit_contact` MUST have integration tests covering: happy path, honeypot, each validation rule, policy, token fail-closed, token invalid, missing delivery context, delivery error | Partial (P-15): server suite `tests/server` (`7520763`); delivery error and two validation rules pending (RFC 008 handoff 01 review, C1–C2) |
 | NFR-TEST-04 | Tests live in `src/<module>/tests.rs`, never inline (project rule) | Met |
 
 ### 6.9 Release (NFR-REL)
@@ -320,7 +321,7 @@ input the browser accepted.
 |----|-------------|--------|
 | NFR-REL-01 | Tags are `X.Y.Z` without prefix | Met (docs drift P-03) |
 | NFR-REL-02 | CHANGELOG MUST record each released version with its date | Met (M1) |
-| NFR-REL-03 | A release MUST pass the security audit step from the project rules and the docs verification pass | Gap (process not yet exercised) |
+| NFR-REL-03 | A release MUST pass the security audit step from the project rules and the docs verification pass | Met (exercised at 0.4.0 and 0.5.0) |
 
 ---
 
@@ -350,9 +351,8 @@ input the browser accepted.
 
 | Requirement | Status | Roadmap item |
 |-------------|--------|--------------|
-| NFR-TEST-02, NFR-TEST-03 | Gap | P-15 |
-| FR-ABUSE-10..12 | Planned | P-21 / RFC 005 |
-| FR-DEL-08, NFR-PERF-03 | Gap | Future (queue adapter) |
+| NFR-TEST-02, NFR-TEST-03 | Partial | P-15 / RFC 008 |
+| FR-DEL-08, NFR-PERF-03 | Gap | P-32 (proposed), queue adapter (Future) |
 | FR-I18N-03 | Planned | P-20 |
 | NFR-PORT-02 | Decision | P-23 |
 | NFR-DEP-02 | Partial | P-24 |
@@ -380,6 +380,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 11 | RFC 008 handoff 01: NFR-TEST-03 Partial, FR-PE-02 reproduced by test.  Drift corrected: FR-ABUSE-10..12 and NFR-PRIV-02 Met at 0.5.0, NFR-REL-03 Met, document status, "context closure" definition, gap summary |
 | 2026-09-13 | Draft 10 | FR-ABUSE-09 regression recorded; FR-ABUSE-14 Met |
 | 2026-09-13 | Draft 9 | RFC 004 handoff 03: FR-UI-12 Met for client-side navigation |
 | 2026-09-13 | Draft 8 | RFC 004 handoff 02: FR-ABUSE-02 Met |

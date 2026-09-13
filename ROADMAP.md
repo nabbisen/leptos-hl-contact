@@ -80,7 +80,8 @@ timeout was recommended alongside it and is **not yet approved**.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
-| P-15 | Test strategy: a server integration suite built as the integrator's router, browser tests for hydrate-only logic, requirement-to-test traceability.  Required cases recorded by reviews: the 0.4 `csrf_token` field still accepted; the component rendering an error code end to end; the field-error / banner routing pair; the one-context-closure routing property; every successful outcome applying the success redirect | **High** | [RFC 008](./rfcs/accepted/008-test-strategy.md) (accepted; browser tests on every push, mutation run once per milestone) | inventory 2026-09-13: about 200 unit tests, no test drives `submit_contact` over HTTP |
+| P-15 | Test strategy: a server integration suite built as the integrator's router, browser tests for hydrate-only logic, requirement-to-test traceability.  Required cases recorded by reviews: the 0.4 `csrf_token` field still accepted; the component rendering an error code end to end; the field-error / banner routing pair; the one-context-closure routing property; every successful outcome applying the success redirect | **High** | [RFC 008](./rfcs/accepted/008-test-strategy.md) (accepted; browser tests on every push, mutation run once per milestone) | handoff 01 (`7520763`): 23 server integration tests through the documented router, conditionally approved — delivery error, two validation rules and stronger silent-outcome headers pending; handoffs 02 and 03 open |
+| P-33 | Tell `ContactDelivery` implementers that their error text is logged and must not contain the submission (FR-OBS-02 with FR-OBS-03); the built-in SMTP adapter already complies | Low | **proposed**, docs | found in the RFC 008 handoff 01 review |
 | P-32 | Delivery timeout: a slow relay can hold a request indefinitely (FR-DEL-08, threat T15) | Medium | **proposed**, awaiting owner approval | open since the baseline |
 
 ---
@@ -114,6 +115,7 @@ timeout was recommended alongside it and is **not yet approved**.
 
 1. P-32: schedule the delivery timeout in M4, or later.
 2. P-23: is Cloudflare Workers a target platform for this crate?
+3. P-33: schedule the delivery-error documentation note in M4 (small), or later.
 
 ---
 

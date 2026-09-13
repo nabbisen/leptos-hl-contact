@@ -46,6 +46,11 @@ fallback — `leptos_axum::handle_server_fns_with_context` with a built
 request — and write one separate test that asserts the routing property
 another way; say which you did.
 
+> **Result (review, 2026-09-13).**  Reachable through the documented router;
+> no fallback.  `server_fn` 0.8.13 does register through `inventory`, so the
+> RFC's original wording was right and the architect's doubt above was not.
+> RFC 008 D2 is corrected.
+
 ### Step 1 — `support.rs`
 
 - `RecordingDelivery` (count and last input), `RecordingRedirect`,

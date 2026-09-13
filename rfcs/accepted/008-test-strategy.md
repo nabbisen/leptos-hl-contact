@@ -91,12 +91,13 @@ Test doubles, in `tests/server/support.rs`:
 Every case runs in both forms where both exist, because the 0.4.0 regression
 differed only in headers.
 
-**Spike first.**  `#[server]` functions are registered by `server_fn` through a
-global registry populated at link time (the exact mechanism in 0.8 is not
-confirmed by the architect; the RFC originally named `inventory`, which a
-source check did not find).  They must be registered inside an
-integration-test binary for the router to serve them.  Handoff 01 proves this with one passing request before writing the
-matrix.  If registration does not happen, the fallback is to call
+**Spike first.**  `#[server]` functions are registered by `server_fn` through
+`inventory`, a registry populated at link time (`server_fn` 0.8.13,
+`lib.rs:862`, `870`, `992`).  At acceptance the architect wrongly marked
+this mechanism unconfirmed; handoff 01's spike and a second source check
+confirmed it on 2026-09-13.  They must be registered inside an
+integration-test binary for the router to serve them.  Handoff 01 proves
+this with one passing request before writing the matrix; it did.  If registration does not happen, the fallback is to call
 `leptos_axum::handle_server_fns_with_context` directly with a built request,
 which exercises the same server-function code without the route table; the
 routing property (RFC 007) would then be asserted separately.
@@ -105,7 +106,7 @@ routing property (RFC 007) would then be asserted separately.
 
 | Area | Cases |
 |------|-------|
-| Happy path | valid submission delivered once; `Ok`; success redirect applied when configured, inline otherwise |
+| Happy path | valid submission delivered once; `Ok`; success redirect applied when configured, inline otherwise; a delivery error reaches the client only as `delivery_failed` and is logged with its detail (NFR-TEST-03, FR-SUB-09; added at the handoff 01 review) |
 | Validation | each rule rejects with its field code; the no-JS round trip renders the field text from labels after the `302`; field errors never also raise the banner; a banner error never sets `aria-invalid` |
 | Honeypot / silent outcomes | honeypot and `SilentDrop` produce **the same status, `Location` and redirect header** as a delivered submission, with zero deliveries (T18) |
 | Policy | `require_subject`, message limit in characters |
