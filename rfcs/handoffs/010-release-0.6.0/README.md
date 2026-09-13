@@ -18,6 +18,10 @@ Review requests go to `.git-exclude/review-request/010-release-0.6.0/`.
   request each.
 - **RFC 009.**  Its handoff comes after 03, once the owner accepts the RFC.
 
+## State
+
+All three handoffs approved 2026-09-13 (01 `291e06c`, 02 `ebc37bb`, 03 `37fcb1f`).  RFC 010 moves to `done/` at the 0.6.0 release.
+
 ## Rules added for this release
 
 - **The suites.**  The server suite (`tests/server`) and browser suite

@@ -102,7 +102,7 @@ crate's boundaries.  [Architecture](./architecture.md) describes internals.
 | **Context closure** | The closure the hosting application passes to `leptos_routes_with_context`.  With Axum it serves both server functions and server rendering, so it is the one place context is provided (RFC 007; before 0.4.0 the documentation wrongly described two sites) |
 | **Fail-closed** | On missing or invalid security configuration the crate refuses the submission rather than proceeding unprotected |
 | **PII** | Personally identifiable information: visitor name, email, message body, IP address |
-| **Form token** | The value carried in the hidden `form_token` field when the `form-token` feature is enabled.  Called the anti-forgery token before 0.5.0 |
+| **Form token** | The value carried in the hidden `form_token` field when the `form-token` feature is enabled.  Called the anti-forgery or CSRF token before 0.5.0 |
 
 ---
 
