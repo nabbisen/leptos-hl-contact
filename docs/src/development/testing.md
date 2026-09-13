@@ -46,9 +46,6 @@ Tests are written from the [Requirements](./requirements.md) and
 [External Design](./external-design.md), not from the code: when a test
 and the specification disagree, fix one of them explicitly.
 
-Integration tests that drive `submit_contact` end to end do not exist yet
-(roadmap P-15).
-
 ## Server integration suite
 
 `crates/leptos-hl-contact/tests/server/` tests the crate the way an
@@ -72,13 +69,16 @@ else, and so does CI.
 - **`Harness::new(Setup { … })`** builds the router with just the context
   values a test needs: delivery, the form token (plain, bound to a cookie, or
   absent), a success page, a server policy, a challenge, a filter.
-  Everything is per test; nothing is global.
+  Everything is per test except the log subscriber, which is installed once
+  for the binary and collects per test thread (see `support/logs.rs`).
 - **`submit_nojs`** posts as a browser without JavaScript does
   (`Accept: text/html`, a `Referer`), so errors come back as a `302`.
   **`follow`** takes that redirect and renders the page it lands on.
   **`submit_fetch`** posts as `ActionForm` does with JavaScript.
 - **Test doubles:** `RecordingDelivery` counts deliveries and keeps the last
-  input, so "delivered or not" is asserted directly.  `ScriptedVerifier` answers a
+  input, so "delivered or not" is asserted directly.  `FailingDelivery`
+  refuses every message with a transport error and counts its calls
+  (`Setup { failing_delivery: true, .. }`).  `ScriptedVerifier` answers a
   challenge with a set result and records the tokens it saw.  `FixedFilter`
   returns a set decision and counts its calls.
 - **`capture_logs`** records every log event and span field for the test.

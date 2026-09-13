@@ -103,14 +103,23 @@ impl Reply {
         self.status.as_u16() == 302 && self.location().is_some_and(|l| l.contains("__err"))
     }
 
-    /// What a sender can compare between two responses.
-    pub fn fingerprint(&self) -> (u16, Option<String>, Option<String>, String) {
-        (
-            self.status.as_u16(),
-            self.location(),
-            self.redirect_header(),
-            self.body.clone(),
-        )
+    /// What a sender can compare between two responses: status, body, and
+    /// every header as sorted `(name, value)` pairs, `Location` and
+    /// `serverfnredirect` included.  No header is excluded: under `oneshot`
+    /// nothing adds a value that varies per response, such as `Date`.
+    pub fn fingerprint(&self) -> (u16, String, Vec<(String, String)>) {
+        let mut headers: Vec<(String, String)> = self
+            .headers
+            .iter()
+            .map(|(name, value)| {
+                (
+                    name.as_str().to_owned(),
+                    String::from_utf8_lossy(value.as_bytes()).into_owned(),
+                )
+            })
+            .collect();
+        headers.sort();
+        (self.status.as_u16(), self.body.clone(), headers)
     }
 
     /// The `contact_error:` code in a fetch response body.

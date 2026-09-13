@@ -93,8 +93,10 @@ async fn the_0_4_csrf_token_field_is_accepted() {
     let token = h.token();
 
     let fields = h.fields().without("form_token").set("csrf_token", &token);
-    for reply in [h.submit_fetch(&fields).await, h.submit_nojs(&fields).await] {
-        assert_eq!(reply.contact_error(), None, "{}", reply.body);
-    }
+    let fetch = h.submit_fetch(&fields).await;
+    assert!(fetch.status.is_success(), "{}", fetch.body);
+    assert_eq!(fetch.contact_error(), None);
+    let nojs = h.submit_nojs(&fields).await;
+    assert!(nojs.is_nojs_success(), "{:?}", nojs.location());
     assert_eq!(h.deliveries(), 2);
 }

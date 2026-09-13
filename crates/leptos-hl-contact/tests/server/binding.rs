@@ -80,7 +80,7 @@ async fn binding_requires_the_matching_cookie() {
 
 /// T17: a sibling subdomain can plant the *bare* cookie name but not a
 /// `__Host-` one.  With the prefix in force, the bare name is ignored even
-/// when it carries the right nonce.
+/// when it carries the right nonce — in both request forms.
 #[tokio::test]
 async fn binding_rejects_a_tossed_bare_cookie() {
     let h = bound();
@@ -88,17 +88,16 @@ async fn binding_rejects_a_tossed_bare_cookie() {
     let token = page.token().expect("token");
 
     let tossed = Fields::valid(&token).with_cookie(&format!("hl_contact_ft={}", nonce_of(&token)));
-    for reply in [h.submit_fetch(&tossed).await, h.submit_nojs(&tossed).await] {
-        if reply.status.as_u16() == 302 {
-            let banner = h.follow(&reply).await.banner();
-            assert_eq!(
-                banner.as_deref(),
-                Some("Your session token expired. Please reload the page and try again.")
-            );
-        } else {
-            assert_eq!(reply.contact_error().as_deref(), Some("token_invalid"));
-        }
-    }
+
+    let fetch = h.submit_fetch(&tossed).await;
+    assert_eq!(fetch.contact_error().as_deref(), Some("token_invalid"));
+
+    let nojs = h.submit_nojs(&tossed).await;
+    assert!(nojs.is_nojs_error(), "{:?}", nojs.location());
+    assert_eq!(
+        h.follow(&nojs).await.banner().as_deref(),
+        Some("Your session token expired. Please reload the page and try again.")
+    );
     assert_eq!(h.deliveries(), 0);
 }
 

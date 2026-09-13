@@ -29,7 +29,7 @@ use leptos_router::{
 use tower::ServiceExt;
 
 use super::{
-    doubles::RecordingDelivery,
+    doubles::{FailingDelivery, RecordingDelivery},
     http::{Fields, Page, Reply},
 };
 
@@ -40,7 +40,7 @@ pub const TEST_SECRET: &str = "integration-test-secret-0123456789";
 const REFERER: &str = "http://localhost/contact";
 
 /// How the form token is configured.
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum TokenMode {
     /// `FormTokenContext` and a `FormToken` per render, without binding.
     #[default]
@@ -54,6 +54,8 @@ pub enum TokenMode {
 /// Which context values the one closure provides.
 pub struct Setup {
     pub delivery: bool,
+    /// Provide `FailingDelivery` instead of `RecordingDelivery`.
+    pub failing_delivery: bool,
     pub token: TokenMode,
     pub min_age_secs: u64,
     pub success_page: bool,
@@ -66,6 +68,7 @@ impl Default for Setup {
     fn default() -> Self {
         Self {
             delivery: true,
+            failing_delivery: false,
             token: TokenMode::Plain,
             min_age_secs: 0,
             success_page: false,
@@ -101,6 +104,7 @@ fn shell(_options: LeptosOptions) -> impl IntoView {
 pub struct Harness {
     app: Router,
     pub delivery: Arc<RecordingDelivery>,
+    pub failing: Arc<FailingDelivery>,
     pub redirects: Arc<Mutex<Vec<String>>>,
     token_config: FormTokenContext,
 }
@@ -109,6 +113,7 @@ impl Harness {
     pub fn new(setup: Setup) -> Self {
         let options = LeptosOptions::builder().output_name("contact-test").build();
         let delivery = Arc::new(RecordingDelivery::default());
+        let failing = Arc::new(FailingDelivery::default());
         let redirects: Arc<Mutex<Vec<String>>> = Arc::default();
 
         let mut config =
@@ -130,6 +135,8 @@ impl Harness {
         // The one context closure (RFC 007).
         let context = {
             let delivery = Arc::clone(&delivery);
+            let failing = Arc::clone(&failing);
+            let failing_delivery = setup.failing_delivery;
             let token_config = Arc::clone(&token_config);
             let cookie = FormTokenCookie::default();
             let token_mode = setup.token;
@@ -139,7 +146,11 @@ impl Harness {
             let filter = setup.filter;
             move || {
                 if deliver {
-                    let delivery: ContactDeliveryContext = delivery.clone();
+                    let delivery: ContactDeliveryContext = if failing_delivery {
+                        failing.clone() as ContactDeliveryContext
+                    } else {
+                        delivery.clone() as ContactDeliveryContext
+                    };
                     provide_context(delivery);
                 }
                 match token_mode {
@@ -181,6 +192,7 @@ impl Harness {
         Self {
             app,
             delivery,
+            failing,
             redirects,
             token_config,
         }

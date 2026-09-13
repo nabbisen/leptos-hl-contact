@@ -4,8 +4,9 @@ use leptos_hl_contact::{FieldError, FieldErrorCode};
 
 use crate::support::{Harness, Setup};
 
-/// FR-SUB-05, FR-SUB-06, FR-VAL-02, FR-VAL-03, FR-PE-04: each rule rejects
-/// with its own field code, in both request forms, and nothing is delivered.
+/// FR-SUB-05, FR-SUB-06, FR-VAL-01, FR-VAL-02, FR-VAL-03, FR-VAL-04, FR-PE-04,
+/// NFR-SEC-02: each rule rejects with its own field code, in both request
+/// forms, and nothing is delivered.
 #[tokio::test]
 async fn each_rule_rejects_with_its_field_code() {
     let h = Harness::new(Setup::default());
@@ -25,11 +26,24 @@ async fn each_rule_rejects_with_its_field_code() {
             "email",
             code(FieldErrorCode::Format),
         ),
+        // Header injection through the name.
+        (
+            "name",
+            "a\r\nBcc: x@example.com",
+            "name",
+            code(FieldErrorCode::LineBreaks),
+        ),
         (
             "subject",
             "line one\nline two",
             "subject",
             code(FieldErrorCode::LineBreaks),
+        ),
+        (
+            "subject",
+            &"s".repeat(121),
+            "subject",
+            code(FieldErrorCode::Length { min: 0, max: 120 }),
         ),
         ("message", "", "message", code(FieldErrorCode::Required)),
         (
@@ -60,6 +74,17 @@ async fn each_rule_rejects_with_its_field_code() {
         assert_eq!(page.banner(), None, "{field}, no-JS");
     }
     assert_eq!(h.deliveries(), 0);
+}
+
+/// FR-VAL-03: a blank subject is treated as absent, not rejected.
+#[tokio::test]
+async fn a_blank_subject_is_delivered_as_absent() {
+    let h = Harness::new(Setup::default());
+
+    let reply = h.submit_fetch(&h.fields().set("subject", "   ")).await;
+    assert!(reply.status.is_success(), "{}", reply.body);
+    assert_eq!(h.deliveries(), 1);
+    assert_eq!(h.delivery.last().expect("delivered").subject, None);
 }
 
 /// FR-PE-02, FR-UI-08: without JavaScript a field error comes back through

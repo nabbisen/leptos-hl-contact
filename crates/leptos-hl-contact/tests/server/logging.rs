@@ -5,8 +5,8 @@ use std::sync::Arc;
 use leptos_hl_contact::{ChallengeContext, ChallengePolicy, FilterDecision};
 
 use crate::support::{
-    Fields, FixedFilter, Harness, ScriptedVerifier, Setup, TEST_SECRET, TokenMode, capture_logs,
-    nonce_of,
+    DELIVERY_ERROR_DETAIL, Fields, FixedFilter, Harness, ScriptedVerifier, Setup, TEST_SECRET,
+    TokenMode, capture_logs, nonce_of,
 };
 
 const NAME: &str = "Zelda Quimby-Marker";
@@ -25,8 +25,8 @@ fn personal(fields: Fields) -> Fields {
 
 /// T9, FR-OBS-02, NFR-PRIV-01: across a representative set of outcomes — a
 /// delivery, the honeypot, a validation failure, a token failure, a binding
-/// failure, a failed challenge, a filter's `Reject` and `SilentDrop`, and
-/// missing configuration — no log event or span field contains the visitor's
+/// failure, a failed challenge, a filter's `Reject` and `SilentDrop`, a
+/// delivery error, and missing configuration — no log event or span field contains the visitor's
 /// name, email, subject or message, the form token, the binding cookie's
 /// value, the challenge token, or the form-token secret.
 ///
@@ -91,6 +91,13 @@ async fn no_personal_data_or_secret_is_logged() {
         filtered.submit_fetch(&personal(filtered.fields())).await;
     }
 
+    // A delivery error: logged with its transport detail (FR-OBS-03).
+    let failing = Harness::new(Setup {
+        failing_delivery: true,
+        ..Setup::default()
+    });
+    failing.submit_fetch(&personal(failing.fields())).await;
+
     // Missing configuration.
     let unconfigured = Harness::new(Setup {
         delivery: false,
@@ -106,6 +113,7 @@ async fn no_personal_data_or_secret_is_logged() {
         "submission rejected by filter",
         "submission silently dropped by filter",
         "ContactDeliveryContext not provided",
+        "contact form delivery failed",
     ] {
         assert!(
             logs.any_contains(expected),
@@ -113,6 +121,12 @@ async fn no_personal_data_or_secret_is_logged() {
             logs.lines().join("\n")
         );
     }
+
+    // FR-OBS-03: operators get the transport detail.
+    assert!(
+        logs.any_contains(DELIVERY_ERROR_DETAIL),
+        "the delivery failure's transport detail is logged"
+    );
 
     for line in logs.lines() {
         for needle in &forbidden {

@@ -1,6 +1,6 @@
 //! The happy path.
 
-use crate::support::{Harness, Setup};
+use crate::support::{DELIVERY_ERROR_DETAIL, Harness, Setup};
 
 /// FR-PE-01, FR-PE-04: a valid submission is delivered exactly once and
 /// answers success, in both request forms; without a success page the
@@ -46,4 +46,32 @@ async fn the_success_page_is_applied_when_configured() {
 
     assert_eq!(h.deliveries(), 2);
     assert_eq!(*h.redirects.lock().unwrap(), ["/thanks", "/thanks"]);
+}
+
+/// FR-SUB-09, NFR-TEST-03: a delivery error reaches the client only as the
+/// generic `delivery_failed` message, in both request forms.  The transport
+/// detail stays on the server.
+#[tokio::test]
+async fn a_delivery_error_reaches_the_client_only_as_delivery_failed() {
+    let h = Harness::new(Setup {
+        failing_delivery: true,
+        ..Setup::default()
+    });
+
+    let fetch = h.submit_fetch(&h.fields()).await;
+    assert_eq!(fetch.contact_error().as_deref(), Some("delivery_failed"));
+    assert!(!fetch.body.contains("relay said no"), "{}", fetch.body);
+
+    let nojs = h.submit_nojs(&h.fields()).await;
+    assert!(nojs.is_nojs_error(), "{:?}", nojs.location());
+    let page = h.follow(&nojs).await;
+    assert_eq!(
+        page.banner().as_deref(),
+        Some("Failed to send message. Please try again later.")
+    );
+    assert!(!page.html.contains(DELIVERY_ERROR_DETAIL));
+    assert!(!nojs.location().unwrap_or_default().contains("relay"));
+
+    assert_eq!(h.failing.count(), 2);
+    assert_eq!(h.deliveries(), 0);
 }

@@ -14,6 +14,10 @@ use leptos_hl_contact::{
     ContactFilter, ContactInput, FilterDecision,
 };
 
+/// The transport detail `FailingDelivery` reports.  Operators need it in
+/// the log (FR-OBS-03); the client must never see it (FR-SUB-09).
+pub const DELIVERY_ERROR_DETAIL: &str = "relay said no: 451 test";
+
 /// Counts deliveries and keeps the last input, so "delivered or not" is
 /// asserted directly rather than inferred from logs.
 #[derive(Default)]
@@ -40,6 +44,32 @@ impl ContactDelivery for RecordingDelivery {
         self.calls.fetch_add(1, Ordering::SeqCst);
         *self.last.lock().unwrap() = Some(input);
         Box::pin(async { Ok(()) })
+    }
+}
+
+/// A delivery backend whose relay refuses every message.
+#[derive(Default)]
+pub struct FailingDelivery {
+    calls: AtomicUsize,
+}
+
+impl FailingDelivery {
+    pub fn count(&self) -> usize {
+        self.calls.load(Ordering::SeqCst)
+    }
+}
+
+impl ContactDelivery for FailingDelivery {
+    fn deliver(
+        &self,
+        _input: ContactInput,
+    ) -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        Box::pin(async {
+            Err(ContactDeliveryError::Transport(
+                DELIVERY_ERROR_DETAIL.into(),
+            ))
+        })
     }
 }
 
