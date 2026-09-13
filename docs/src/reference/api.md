@@ -28,14 +28,15 @@ pub fn ContactForm(
     #[prop(optional, into)] classes: ContactFormClasses,
     #[prop(optional, into)] labels:  ContactFormLabels,
     #[prop(optional, into)] options: ContactFormOptions,
-    #[prop(optional)]       challenge: Option<ChallengeWidget>,
+    #[prop(optional_no_strip)] challenge: Option<ChallengeWidget>,
 ) -> impl IntoView
 ```
 
 Renders the form as an `<ActionForm/>` bound to `submit_contact`.  Reads
 `FormToken` from context when the `form-token` feature is on.  With
 `challenge`, renders the vendor widget after the message field; without it,
-nothing is loaded from any vendor.  Element ids and
+nothing is loaded from any vendor.  `challenge` takes the `Option` itself:
+`challenge=Some(widget)`, or an `Option` built from configuration.  Element ids and
 attributes are listed in the
 [DOM contract](../development/external-design.md#412-dom-contract).
 

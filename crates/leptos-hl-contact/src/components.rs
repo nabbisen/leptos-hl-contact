@@ -471,7 +471,11 @@ pub fn ContactForm(
     options: ContactFormOptions,
     /// A CAPTCHA widget, rendered after the message field.  Without it the
     /// form renders and loads nothing from any vendor.
-    #[prop(optional)]
+    ///
+    /// Takes the `Option` itself, so a widget that exists only when keys are
+    /// configured is one prop: `challenge=widget_from_config()`, or
+    /// `challenge=Some(widget)` for a fixed one.
+    #[prop(optional_no_strip)]
     challenge: Option<ChallengeWidget>,
 ) -> impl IntoView {
     let submit_action = ServerAction::<SubmitContact>::new();

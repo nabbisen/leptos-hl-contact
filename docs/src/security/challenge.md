@@ -37,8 +37,12 @@ use leptos_hl_contact::config::{ChallengeProvider, ChallengeWidget};
 let challenge = ChallengeWidget::new(ChallengeProvider::Turnstile, site_key)
     .expect("site key uses only [A-Za-z0-9_-]");
 
-view! { <ContactForm challenge=challenge /> }
+view! { <ContactForm challenge=Some(challenge) /> }
 ```
+
+`challenge` takes an `Option`, so a widget that exists only when keys are
+configured needs no second form: pass `None` and the form renders exactly
+as it does without the prop.
 
 `ChallengeWidget::new` and its `with_*` methods validate every value that
 reaches the page: the site key and the v3 action against `[A-Za-z0-9_-]+`,
@@ -192,6 +196,14 @@ Never deploy these: they provide no protection.
 | Turnstile | `1x00000000000000000000AA` | `3x0000000000000000000000000000000AA` | fails, token already spent |
 | hCaptcha | `10000000-ffff-ffff-ffff-000000000001` | `0x0000000000000000000000000000000000000000` | always passes; response token `10000000-aaaa-bbbb-cccc-000000000001` |
 | reCAPTCHA v2 | `6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI` | `6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe` | always passes; the widget shows a warning |
+
+The Turnstile blocking site key `2x00000000000000000000AB` fails **in the
+browser**: the widget reports an error and issues no token, so the
+submission arrives without one and is rejected as `challenge_required` —
+"Please complete the security check." — not `challenge_failed`.  The
+secret is never consulted.  To see "The security check did not pass", use
+the passing site key `1x00000000000000000000AA` with the failing secret
+`2x0000000000000000000000000000000AA`.
 
 Turnstile's and hCaptcha's test keys work on any host, including
 `localhost`.  Google publishes no reCAPTCHA v3 test key; the v2 key above

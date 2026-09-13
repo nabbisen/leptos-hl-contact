@@ -22,6 +22,11 @@ const RECAPTCHA_URL: &str = "https://www.google.com/recaptcha/api/siteverify";
 /// capped at five seconds by default and never retried: a failure rejects
 /// the submission with `challenge_unavailable`, which the visitor can retry.
 ///
+/// Redirects are not followed.  A followed redirect would resend the request
+/// body, secret included, to wherever the `Location` header points; no
+/// vendor endpoint redirects, so a 3xx is `Unavailable` like any other
+/// non-2xx answer.
+///
 /// # Security
 ///
 /// The secret is sent only to the vendor, and `Debug` redacts it.  Neither the
@@ -59,13 +64,23 @@ impl HttpChallengeVerifier {
     /// An empty `secret` is accepted here and reported as
     /// [`ChallengeError::Misconfigured`] on the first verification, so a
     /// missing environment variable fails closed rather than at startup.
+    ///
+    /// # Panics
+    ///
+    /// If the TLS backend cannot be initialised, as `reqwest::Client::new`
+    /// does.  With rustls there is no system library that could be missing.
     pub fn new(provider: ChallengeProvider, secret: impl Into<String>) -> Self {
+        let client = reqwest::Client::builder()
+            // Never resend the secret to a `Location` of someone else's choosing.
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .expect("the rustls TLS backend initialises");
         Self {
             provider,
             secret: secret.into(),
             timeout: DEFAULT_TIMEOUT,
             verify_url: None,
-            client: reqwest::Client::new(),
+            client,
         }
     }
 

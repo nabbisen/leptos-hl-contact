@@ -77,8 +77,8 @@ No version assigned; the owner decides the release number.
   `challenge_unavailable`, with matching labels and `challenge_requires_js`.
   No HTTP client and no new dependency yet; the built-in vendor verifiers
   come separately.
-- **Challenge widget.**  `ContactForm` takes an optional `challenge` prop, a
-  `ChallengeWidget` for Turnstile, hCaptcha, reCAPTCHA v2 or v3, and renders
+- **Challenge widget.**  `ContactForm` takes an optional `challenge` prop, an
+  `Option<ChallengeWidget>` for Turnstile, hCaptcha, reCAPTCHA v2 or v3, and renders
   the vendor widget and script after the message field.  Every value that
   reaches the page is validated when the widget is built.  reCAPTCHA v3 gets
   an inline script that fetches a fresh token on every submit.  Without
@@ -93,7 +93,8 @@ No version assigned; the owner decides the release number.
   a non-2xx status or a response without a boolean `success` is
   `Unavailable`; an empty secret is `Misconfigured`.  All three reject the
   submission as `challenge_unavailable`.  The secret is redacted from
-  `Debug`, and `with_verify_url` supports a forwarding proxy.
+  `Debug`, and `with_verify_url` supports a forwarding proxy.  Redirects are
+  not followed, so the secret is never resent to a `Location` header.
 
 ### Migration
 

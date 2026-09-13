@@ -147,33 +147,19 @@ fn ContactPage() -> impl IntoView {
         success: "contact-success".into(),
     };
 
-    // `challenge` takes a `ChallengeWidget`, not an `Option`, so the form is
-    // written with it when CHALLENGE_PROVIDER and CHALLENGE_SITE_KEY are set
-    // and without it otherwise.  The server and the browser read the same
-    // settings, so both take the same branch and hydration matches.
-    let form = match challenge_widget() {
-        Some(challenge) => view! {
-            <ContactForm
-                classes=classes
-                labels=ContactFormLabels::default()
-                options=options
-                challenge=challenge
-            />
-        }
-        .into_any(),
-        None => view! {
-            <ContactForm classes=classes labels=ContactFormLabels::default() options=options />
-        }
-        .into_any(),
-    };
-
     view! {
         <main style="max-width: 600px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
             <h1>"Contact us (secured)"</h1>
             <p style="color: #666; font-size: 0.9rem;">
                 "This form is protected by: rate limiting, a form token, Origin validation, and a challenge when configured."
             </p>
-            {form}
+            <ContactForm
+                classes=classes
+                labels=ContactFormLabels::default()
+                options=options
+                // `None` unless CHALLENGE_PROVIDER and CHALLENGE_SITE_KEY are set.
+                challenge=challenge_widget()
+            />
         </main>
     }
 }

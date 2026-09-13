@@ -155,6 +155,31 @@ async fn a_server_error_is_unavailable() {
     }
 }
 
+/// Review C2: a redirect would resend the body, secret included, to the
+/// `Location`.  It must not be followed, and must count as unavailable.
+#[tokio::test]
+async fn a_redirect_is_not_followed_and_is_unavailable() {
+    let elsewhere = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let elsewhere_url = format!("http://{}/steal", elsewhere.local_addr().unwrap());
+    let redirect: &'static str = Box::leak(
+        format!(
+            "HTTP/1.1 307 Temporary Redirect\r\nlocation: {elsewhere_url}\r\ncontent-length: 0\r\nconnection: close\r\n\r\n"
+        )
+        .into_boxed_str(),
+    );
+    let (url, _) = respond_once(redirect).await;
+
+    match verifier(&url).verify("tok").await {
+        Err(ChallengeError::Unavailable(m)) => assert!(m.contains("307"), "{m}"),
+        other => panic!("expected Unavailable, got {other:?}"),
+    }
+    let followed = tokio::time::timeout(Duration::from_millis(300), elsewhere.accept()).await;
+    assert!(
+        followed.is_err(),
+        "the redirect target must see no connection"
+    );
+}
+
 /// Not JSON, or JSON without `success`: the vendor did not answer, so this
 /// is unavailable, not a failed challenge.
 #[tokio::test]

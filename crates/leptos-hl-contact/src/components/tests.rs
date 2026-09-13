@@ -134,7 +134,7 @@ use crate::config::{ChallengeProvider, ChallengeTheme, ChallengeWidget, NoJsPoli
 const TURNSTILE_TEST_KEY: &str = "1x00000000000000000000AA";
 
 fn render_with(widget: ChallengeWidget) -> String {
-    render(move || view! { <ContactForm challenge=widget /> }.into_any())
+    render(move || view! { <ContactForm challenge=Some(widget) /> }.into_any())
 }
 
 fn turnstile() -> ChallengeWidget {
@@ -307,7 +307,7 @@ fn the_noscript_message_escapes_label_and_class() {
     };
     let widget = turnstile();
     let html = render(move || {
-        view! { <ContactForm challenge=widget labels=labels classes=classes /> }.into_any()
+        view! { <ContactForm challenge=Some(widget) labels=labels classes=classes /> }.into_any()
     });
     let noscript = &html[html.find("<noscript>").unwrap()..html.find("</noscript>").unwrap()];
     assert!(
@@ -344,4 +344,14 @@ fn escape_html_escapes_the_four_characters() {
     use crate::components::escape_html;
     assert_eq!(escape_html(r#"a&b<c>d"e'f"#), "a&amp;b&lt;c&gt;d&quot;e'f");
     assert_eq!(escape_html("plain"), "plain");
+}
+
+/// Review C1: the prop takes an `Option`, so configuration-driven code passes
+/// one value and `None` renders exactly as the absent prop does.
+#[test]
+fn challenge_none_renders_as_the_absent_prop() {
+    let none: Option<ChallengeWidget> = None;
+    let with_none = render(move || view! { <ContactForm challenge=none /> }.into_any());
+    let absent = render(|| view! { <ContactForm /> }.into_any());
+    assert_eq!(with_none, absent);
 }
