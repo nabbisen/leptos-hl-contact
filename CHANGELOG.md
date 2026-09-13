@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased]
+
+No version assigned; the owner decides the release number.
+
+### Documentation
+
+- Development: a server integration suite in `crates/leptos-hl-contact/tests/server/`
+  now tests the crate through a router built exactly as the documentation
+  instructs.  It covers delivery, the success page, every silent outcome,
+  validation and the no-JavaScript round trip, server policy, the form token
+  and its cookie binding, the challenge decision table, the filter, and log
+  hygiene.  Tests and development dependencies only; the published crate is
+  unchanged.  `development/testing.md` describes the harness.
+
 ## [0.5.0] — 2026-09-13
 
 ### Security

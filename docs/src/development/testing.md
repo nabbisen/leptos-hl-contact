@@ -40,6 +40,7 @@ never inline.  Groups:
 | `delivery/noop/tests.rs` | async no-op call |
 | `delivery/smtp/tests.rs` | message headers, `Reply-To` encoding, body content |
 | `axum_helpers/tests.rs` | closure is `Clone` |
+| `tests/server/` | the crate over HTTP, in process: every behaviour a response or a delivery shows (see below) |
 
 Tests are written from the [Requirements](./requirements.md) and
 [External Design](./external-design.md), not from the code: when a test
@@ -47,6 +48,56 @@ and the specification disagree, fix one of them explicitly.
 
 Integration tests that drive `submit_contact` end to end do not exist yet
 (roadmap P-15).
+
+## Server integration suite
+
+`crates/leptos-hl-contact/tests/server/` tests the crate the way an
+integrator's server runs it.  Each test builds a router exactly as the
+documentation says to — one context closure passed to
+`leptos_routes_with_context`, a small app containing `ContactForm` at
+`/contact`, and no hand-written server-function route — and sends requests
+through `tower::ServiceExt::oneshot`, in process.  No socket, no port, no
+network.
+
+```bash
+cargo test --all-features --test server
+```
+
+The suite is compiled only with `ssr`, `axum-helpers` and `form-token`, which
+`--all-features` enables; `cargo test --all-features` runs it with everything
+else, and so does CI.
+
+**The harness** (`tests/server/support/`):
+
+- **`Harness::new(Setup { … })`** builds the router with just the context
+  values a test needs: delivery, the form token (plain, bound to a cookie, or
+  absent), a success page, a server policy, a challenge, a filter.
+  Everything is per test; nothing is global.
+- **`submit_nojs`** posts as a browser without JavaScript does
+  (`Accept: text/html`, a `Referer`), so errors come back as a `302`.
+  **`follow`** takes that redirect and renders the page it lands on.
+  **`submit_fetch`** posts as `ActionForm` does with JavaScript.
+- **Test doubles:** `RecordingDelivery` counts deliveries and keeps the last
+  input, so "delivered or not" is asserted directly.  `ScriptedVerifier` answers a
+  challenge with a set result and records the tokens it saw.  `FixedFilter`
+  returns a set decision and counts its calls.
+- **`capture_logs`** records every log event and span field for the test.
+
+**Rules for a new case:**
+
+- Assert what a sender or visitor can observe: status, headers, body,
+  rendered page, deliveries.  Use the log capture only for properties about
+  logs themselves.
+- Where a behaviour exists without JavaScript and with it, test both in one
+  test: the 0.4.0 honeypot regression differed only in headers.
+- Never sleep.  Use `min_age_secs: 0` unless the case is about age, a large
+  minimum age for "too young", and `signed_token(age_secs, nonce)` for a
+  past-dated token.
+- Cite the requirement or threat ID the case guards in its doc comment.
+
+If the suite fails to compile with "found an item that was configured out",
+the build artifacts came from a narrower feature set: run
+`cargo clean -p leptos-hl-contact`, as described above.
 
 ## Live challenge tests
 

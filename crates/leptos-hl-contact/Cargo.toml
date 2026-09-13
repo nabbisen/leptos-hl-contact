@@ -58,3 +58,14 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 # `net`, `io-util`, `sync` and `time` run the local siteverify responder in
 # the challenge-http tests.
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time"] }
+# Server integration suite (tests/server): the router is driven in process
+# with `tower::ServiceExt::oneshot`; `leptos_router` gives the test app a
+# `/contact` route; `tracing-subscriber` captures log events.
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
+leptos_router = "0.8"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["registry"] }
+# Sign a past-dated form token in the documented format, for the expiry case
+# (no sleeping); the same crates the form token itself uses.
+hmac = "0.13"
+sha2 = "0.11"
