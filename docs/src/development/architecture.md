@@ -12,7 +12,7 @@ visitor-facing errors are generic; the delivery layer only ever sees a
 validated `ContactInput`.
 
 **Minimal but extensible.**  One component, one server function, one
-trait.  SMTP, Axum, CSRF, and Islands code sit behind feature flags.
+trait.  SMTP, Axum, form token, and Islands code sit behind feature flags.
 SendGrid, SES, persistence, CAPTCHA are left to implementors.
 
 **Progressive enhancement first.**  `<ActionForm/>` works as a plain POST
@@ -58,7 +58,6 @@ conditions and security notes; behaviour is specified in
 | `delivery::noop` | `NoopDelivery` | server |
 | `delivery::smtp` | `LettreSmtpDelivery`, `SmtpConfig`, `SmtpTlsMode` | `smtp-lettre` |
 | `form_token` | `FormTokenConfig`, `FormToken`, `issue_form_token`, `verify_form_token` | `form-token` |
-| `csrf` | deprecated 0.4 aliases, removed next minor | `form-token` |
 | `axum_helpers` | `provide_contact_delivery`, `delivery_context_fn` | `axum-helpers` |
 
 ## Request flow
@@ -112,7 +111,7 @@ ssr               server function body, SSR
 islands           Leptos Islands
 smtp-lettre       + lettre, tokio            (server)
 axum-helpers      + axum, leptos_axum        (server)
-csrf              + hmac, sha2, rand, hex    (server)
+form-token        + hmac, sha2, rand, hex    (server)
 ```
 
 Axum is optional so the crate stays usable with other HTTP frameworks.
@@ -128,7 +127,7 @@ crates/leptos-hl-contact/src/
   security.rs            security/tests.rs
   components.rs
   server.rs              server/tests.rs
-  csrf.rs                csrf/tests.rs
+  form_token.rs          form_token/tests.rs
   delivery.rs            delivery/noop.rs  delivery/noop/tests.rs
                          delivery/smtp.rs  delivery/smtp/tests.rs
   axum_helpers.rs        axum_helpers/tests.rs

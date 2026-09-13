@@ -277,37 +277,10 @@ must not silently disable the check.
 If `FormToken` is missing, the hidden field is empty and every submission
 fails verification.
 
-## Migration from the 0.3 and 0.4 names
+## Upgrading from 0.4
 
-The feature, module and items were renamed in 0.5 because the token is not a
-CSRF control on its own.  The old names still work, warn, and are removed in
-the next minor.
-
-| 0.3 / 0.4 | 0.5 |
-|-----------|-----|
-| feature `csrf` | `form-token` |
-| module `csrf` | `form_token` |
-| `CsrfConfig` | `FormTokenConfig` |
-| `CsrfToken` | `FormToken` |
-| `CsrfConfigContext` | `FormTokenContext` |
-| `generate_csrf_token` | `issue_form_token` |
-| `verify_csrf_token(token, cfg) -> bool` | `verify_form_token(token, bound, cfg) -> Result<(), FormTokenError>` |
-| hidden field `csrf_token` | `form_token` |
-| env var `CSRF_SECRET` (docs) | `FORM_TOKEN_SECRET` |
-
-Two things do **not** move by themselves:
-
-- **A `CsrfConfig { secret_key, token_ttl_secs }` struct literal no longer
-  compiles.**  `token_ttl_secs` is now `ttl_secs`, and two fields were added.
-  Use `FormTokenConfig::new(secret)` with `with_ttl`, `with_min_age` and
-  `with_binding`.
-- **`min_age_secs` defaults to 2**, which is new behaviour.  A test suite
-  that submits instantly will now see `too_fast`; call `.with_min_age(0)` if
-  you need the old behaviour.
-
-A page rendered by 0.4 still submits successfully to a 0.5 server:
-`submit_contact` accepts the old `csrf_token` field for one minor and uses it
-when `form_token` is absent.
+The 0.4 names were removed in 0.6.0.  The CHANGELOG has the table of old
+names and the ones to use.
 
 ## API
 

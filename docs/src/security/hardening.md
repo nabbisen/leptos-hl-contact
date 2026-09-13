@@ -6,8 +6,8 @@ All snippets are taken from
 
 ## HTTPS
 
-Terminate TLS in front of the application.  Form contents and, in the
-`csrf` case, tokens travel in the request; only TLS protects them in
+Terminate TLS in front of the application.  Form contents and, with the
+form token enabled, tokens travel in the request; only TLS protects them in
 transit.
 
 ## Request body limit

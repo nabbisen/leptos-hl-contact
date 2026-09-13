@@ -4,6 +4,29 @@
 
 No version assigned; the owner decides the release number.
 
+### Removed
+
+- **The deprecated 0.4 names**, as the 0.5.0 release promised: the `csrf`
+  feature, the `csrf` module with `CsrfConfig`, `CsrfToken`,
+  `CsrfConfigContext`, `generate_csrf_token` and `verify_csrf_token`, and the
+  `csrf_token` argument of `submit_contact`.  A page rendered by 0.4, which
+  posts only `csrf_token`, is now refused as `token_invalid`; a 0.5 page is
+  unaffected.
+
+### Migration
+
+| 0.4 name | Use |
+|----------|-----|
+| feature `csrf` | `form-token` |
+| module `csrf` | `form_token` |
+| `CsrfConfig` | `FormTokenConfig` |
+| `CsrfToken` | `FormToken` |
+| `CsrfConfigContext` | `FormTokenContext` |
+| `generate_csrf_token` | `issue_form_token` |
+| `verify_csrf_token(token, cfg) -> bool` | `verify_form_token(token, bound, cfg) -> Result<(), FormTokenError>` |
+| hidden field `csrf_token` | `form_token` |
+| env var `CSRF_SECRET` (docs and examples) | `FORM_TOKEN_SECRET` |
+
 ### Documentation
 
 - Development: a server integration suite in `crates/leptos-hl-contact/tests/server/`

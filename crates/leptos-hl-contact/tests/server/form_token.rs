@@ -84,20 +84,35 @@ async fn a_too_young_token_is_retryable() {
     assert_eq!(h.deliveries(), 0);
 }
 
-/// FR-VAL-06, NFR-COMPAT-04 — compatibility promise from 0.5.0: a page
-/// rendered by 0.4 posts its token as `csrf_token`, and it is still accepted.
-/// **Remove this test, and the `csrf_token` argument, in 0.6.0** — the
-/// CHANGELOG promises one minor.
+/// FR-VAL-06, NFR-COMPAT-04: the 0.4 field name was removed in 0.6.0.  A
+/// valid token posted only as `csrf_token` no longer counts: the submission
+/// has no `form_token` and is refused as `token_invalid`, in both request
+/// forms, and nothing is delivered.
 #[tokio::test]
-async fn the_0_4_csrf_token_field_is_accepted() {
+async fn a_0_4_csrf_token_field_is_no_longer_accepted() {
     let h = Harness::new(Setup::default());
     let token = h.token();
-
     let fields = h.fields().without("form_token").set("csrf_token", &token);
+
     let fetch = h.submit_fetch(&fields).await;
-    assert!(fetch.status.is_success(), "{}", fetch.body);
-    assert_eq!(fetch.contact_error(), None);
+    assert_eq!(
+        fetch.contact_error().as_deref(),
+        Some("token_invalid"),
+        "{} {}",
+        fetch.status,
+        fetch.body
+    );
+
     let nojs = h.submit_nojs(&fields).await;
-    assert!(nojs.is_nojs_success(), "{:?}", nojs.location());
-    assert_eq!(h.deliveries(), 2);
+    assert!(
+        nojs.is_nojs_error(),
+        "{} {:?}",
+        nojs.status,
+        nojs.location()
+    );
+    assert_eq!(
+        h.follow(&nojs).await.banner().as_deref(),
+        Some("Your session token expired. Please reload the page and try again.")
+    );
+    assert_eq!(h.deliveries(), 0);
 }

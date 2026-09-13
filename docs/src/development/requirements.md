@@ -1,6 +1,6 @@
 # Requirements Specification
 
-> **Document status.** Draft 13, 2026-09-13, against release `0.5.0`.
+> **Document status.** Draft 14, 2026-09-13, against release `0.5.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
 > M1–M3 are released and M4 is owner-authorized; the document as a whole
 > awaits formal approval.
@@ -102,7 +102,7 @@ crate's boundaries.  [Architecture](./architecture.md) describes internals.
 | **Context closure** | The closure the hosting application passes to `leptos_routes_with_context`.  With Axum it serves both server functions and server rendering, so it is the one place context is provided (RFC 007; before 0.4.0 the documentation wrongly described two sites) |
 | **Fail-closed** | On missing or invalid security configuration the crate refuses the submission rather than proceeding unprotected |
 | **PII** | Personally identifiable information: visitor name, email, message body, IP address |
-| **Form token** | The value carried in the hidden `form_token` field when the `form-token` feature is enabled.  Called the anti-forgery or CSRF token before 0.5.0 |
+| **Form token** | The value carried in the hidden `form_token` field when the `form-token` feature is enabled.  Called the anti-forgery token before 0.5.0 |
 
 ---
 
@@ -195,7 +195,7 @@ input the browser accepted.
 
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
-| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr`), `axum-helpers` (implies `ssr`), `form-token` (implies `ssr`; `csrf` is a deprecated alias).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met (M1) |
+| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr`), `axum-helpers` (implies `ssr`), `form-token` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met (0.6.0) |
 | FR-CFG-02 | Required context values MUST be documented for the context closure, and helpers MUST exist for Axum | MUST | Met (RFC 007) |
 | FR-CFG-03 | Misconfiguration MUST surface loudly (startup panic in examples, `error` log in the crate) and MUST NOT fall back to an insecure default | MUST | Met |
 | FR-CFG-04 | Types holding secrets MUST redact them in `Debug` output | MUST | Met |
@@ -379,6 +379,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 14 | RFC 010 D1: `csrf` alias removed (FR-CFG-01) |
 | 2026-09-13 | Draft 13 | RFC 008 handoff 04: NFR-TEST-02 Met; testing gaps removed from the gap summary |
 | 2026-09-13 | Draft 12 | RFC 008 handoffs 01–03: NFR-TEST-03 Met.  MUST made explicit in NFR-COMPAT-01, -02, -05, NFR-TEST-04 and NFR-REL-01, which were always binding policies; NFR-DOC-04 marked SHOULD |
 | 2026-09-13 | Draft 11 | RFC 008 handoff 01: NFR-TEST-03 Partial, FR-PE-02 reproduced by test.  Drift corrected: FR-ABUSE-10..12 and NFR-PRIV-02 Met at 0.5.0, NFR-REL-03 Met, document status, "context closure" definition, gap summary |

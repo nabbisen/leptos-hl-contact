@@ -57,7 +57,6 @@ pub async fn submit_contact(
     message:    String,
     website:    String,          // honeypot — must be empty
     form_token: Option<String>,  // verified when the `form-token` feature is on
-    csrf_token: Option<String>,  // deprecated 0.4 name; used only if form_token is absent
     #[server(rename = "cf-turnstile-response")] #[server(default)]
     cf_turnstile_response: Option<String>,
     #[server(rename = "h-captcha-response")] #[server(default)]
@@ -464,10 +463,3 @@ Runs after the challenge and before delivery, on validated input only.
 delivery.  Both are logged at `warn` inside a `contact_filter` span: `filter`
 names the filter in context, and for a `FilterChain`, `decided_by` names the
 member that decided.  Guide and examples: [Filter](../security/filter.md).
-
-## `csrf` module — deprecated
-
-Feature `csrf`, which enables `form-token`.  Every item warns and is removed
-in the next minor: `CsrfConfig`, `CsrfToken`, `CsrfConfigContext`,
-`generate_csrf_token`, `verify_csrf_token`.  The migration table is in
-[Form Token](../security/form-token.md#migration-from-the-03-and-04-names).

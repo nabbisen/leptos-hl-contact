@@ -36,7 +36,6 @@ never inline.  Groups:
 | `server/tests.rs` | error-message shape (sentinel present or absent) |
 | `challenge/tests.rs` | the challenge decision table, one test per row, with a mock verifier |
 | `challenge/http/tests.rs` | `HttpChallengeVerifier` against a local responder: response shapes, the request, timeout and error mapping; live vendor tests (ignored) |
-| `csrf/tests.rs` | token round-trip, tamper, wrong key, expiry, malformed input, constant-time compare |
 | `delivery/noop/tests.rs` | async no-op call |
 | `delivery/smtp/tests.rs` | message headers, `Reply-To` encoding, body content |
 | `axum_helpers/tests.rs` | closure is `Clone` |
@@ -221,7 +220,7 @@ tests from the code side.
 | FR-VAL-03 | `model::newline_in_subject_fails`, `model::over_long_subject_yields_length_code_with_zero_min`, `model::empty_subject_uses_fallback` | `validation::each_rule_rejects_with_its_field_code`, `validation::a_blank_subject_is_delivered_as_absent` | — | — |
 | FR-VAL-04 | `model::too_long_message_fails`, `model::empty_message_yields_required_code`, `model::over_long_message_yields_length_code_at_the_ceiling` | `validation::each_rule_rejects_with_its_field_code` | — | — |
 | FR-VAL-05 | `model::honeypot_input_is_detected` | `silent::a_silent_outcome_is_indistinguishable_from_delivery` | — | — |
-| FR-VAL-06 | `form_token::issued_token_verifies_once_old_enough`, `form_token::malformed_tokens_are_rejected`, `form_token::an_old_token_is_expired`, `form_token::a_token_younger_than_the_minimum_is_too_young` | `form_token::a_missing_malformed_or_expired_token_is_rejected`, `form_token::a_too_young_token_is_retryable`, `form_token::the_0_4_csrf_token_field_is_accepted` | — | — |
+| FR-VAL-06 | `form_token::issued_token_verifies_once_old_enough`, `form_token::malformed_tokens_are_rejected`, `form_token::an_old_token_is_expired`, `form_token::a_token_younger_than_the_minimum_is_too_young` | `form_token::a_missing_malformed_or_expired_token_is_rejected`, `form_token::a_too_young_token_is_retryable`, `form_token::a_0_4_csrf_token_field_is_no_longer_accepted` | — | — |
 | FR-VAL-07 | `model::message_length_counts_characters`, `config::policy_check_counts_characters_not_bytes`, `components::attributes::maxlength_matches_the_validator` | `policy::server_policy_counts_the_message_in_characters` | — | `email` renders `maxlength="254"`, which no validator limit matches (recorded, not changed) |
 | FR-VAL-08 | `model::message_ceiling_constant_is_enforced_by_validator`, `config::options_effective_len_is_clamped`, `config::policy_check_clamps_to_ceiling`, `config::policy_default_matches_ceiling`, `components::attributes::maxlength_matches_the_validator` | — | — | — |
 | FR-ABUSE-01 | `model::honeypot_input_is_detected` | `silent::a_silent_outcome_is_indistinguishable_from_delivery` (no honeypot configuration in the harness) | — | — |
@@ -285,8 +284,8 @@ tests from the code side.
 | NFR-COMPAT-01 | **none** | **none** | **none** | CI builds: `cargo test --all-features` (the `ssr`, `hydrate` and `islands` features together) and the `browser` job (`hydrate` on wasm32); Islands mode behaviour: review |
 | NFR-COMPAT-02 | **none** | **none** | **none** | review: CI runs Rust 1.91, not the MSRV 1.85, so nothing builds on 1.85 until P-24 |
 | NFR-COMPAT-03 | **none** | **none** | — | review of `Cargo.toml` (`axum` is optional, behind `axum-helpers`); the `browser` job builds the crate without it |
-| NFR-COMPAT-04 | `csrf::deprecated_aliases_still_name_the_new_types` | `form_token::the_0_4_csrf_token_field_is_accepted` | — | the rest of the policy: review at release |
-| NFR-COMPAT-05 | **none** | **none** | **none** | review at release; the SSR tests in `components::` pin the ids, names and ARIA attributes, so a change to them fails a test |
+| NFR-COMPAT-04 | — | `form_token::a_0_4_csrf_token_field_is_no_longer_accepted` | — | the rest of the policy: review at release |
+| NFR-COMPAT-05 | **none** | **none** | **none** | review at release; the SSR tests in `components::` pin the ids, field names and the ARIA attributes tested above, so a change to those fails a test |
 | NFR-PORT-01 | **none** | **none** | **none** | CI: the `check` job builds `default = []` for wasm32 (`cargo check -p leptos-hl-contact --target wasm32-unknown-unknown`); the `browser` job and the example's wasm check build it with `hydrate` |
 | NFR-PERF-01 | **none** | **none** | — | review |
 | NFR-PERF-02 | **none** | **none** | — | review; the input limits themselves: FR-VAL-01 to -04 |

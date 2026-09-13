@@ -2,7 +2,7 @@
 //
 // This module holds defence-in-depth helpers shared by other modules (for
 // example header-injection sanitisation); the anti-automation token lives in
-// `csrf`.
+// `form-token`.
 
 // ---------------------------------------------------------------------------
 // Header injection helpers

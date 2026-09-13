@@ -11,7 +11,6 @@ downstream crates choose exactly what they activate.
 | `smtp-lettre` | `ssr` | `delivery::smtp` (`lettre`, `tokio`) |
 | `axum-helpers` | `ssr` | `axum_helpers` (`axum`, `leptos_axum`) |
 | `form-token` | `ssr` | `form_token` module; token verification in `submit_contact` (`hmac`, `sha2`, `rand`, `hex`) |
-| `csrf` | `form-token` | Deprecated alias for `form-token`; removed in the next minor |
 | `challenge-http` | `ssr` | `HttpChallengeVerifier`, which calls the vendors' siteverify endpoints (`reqwest` with rustls only) |
 
 ## Recommended combinations

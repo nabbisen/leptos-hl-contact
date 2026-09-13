@@ -24,7 +24,6 @@
 //! | `smtp-lettre`  | Enables the SMTP delivery adapter.             |
 //! | `axum-helpers` | Enables Axum-specific integration helpers.     |
 //! | `form-token`   | Stateless HMAC-SHA256 form token; `submit_contact` requires `FormTokenContext` (fail-closed). |
-//! | `csrf`         | Deprecated alias for `form-token`; removed in the next minor. |
 //!
 //! ## Quick start
 //!
@@ -55,10 +54,6 @@ pub mod server;
 // Form token — compiled only when `form-token` is active.
 #[cfg(feature = "form-token")]
 pub mod form_token;
-
-// Deprecated 0.4 aliases; removed in the next minor.
-#[cfg(feature = "form-token")]
-pub mod csrf;
 
 // Challenge verification — trait, policy and decision table; no HTTP.
 #[cfg(feature = "ssr")]

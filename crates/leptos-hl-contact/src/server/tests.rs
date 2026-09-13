@@ -41,18 +41,17 @@ fn generic_error_has_no_field_prefix() {
 }
 
 #[test]
-fn csrf_error_message_has_no_field_prefix() {
-    let csrf_err = crate::error::ContactErrorCode::TokenInvalid.into_server_fn_message();
-    assert!(!csrf_err.starts_with(FIELD_ERROR_PREFIX));
+fn token_error_message_has_no_field_prefix() {
+    let token_err = crate::error::ContactErrorCode::TokenInvalid.into_server_fn_message();
+    assert!(!token_err.starts_with(FIELD_ERROR_PREFIX));
 }
 
-/// Verify that the CSRF fail-closed logic is documented correctly:
-/// when `csrf` feature is enabled, the server should reject submissions
-/// when `CsrfConfigContext` is absent (verified at the integration level by
-/// the server fn; this unit test validates the error message sentinel).
+/// With the `form-token` feature enabled and no `FormTokenContext`, the server
+/// rejects every submission (fail-closed; `tests/server/form_token.rs` checks
+/// it end to end).  This unit test checks the error's sentinel.
 #[test]
-fn csrf_missing_context_error_is_not_field_error() {
-    // The error returned when CsrfConfigContext is missing must be a
+fn missing_token_context_error_is_not_field_error() {
+    // The error returned when FormTokenContext is missing must be a
     // ServerError (not field_errors: prefix), so the component shows
     // the generic error banner, not a field-level message.
     let missing_context_msg =

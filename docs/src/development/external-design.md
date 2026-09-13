@@ -157,7 +157,7 @@ The following identifiers and attributes are **public API** [NFR-COMPAT-05].
 | subject `<input>` (if shown) | `contact-subject` | `subject` | `type=text maxlength=120`; `required`/`aria-required` follow `require_subject` | `input` |
 | message `<textarea>` | `contact-message` | `message` | `required maxlength=<options> rows=6 aria-required=true` | `textarea` |
 | field error `<p>` | `<input-id>-error` | — | `role="alert" aria-live="polite"` | `error` |
-| token `<input>` | — | `form_token` | `type=hidden` | — |  *(0.5.0: renamed from `csrf_token`, which the server still accepts for one minor)*
+| token `<input>` | — | `form_token` | `type=hidden` | — |
 | honeypot wrapper `<div>` | — | — | `aria-hidden=true`, off-screen inline style | — |
 | honeypot `<input>` | `contact-website` | `website` | `type=text tabindex=-1 autocomplete=off` | — |
 | submit `<button>` | — | — | `type=submit`; `disabled` and `aria-busy` while pending | `button` |
@@ -230,7 +230,7 @@ through individual attribute closures.
 | `subject` | no | trim; blank → absent; ≤ 120 chars; no CR/LF; may be required by policy |
 | `message` | yes | trim; 1–4 000 chars; policy may lower the ceiling |
 | `website` | must be empty | non-empty → honeypot: success response, no delivery |
-| `form_token` | when `form-token` enabled | verified before anything else; absent = invalid.  `csrf_token` is accepted as the 0.4 spelling for one minor |
+| `form_token` | when `form-token` enabled | verified before anything else; absent = invalid |
 
 Unknown fields are ignored by the deserialiser.  Field order is irrelevant.
 
@@ -360,7 +360,6 @@ because it is body content, not a header.
 | `smtp-lettre` | `ssr` | `delivery::smtp` |
 | `axum-helpers` | `ssr` | `axum_helpers` |
 | `form-token` | `ssr` | `form_token` module, token field verification |
-| `csrf` | `form-token` | deprecated 0.4 alias; removed in the next minor |
 
 `default = []`.  Features are additive; enabling one never removes an API.
 
@@ -387,7 +386,7 @@ documentation use these names consistently so integrators can copy them:
 |-------|-------|-------------------|-----|
 | `warn` | honeypot triggered | — | none |
 | `debug` | validation failed | `name_err`, `email_err`, `subject_err`, `message_err` (booleans) | none |
-| `warn` | CSRF token verification failed | — | none |
+| `warn` | form token rejected | `error` (the reason) | none |
 | `debug` | token expired / future timestamp | `timestamp`, `now` | none |
 | `error` | `FormTokenContext` not provided | — | none |
 | `error` | `ContactDeliveryContext` not provided | — | none |
@@ -557,7 +556,7 @@ The project rule is "less is more".  Applied here:
 | New optional prop, new feature flag, new label field with a default | non-breaking |
 | Change to element ids, field names, class hook names, ARIA attributes | breaking (minor in 0.x, with migration note) |
 | Change to the error payload format | breaking unless the client accepts both forms for one minor release (§4.2.3) |
-| Rename of the `form-token` feature or API | breaking; ship deprecation aliases for one minor (done once in 0.5.0 for the `csrf` → `form-token` rename) |
+| Rename of the `form-token` feature or API | breaking; ship deprecation aliases for one minor (done once: renamed in 0.5.0, aliases removed in 0.6.0) |
 | MSRV bump | minor |
 | Defect fix that changes observable behaviour to match this document | patch |
 

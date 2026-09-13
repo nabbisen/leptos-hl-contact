@@ -32,7 +32,6 @@ use crate::{
 /// | `message`    | Yes | Plain-text body, up to [`MESSAGE_MAX_LEN`](crate::model::MESSAGE_MAX_LEN) characters |
 /// | `website`    | —   | Honeypot; must be empty |
 /// | `form_token` | —   | `Option<String>`; verified when `FormTokenContext` is in context |
-/// | `csrf_token` | —   | **Deprecated** 0.4 name; used only when `form_token` is absent |
 /// | `cf-turnstile-response` | — | Turnstile's token field |
 /// | `h-captcha-response` | — | hCaptcha's token field |
 /// | `g-recaptcha-response` | — | reCAPTCHA's token field |
@@ -102,10 +101,6 @@ pub async fn submit_contact(
     /// `form-token` feature is active and `FormTokenContext` is provided, a
     /// missing token is treated as invalid.
     form_token: Option<String>,
-    /// **Deprecated.**  The 0.4 name for `form_token`, accepted for one minor
-    /// so a page rendered by 0.4 still submits successfully to 0.5.  Used
-    /// only when `form_token` is absent.
-    csrf_token: Option<String>,
     /// Cloudflare Turnstile's token, under the field name its widget injects.
     #[server(rename = "cf-turnstile-response")]
     #[server(default)]
@@ -138,11 +133,7 @@ pub async fn submit_contact(
                     ContactErrorCode::NotConfigured.into_server_fn_message(),
                 ));
             };
-            // `csrf_token` is the 0.4 field name, accepted for one minor.
-            let submitted = form_token
-                .as_deref()
-                .or(csrf_token.as_deref())
-                .unwrap_or("");
+            let submitted = form_token.as_deref().unwrap_or("");
             // Only `Binding::Cookie` consults it; an absent context and
             // `FormTokenBinding(None)` mean the same thing.
             let bound = if config.binding == Binding::Cookie {
@@ -161,11 +152,11 @@ pub async fn submit_contact(
                 return Err(ServerFnError::Args(code.into_server_fn_message()));
             }
         }
-        // Without `form-token` the parameters are still part of the wire
-        // contract but nothing reads them; bind them so the combination
+        // Without `form-token` the `form_token` parameter is still part of the
+        // wire contract but nothing reads it; bind it so the combination
         // compiles warning-free.
         #[cfg(not(feature = "form-token"))]
-        let _ = (&form_token, &csrf_token);
+        let _ = &form_token;
 
         // 2. Normalise raw input.
         let input = ContactInput::from_raw(name, email, subject, message, website);

@@ -23,8 +23,6 @@ islands = ["leptos/islands"]
 smtp-lettre = ["ssr", "dep:lettre", "dep:tokio"]
 axum-helpers = ["ssr", "dep:leptos_axum", "dep:axum"]
 form-token = ["ssr", "dep:hmac", "dep:sha2", "dep:rand", "dep:hex"]
-# Deprecated alias, removed in the next minor.
-csrf = ["form-token"]
 # Built-in verifiers that call the vendors' siteverify endpoints.
 challenge-http = ["ssr", "dep:reqwest"]
 
