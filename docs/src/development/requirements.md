@@ -1,6 +1,6 @@
 # Requirements Specification
 
-> **Document status.** Draft 11, 2026-09-13, against release `0.5.0`.
+> **Document status.** Draft 12, 2026-09-13, against release `0.5.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
 > M1–M3 are released and M4 is owner-authorized; the document as a whole
 > awaits formal approval.
@@ -269,11 +269,11 @@ input the browser accepted.
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| NFR-COMPAT-01 | Leptos 0.8 only; SSR, hydrate, Islands | Met |
-| NFR-COMPAT-02 | MSRV 1.85 (edition 2024); an MSRV bump is a minor release and is stated in the CHANGELOG | Met |
+| NFR-COMPAT-01 | The crate MUST support Leptos 0.8 in SSR, hydrate and Islands modes; other Leptos versions are not supported | Met |
+| NFR-COMPAT-02 | The crate MUST build on MSRV 1.85 (edition 2024); an MSRV bump MUST be a minor release stated in the CHANGELOG | Met |
 | NFR-COMPAT-03 | Axum 0.8 only through the optional `axum-helpers` feature; the core MUST stay framework-neutral | Met |
 | NFR-COMPAT-04 | Semantic versioning in the 0.x range: a patch release MUST NOT change public API or observable behaviour except to fix defects; a minor release MAY break with a migration note | Met (policy) |
-| NFR-COMPAT-05 | The DOM contract (element ids, field names, class hooks, ARIA attributes) is part of the public API; changes are breaking | Met (policy; see External Design §4.1) |
+| NFR-COMPAT-05 | The DOM contract (element ids, field names, class hooks, ARIA attributes) is part of the public API; a change to it MUST be treated as breaking | Met (policy; see External Design §4.1) |
 
 ### 6.4 Portability (NFR-PORT)
 
@@ -304,7 +304,7 @@ input the browser accepted.
 | NFR-DOC-01 | Documentation MUST describe released behaviour; a release MUST include a docs-vs-code verification pass (project release rule) | Met (M1); re-verified at each release |
 | NFR-DOC-02 | Every rustdoc example MUST compile and pass, or be marked `ignore` / `no_run` with reason | Met (M1) |
 | NFR-DOC-03 | mdBook examples fenced as `rust` MUST compile against the current API or be fenced `rust,ignore` | Met (docs restructure 2026-09-12) |
-| NFR-DOC-04 | `README.md` stays concise per the six-section structure; full docs live in `docs/src` for three personas | Met |
+| NFR-DOC-04 | `README.md` SHOULD stay concise per the six-section structure; full docs live in `docs/src` for three personas | Met |
 
 ### 6.8 Testing and quality (NFR-TEST)
 
@@ -312,14 +312,14 @@ input the browser accepted.
 |----|-------------|--------|
 | NFR-TEST-01 | CI gates (fmt, clippy `-D warnings`, tests, doc) MUST be green on `main` at every tag | Met (M1; first green run 2026-09-12, plus a feature-combination clippy step and an examples job) |
 | NFR-TEST-02 | Test cases MUST be derived from this specification and the external design, not from the code | Partial (P-15, RFC 008 D5) |
-| NFR-TEST-03 | `submit_contact` MUST have integration tests covering: happy path, honeypot, each validation rule, policy, token fail-closed, token invalid, missing delivery context, delivery error | Partial (P-15): server suite `tests/server` (`7520763`); delivery error and two validation rules pending (RFC 008 handoff 01 review, C1–C2) |
-| NFR-TEST-04 | Tests live in `src/<module>/tests.rs`, never inline (project rule) | Met |
+| NFR-TEST-03 | `submit_contact` MUST have integration tests covering: happy path, honeypot, each validation rule, policy, token fail-closed, token invalid, missing delivery context, delivery error | Met (RFC 008 handoff 01: `tests/server`, `7520763` and `1bceb59`) |
+| NFR-TEST-04 | Unit tests MUST live in `src/<module>/tests.rs`, never inline; integration tests live in `tests/` (project rule) | Met |
 
 ### 6.9 Release (NFR-REL)
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| NFR-REL-01 | Tags are `X.Y.Z` without prefix | Met (docs drift P-03) |
+| NFR-REL-01 | Release tags MUST be `X.Y.Z` without prefix | Met |
 | NFR-REL-02 | CHANGELOG MUST record each released version with its date | Met (M1) |
 | NFR-REL-03 | A release MUST pass the security audit step from the project rules and the docs verification pass | Met (exercised at 0.4.0 and 0.5.0) |
 
@@ -380,6 +380,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 12 | RFC 008 handoffs 01–03: NFR-TEST-03 Met.  MUST made explicit in NFR-COMPAT-01, -02, -05, NFR-TEST-04 and NFR-REL-01, which were always binding policies; NFR-DOC-04 marked SHOULD |
 | 2026-09-13 | Draft 11 | RFC 008 handoff 01: NFR-TEST-03 Partial, FR-PE-02 reproduced by test.  Drift corrected: FR-ABUSE-10..12 and NFR-PRIV-02 Met at 0.5.0, NFR-REL-03 Met, document status, "context closure" definition, gap summary |
 | 2026-09-13 | Draft 10 | FR-ABUSE-09 regression recorded; FR-ABUSE-14 Met |
 | 2026-09-13 | Draft 9 | RFC 004 handoff 03: FR-UI-12 Met for client-side navigation |
