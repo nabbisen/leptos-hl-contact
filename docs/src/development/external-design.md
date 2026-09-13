@@ -379,7 +379,7 @@ The crate reads no environment variables [FR-SUB-10].  Examples and
 documentation use these names consistently so integrators can copy them:
 
 `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `CONTACT_TO`,
-`CSRF_SECRET`, `ALLOWED_ORIGIN`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET`.
+`FORM_TOKEN_SECRET`, `ALLOWED_ORIGIN`, and optionally `CHALLENGE_PROVIDER`, `CHALLENGE_SITE_KEY`, `CHALLENGE_SECRET`.
 
 ### 4.6 Observability interface
 

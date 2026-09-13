@@ -77,7 +77,7 @@ cd examples/axum-basic && cargo run
 ```bash
 cargo install cargo-leptos
 cd examples/axum-with-security
-CSRF_SECRET=$(openssl rand -hex 32) ALLOWED_ORIGIN=http://127.0.0.1:3000 cargo leptos watch
+FORM_TOKEN_SECRET=$(openssl rand -hex 32) ALLOWED_ORIGIN=http://127.0.0.1:3000 cargo leptos watch
 ```
 
 Use `cargo leptos serve` for a one-shot build without the file watcher.

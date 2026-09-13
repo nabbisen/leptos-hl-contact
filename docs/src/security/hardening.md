@@ -108,7 +108,7 @@ fallback for older clients.
 
 ## Secrets
 
-Load `SMTP_PASS`, `CSRF_SECRET`, and any API keys from environment
+Load `SMTP_PASS`, `FORM_TOKEN_SECRET`, and any API keys from environment
 variables or a secret store.  Never commit them, never fall back to a
 built-in default, and refuse to start when they are missing.  The crate's
 config types redact secrets in `Debug` output so an accidental

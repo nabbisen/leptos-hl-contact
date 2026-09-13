@@ -1,8 +1,6 @@
 # Changelog
 
-## [Unreleased]
-
-No version assigned; the owner decides the release number.
+## [0.5.0] — 2026-09-13
 
 ### Security
 

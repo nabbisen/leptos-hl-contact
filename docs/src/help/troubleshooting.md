@@ -37,7 +37,7 @@ One of:
   empty.  Add `provide_context(issue_form_token(&token_config))` there.
 - The token is older than `ttl_secs` (default one hour).
 - The secret changed since the page was rendered: a restart with a new
-  `CSRF_SECRET`, or instances behind a load balancer that disagree.
+  `FORM_TOKEN_SECRET`, or instances behind a load balancer that disagree.
 
 ## The form submits but no email arrives
 
