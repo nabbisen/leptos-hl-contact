@@ -15,7 +15,7 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Priority |
 |----|-------|----------|
-| — | *(none yet)* | |
+| 008 | [Test strategy](./proposed/008-test-strategy.md) | High (M4) — two owner questions |
 
 ## Accepted
 
@@ -49,7 +49,6 @@ Derived from the roadmap milestones; each becomes a numbered RFC in
 
 | Roadmap item | Topic |
 |--------------|-------|
-| P-15 | Test strategy |
 | P-20 | Multi-language label presets |
 | P-22 / P-23 | HTTP-API delivery adapters and runtime portability |
 | P-26 | Scheduled CI job for live challenge-vendor tests (owner-cost decision) |
