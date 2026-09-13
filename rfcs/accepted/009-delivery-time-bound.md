@@ -1,12 +1,14 @@
 # RFC 009 — A bound on delivery time
 
-**Status.** Proposed — 2026-09-13.  Scheduled for 0.6.0 by the owner (P-32
-approved); the design decisions below await the owner.
+**Status.** Accepted — 2026-09-13.  The owner approved all three
+recommendations the same day (see §Owner decisions); scheduled for 0.6.0.
 **Tracks.** Roadmap P-32.  Requirements FR-DEL-08 (SHOULD, Gap),
 NFR-PERF-03 (Gap).  Threat T15 (Gap).
 **Touches.** `delivery/` (a timeout wrapper, the SMTP backend),
-`error.rs`, `config.rs` (a label), `Cargo.toml` (tokio `time`), docs.
-`server.rs` is not expected to change.
+`error.rs`, `config.rs` (a label), `server.rs` (maps a timeout to its code;
+amended at acceptance — the proposal wrongly said it would not change),
+`Cargo.toml` (a feature, tokio `time`), docs.
+**Handoffs.** [`../handoffs/009-delivery-time-bound/README.md`](../handoffs/009-delivery-time-bound/README.md)
 
 ## Summary
 
@@ -65,16 +67,22 @@ impl<D: ContactDelivery> ContactDelivery for DeliveryTimeout<D> { … }
 
 ### D2 — The SMTP backend has a total deadline by default
 
-- **Config.**  `SmtpConfig` gains `timeout: Duration`, default **30 s**,
-  covering connect through the final reply to `DATA`.
+- **Config.**  `SmtpConfig` gains `timeout: Duration`, covering connect
+  through the final reply to `DATA`, and the constant
+  `SmtpConfig::DEFAULT_TIMEOUT` (**30 s**) that every example uses.
 - **Implementation.**  The backend applies it with the same code as D1.
   lettre's own connect timeout is set to the same value, so a slow connect
   fails as quickly as a slow relay.
 - **Why 30 s.**  It sits under the common proxy limits with room to spare.
   A healthy relay answers in well under a second.
-- **Cost.**  `SmtpConfig` is a struct with public fields, so a struct
-  literal without `..Default::default()` stops compiling.  That is
-  acceptable in a minor release, with a migration line.
+- **Cost.**  `SmtpConfig` has public fields and **no `Default`** (its host
+  and addresses have no sensible default), so *every* `SmtpConfig { … }`
+  literal stops compiling until it adds `timeout: SmtpConfig::DEFAULT_TIMEOUT`.
+  The break is loud and one line, which is acceptable in a minor release
+  with a migration line.  Putting the field on `LettreSmtpDelivery` instead
+  was considered: it is also built by struct literal, so it breaks the
+  same code and separates a relay setting from the relay's configuration.
+  (Corrected at acceptance: the proposal assumed a `Default`.)
 
 ### D3 — What the visitor sees
 
@@ -134,8 +142,8 @@ merges the two.
 ## Compatibility
 
 Breaking, in 0.6.0 (a minor release), with CHANGELOG migration lines:
-- **`SmtpConfig` gains `timeout`.**  Struct literals need the field or
-  `..Default::default()`.
+- **`SmtpConfig` gains `timeout`.**  Every struct literal needs
+  `timeout: SmtpConfig::DEFAULT_TIMEOUT` (there is no `Default`).
 - **New enum variants.**  `ContactDeliveryError::Timeout` and
   `ContactErrorCode::DeliveryTimeout` are added.  A `match` without a
   wildcard stops compiling.
@@ -170,17 +178,16 @@ Wire and DOM contract: one new error code; nothing removed.
 - **Deliberate break.**  Remove the wrapper from the SMTP backend and show
   the default-deadline unit test fail.
 
-## Owner decisions requested
+## Owner decisions (2026-09-13)
 
-1. **Default for the SMTP backend.**  30 s, on by default (recommended); or a
-   different value; or opt-in only.
-2. **A distinct `delivery_timeout` code and label** (recommended), or reuse
-   `delivery_failed`.
-3. **`DeliveryTimeout` public for custom backends** (recommended), or
-   internal to the SMTP backend only.
+All three recommendations approved:
+
+1. **SMTP default:** 30 s, on by default.
+2. **A distinct `delivery_timeout` code and label.**
+3. **`DeliveryTimeout` public** for custom backends.
 
 ## Release implications
 
-Part of 0.6.0 (RFC 010).  One handoff after acceptance; it touches
-`delivery/`, `error.rs` and `config.rs`, so it follows RFC 010 handoff 03,
-which edits the same rustdoc.
+Part of 0.6.0, with RFC 010 (implemented).  One handoff:
+[009-01](../handoffs/009-delivery-time-bound/01-delivery-deadline.md).
+After it, 0.6.0 needs only the mutation run and the release-candidate pass.
