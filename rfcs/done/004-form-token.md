@@ -1,6 +1,6 @@
 # RFC 004 — Form token: rename, minimum age, cookie binding, client acquisition
 
-**Status.** Accepted — proposed and accepted by the owner on 2026-09-12,
+**Status.** Implemented (0.5.0) — released 2026-09-13, tag `0.5.0` on commit `6b090eb`, published to crates.io.  Accepted and implemented 2026-09-12/13.
 including the rename, `min_age_secs = 2`, and the hidden-field rename in
 0.5.0 with both names accepted server-side for one minor.
 **Handoffs.** [`../handoffs/004-form-token/README.md`](../handoffs/004-form-token/README.md)

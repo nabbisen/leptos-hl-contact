@@ -1,6 +1,6 @@
 # Handoffs — RFC 005, Challenge providers
 
-Companion to [RFC 005](../../accepted/005-challenge-providers.md) as
+Companion to [RFC 005](../../done/005-challenge-providers.md) as
 amended at acceptance.  Shared rules, gates, and review-request format:
 [`../001-m1-green-baseline/README.md`](../001-m1-green-baseline/README.md).
 Review requests go to `.git-exclude/review-request/005-challenge/`.

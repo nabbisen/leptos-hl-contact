@@ -21,9 +21,7 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Handoff |
 |----|-------|---------|
-| 004 | [Form token: rename, minimum age, cookie binding, client acquisition](./accepted/004-form-token.md) | [handoffs/004-form-token/](./handoffs/004-form-token/README.md) |
-| 005 | [Challenge providers: Turnstile, hCaptcha, reCAPTCHA](./accepted/005-challenge-providers.md) | [handoffs/005-challenge-providers/](./handoffs/005-challenge-providers/README.md) |
-| 006 | [Pre-delivery filter hook](./accepted/006-contact-filter.md) | [handoffs/006-contact-filter/](./handoffs/006-contact-filter/README.md) |
+| — | *(none)* | |
 
 ## Implemented
 
@@ -34,6 +32,9 @@ Planned topics that do not yet have a file are listed in
 | 002 | [Form state model](./done/002-form-state-model.md) | 0.4.0 (2026-09-13) — [handoffs](./handoffs/002-form-state-model/README.md) |
 | 003 | [Error codes and localisable server messages](./done/003-error-codes.md) | 0.4.0 (2026-09-13) — [handoffs](./handoffs/003-error-codes/README.md) |
 | 007 | [One context closure for Axum](./done/007-one-context-closure.md) | 0.4.0 (2026-09-13) — [handoffs](./handoffs/007-one-context-closure/README.md) |
+| 004 | [Form token: rename, minimum age, cookie binding, client acquisition](./done/004-form-token.md) | 0.5.0 (2026-09-13) — [handoffs](./handoffs/004-form-token/README.md) |
+| 005 | [Challenge providers: Turnstile, hCaptcha, reCAPTCHA](./done/005-challenge-providers.md) | 0.5.0 (2026-09-13) — [handoffs](./handoffs/005-challenge-providers/README.md) |
+| 006 | [Pre-delivery filter hook](./done/006-contact-filter.md) | 0.5.0 (2026-09-13) — [handoffs](./handoffs/006-contact-filter/README.md) |
 
 ## Archive
 

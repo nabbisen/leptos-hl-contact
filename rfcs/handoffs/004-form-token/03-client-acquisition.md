@@ -1,6 +1,6 @@
 # Handoff 03 — Client-side acquisition and refresh
 
-**RFC.** [004](../../accepted/004-form-token.md), D4.
+**RFC.** [004](../../done/004-form-token.md), D4.
 **Requirements.** FR-UI-12 (client-side navigation case).
 **Depends on.** Handoffs 01 and 02.
 

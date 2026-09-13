@@ -1,6 +1,6 @@
 # Handoff 03 — HTTP verifiers, example, documentation
 
-**RFC.** [005](../../accepted/005-challenge-providers.md), D4, D5, D6.
+**RFC.** [005](../../done/005-challenge-providers.md), D4, D5, D6.
 **Requirements.** FR-ABUSE-12, NFR-PRIV-02, NFR-DOC-01.
 **Depends on.** Handoffs 01 and 02.
 

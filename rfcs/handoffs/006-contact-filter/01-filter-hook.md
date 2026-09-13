@@ -1,6 +1,6 @@
 # Handoff 01 — Filter hook and the layers table
 
-**RFC.** [006](../../accepted/006-contact-filter.md), D1–D4.
+**RFC.** [006](../../done/006-contact-filter.md), D1–D4.
 **Requirements.** FR-ABUSE-14, FR-OBS-02.
 
 ## Purpose

@@ -63,6 +63,14 @@ confirmed during implementation.
 Documents produced from this review: [Requirements](./docs/src/development/requirements.md)
 and [External Design](./docs/src/development/external-design.md).
 
+### 0.5.0 — Milestone M3, anti-abuse (2026-09-13)
+
+- [x] Form token: renamed from `csrf` with aliases, two-second minimum age, cookie binding with `__Host-` prefix, client-side acquisition and refresh (P-12)
+- [x] Challenge providers: Turnstile, hCaptcha, reCAPTCHA v2/v3, fail-closed, verified against real vendor endpoints (P-21)
+- [x] Pre-delivery filter hook and the "which layer decides what" table (P-25)
+- [x] Security fix: a honeypot hit was observable with a success page configured, since 0.4.0 (P-31)
+- [x] RFC 004, RFC 005, RFC 006 → `rfcs/done/`
+
 ### 0.4.0 — Milestone M2 (2026-09-13)
 
 - [x] Form built once: the anti-automation token survives a failed submission (P-10, P-11)
@@ -111,10 +119,10 @@ handoff is written.
 | P-16 | Focus management after a failed submission — **done** in handoff 002-02: `focus_first_error` option, default on | Low | [RFC 002](./rfcs/done/002-form-state-model.md) | verified in the browser |
 | P-28 | "Two context sites" guidance was wrong — **done** in RFC 007 handoff 01 (`804b0db`), approved 2026-09-13 with one correction: the manual route is gone from both examples and nine pages; the context closure is the single site | **High** | [RFC 007](./rfcs/done/007-one-context-closure.md) | verified by the architect |
 
-### M3 — Anti-abuse (release: 0.5.0, minor) — **complete 2026-09-13**: RFCs 004, 005, 006 implemented and approved; owner approved version 0.5.0 and the candidate; tag and publish pending
+### M3 — Anti-abuse — **released as 0.5.0 on 2026-09-13** (tag `0.5.0`, crates.io)
 
 Owner decisions of 2026-09-12: theme approved and positioned | P-29 | Blank required field rendered the length message — **done** in RFC 003 handoff 02 (`5c61968`, `ea534b4`), approved 2026-09-13; the field mapping is now exhaustive over `ContactField`, verified by probe | Medium | [RFC 003](./rfcs/done/003-error-codes.md) handoff 02 | verified by the architect |
-| P-30 | Cookie tossing from a subdomain defeats binding — **closed for the common case** in RFC 004 handoff 02 (`fe7e027`), approved 2026-09-13: `__Host-` prefix at the defaults, threat-model row T17; `secure: false` or a non-root path keeps the weaker guarantee, documented; Origin validation remains the control | **High** | [RFC 004](./rfcs/accepted/004-form-token.md) handoff 02 | verified by the architect |
+| P-30 | Cookie tossing from a subdomain defeats binding — **closed for the common case** in RFC 004 handoff 02 (`fe7e027`), approved 2026-09-13: `__Host-` prefix at the defaults, threat-model row T17; `secure: false` or a non-root path keeps the weaker guarantee, documented; Origin validation remains the control | **High** | [RFC 004](./rfcs/done/004-form-token.md) handoff 02 | verified by the architect |
 directly
 after M2; first-release providers are Cloudflare Turnstile, hCaptcha,
 reCAPTCHA v2 and v3 (not Enterprise); when a challenge is enabled,
@@ -127,9 +135,9 @@ All three RFCs (004, 005, 006) were accepted on 2026-09-12; handoffs exist for e
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
-| P-12 | Form token redesign — **done** in RFC 004 handoffs 01–03, all approved 2026-09-13 (final `10a12a8`): rename with aliases, two-second minimum age, cookie binding with a per-browser nonce and `__Host-` prefix, client-side acquisition and loop-proof refresh (off by default) | **High** | [RFC 004](./rfcs/accepted/004-form-token.md) | verified by the architect |
-| P-21 | Challenge providers — **done** in RFC 005 handoffs 01–03, all approved 2026-09-13 (final `02cf7d7`): server decision table, widget with explicit rendering, HTTP verifiers with redirects disabled, verified against the real vendor endpoints | **High** | [RFC 005](./rfcs/accepted/005-challenge-providers.md) | verified by the architect |
-| P-25 | Pre-delivery filter hook — **done** in RFC 006 handoff 01, approved 2026-09-13 (`5e2e406`, `67c1ac1`) | Medium | [RFC 006](./rfcs/accepted/006-contact-filter.md) | verified by the architect |
+| P-12 | Form token redesign — **done** in RFC 004 handoffs 01–03, all approved 2026-09-13 (final `10a12a8`): rename with aliases, two-second minimum age, cookie binding with a per-browser nonce and `__Host-` prefix, client-side acquisition and loop-proof refresh (off by default) | **High** | [RFC 004](./rfcs/done/004-form-token.md) | verified by the architect |
+| P-21 | Challenge providers — **done** in RFC 005 handoffs 01–03, all approved 2026-09-13 (final `02cf7d7`): server decision table, widget with explicit rendering, HTTP verifiers with redirects disabled, verified against the real vendor endpoints | **High** | [RFC 005](./rfcs/done/005-challenge-providers.md) | verified by the architect |
+| P-25 | Pre-delivery filter hook — **done** in RFC 006 handoff 01, approved 2026-09-13 (`5e2e406`, `67c1ac1`) | Medium | [RFC 006](./rfcs/done/006-contact-filter.md) | verified by the architect |
 
 ### M4 — Reach (p| P-31 | **Regression shipped in 0.4.0:** with a success page configured, a honeypot hit returned success without the redirect, so a bot could tell it was caught (FR-ABUSE-09); `SilentDrop` would have inherited it.  Found in review of RFC 006 handoff 01; corrected there by applying the redirect on every successful outcome.  Threat model T18.  **Owner decision 2026-09-13: called out as a security fix in the 0.5.0 release notes** (CHANGELOG `### Security`, added with C1); **no formal advisory** (owner, 2026-09-13: no production use yet beyond an internal team) | **High** | RFC 006 handoff 01, C1 — **fixed** `67c1ac1` | fix reproduced by the architect |
 roposed release: 0.6.x)

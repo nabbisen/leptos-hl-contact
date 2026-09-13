@@ -1,6 +1,6 @@
 # Handoffs — RFC 006, Pre-delivery filter hook
 
-Companion to [RFC 006](../../accepted/006-contact-filter.md) including
+Companion to [RFC 006](../../done/006-contact-filter.md) including
 amendment D4 (developer clarity).  Shared rules, gates, and
 review-request format:
 [`../001-m1-green-baseline/README.md`](../001-m1-green-baseline/README.md).

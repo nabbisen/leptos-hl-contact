@@ -1,6 +1,6 @@
 # RFC 005 — Challenge providers: Turnstile, hCaptcha, reCAPTCHA
 
-**Status.** Accepted — proposed and accepted by the owner on 2026-09-12
+**Status.** Implemented (0.5.0) — released 2026-09-13, tag `0.5.0` on commit `6b090eb`, published to crates.io.  Accepted and implemented 2026-09-12/13.
 (`min_score` default 0.5; live vendor tests manual only, CI scheduling
 deferred to a future RFC).  Amended at acceptance: see §Amendments.
 **Handoffs.** [`../handoffs/005-challenge-providers/README.md`](../handoffs/005-challenge-providers/README.md)

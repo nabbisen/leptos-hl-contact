@@ -1,6 +1,6 @@
 # Handoff 01 — Rename with aliases; minimum age
 
-**RFC.** [004](../../accepted/004-form-token.md), D1, D2, D5.
+**RFC.** [004](../../done/004-form-token.md), D1, D2, D5.
 **Requirements.** FR-ABUSE-02, FR-ABUSE-03, FR-ABUSE-13.
 
 ## Purpose

@@ -1,6 +1,6 @@
 # Handoff 02 — Component: widget, scripts, no-JS
 
-**RFC.** [005](../../accepted/005-challenge-providers.md), D1, amendments.
+**RFC.** [005](../../done/005-challenge-providers.md), D1, amendments.
 **Requirements.** FR-ABUSE-10, FR-ABUSE-11, FR-I18N-04.
 
 ## Purpose

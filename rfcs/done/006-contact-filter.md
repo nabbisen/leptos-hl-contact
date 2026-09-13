@@ -1,6 +1,6 @@
 # RFC 006 — Pre-delivery filter hook
 
-**Status.** Accepted — proposed and accepted by the owner on 2026-09-12,
+**Status.** Implemented (0.5.0) — released 2026-09-13, tag `0.5.0` on commit `6b090eb`, published to crates.io.  Accepted and implemented 2026-09-12/13.
 with the instruction that developers must not be confused between the
 anti-abuse layers.  Amended at acceptance: D4.
 **Handoffs.** [`../handoffs/006-contact-filter/README.md`](../handoffs/006-contact-filter/README.md)

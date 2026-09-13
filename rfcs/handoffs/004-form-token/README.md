@@ -1,6 +1,6 @@
 # Handoffs — RFC 004, Form token
 
-Companion to [RFC 004](../../accepted/004-form-token.md).  Shared rules,
+Companion to [RFC 004](../../done/004-form-token.md).  Shared rules,
 gates, and review-request format:
 [`../001-m1-green-baseline/README.md`](../001-m1-green-baseline/README.md).
 Review requests go to `.git-exclude/review-request/004-form-token/`.

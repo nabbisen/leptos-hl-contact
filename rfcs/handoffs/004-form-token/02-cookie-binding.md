@@ -1,6 +1,6 @@
 # Handoff 02 — Cookie binding in `axum-helpers`
 
-**RFC.** [004](../../accepted/004-form-token.md), D3.
+**RFC.** [004](../../done/004-form-token.md), D3.
 **Requirements.** FR-ABUSE-02, FR-ABUSE-04.  **Depends on.** Handoff 01.
 
 ## Purpose

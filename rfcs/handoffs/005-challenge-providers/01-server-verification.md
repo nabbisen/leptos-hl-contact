@@ -1,6 +1,6 @@
 # Handoff 01 — Server side: trait, decision table, arguments
 
-**RFC.** [005](../../accepted/005-challenge-providers.md), D2, D3, amendments.
+**RFC.** [005](../../done/005-challenge-providers.md), D2, D3, amendments.
 **Requirements.** FR-ABUSE-10, FR-ABUSE-11, FR-ABUSE-12.
 
 ## Purpose
