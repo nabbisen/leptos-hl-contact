@@ -195,7 +195,7 @@ input the browser accepted.
 
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
-| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr` and `delivery-timeout`), `delivery-timeout` (implies `ssr`), `axum-helpers` (implies `ssr`), `form-token` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met (0.6.0) |
+| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr` and `delivery-timeout`), `delivery-timeout` (implies `ssr`), `axum-helpers` (implies `ssr`), `form-token` (implies `ssr`), `challenge-http` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Partial (0.6.0): the book's feature-flags page lists all; the crate rustdoc table in `lib.rs` lacks `challenge-http` (0.5.0 drift, found 2026-09-13) — fixed in the 0.6.0 release-candidate documentation check |
 | FR-CFG-02 | Required context values MUST be documented for the context closure, and helpers MUST exist for Axum | MUST | Met (RFC 007) |
 | FR-CFG-03 | Misconfiguration MUST surface loudly (startup panic in examples, `error` log in the crate) and MUST NOT fall back to an insecure default | MUST | Met |
 | FR-CFG-04 | Types holding secrets MUST redact them in `Debug` output | MUST | Met |

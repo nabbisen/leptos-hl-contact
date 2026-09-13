@@ -364,6 +364,7 @@ because it is body content, not a header.
 | `delivery-timeout` | `ssr` | `delivery::timeout` (`DeliveryTimeout`) |
 | `axum-helpers` | `ssr` | `axum_helpers` |
 | `form-token` | `ssr` | `form_token` module, token field verification |
+| `challenge-http` | `ssr` | `HttpChallengeVerifier` (vendor siteverify calls over HTTPS) |
 
 `default = []`.  Features are additive; enabling one never removes an API.
 
@@ -371,7 +372,7 @@ because it is body content, not a header.
 
 | Type | Fields | Secret | Notes |
 |------|--------|--------|-------|
-| `SmtpConfig` | host, port, username, password, from_address, to_address, subject_prefix, tls_mode | password (redacted in `Debug`) | never serialised |
+| `SmtpConfig` | host, port, username, password, from_address, to_address, subject_prefix, tls_mode, timeout (`SmtpConfig::DEFAULT_TIMEOUT`, 30 s) | password (redacted in `Debug`) | never serialised; no `Default`, so every literal names `timeout` |
 | `FormTokenConfig` | secret_key (≥ 32 random bytes recommended), ttl_secs (default 3 600), min_age_secs (default 2), binding | secret_key (redacted) | never serialised |
 | `ContactServerPolicy` | require_subject, max_message_len | — | tighten-only |
 | `ContactFormOptions` | show_subject, require_subject, max_message_len | — | UI only, not a security boundary |
