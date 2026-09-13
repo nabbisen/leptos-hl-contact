@@ -1,6 +1,6 @@
 # Requirements Specification
 
-> **Document status.** Draft 12, 2026-09-13, against release `0.5.0`.
+> **Document status.** Draft 13, 2026-09-13, against release `0.5.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
 > M1–M3 are released and M4 is owner-authorized; the document as a whole
 > awaits formal approval.
@@ -311,7 +311,7 @@ input the browser accepted.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | NFR-TEST-01 | CI gates (fmt, clippy `-D warnings`, tests, doc) MUST be green on `main` at every tag | Met (M1; first green run 2026-09-12, plus a feature-combination clippy step and an examples job) |
-| NFR-TEST-02 | Test cases MUST be derived from this specification and the external design, not from the code | Partial (P-15, RFC 008 D5) |
+| NFR-TEST-02 | Test cases MUST be derived from this specification and the external design, not from the code | Met (RFC 008: the traceability table in Testing lists all 102 MUST rows) |
 | NFR-TEST-03 | `submit_contact` MUST have integration tests covering: happy path, honeypot, each validation rule, policy, token fail-closed, token invalid, missing delivery context, delivery error | Met (RFC 008 handoff 01: `tests/server`, `7520763` and `1bceb59`) |
 | NFR-TEST-04 | Unit tests MUST live in `src/<module>/tests.rs`, never inline; integration tests live in `tests/` (project rule) | Met |
 
@@ -351,7 +351,6 @@ input the browser accepted.
 
 | Requirement | Status | Roadmap item |
 |-------------|--------|--------------|
-| NFR-TEST-02, NFR-TEST-03 | Partial | P-15 / RFC 008 |
 | FR-DEL-08, NFR-PERF-03 | Gap | P-32 (proposed), queue adapter (Future) |
 | FR-I18N-03 | Planned | P-20 |
 | NFR-PORT-02 | Decision | P-23 |
@@ -380,6 +379,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 13 | RFC 008 handoff 04: NFR-TEST-02 Met; testing gaps removed from the gap summary |
 | 2026-09-13 | Draft 12 | RFC 008 handoffs 01–03: NFR-TEST-03 Met.  MUST made explicit in NFR-COMPAT-01, -02, -05, NFR-TEST-04 and NFR-REL-01, which were always binding policies; NFR-DOC-04 marked SHOULD |
 | 2026-09-13 | Draft 11 | RFC 008 handoff 01: NFR-TEST-03 Partial, FR-PE-02 reproduced by test.  Drift corrected: FR-ABUSE-10..12 and NFR-PRIV-02 Met at 0.5.0, NFR-REL-03 Met, document status, "context closure" definition, gap summary |
 | 2026-09-13 | Draft 10 | FR-ABUSE-09 regression recorded; FR-ABUSE-14 Met |
