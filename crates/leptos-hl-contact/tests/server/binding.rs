@@ -41,8 +41,8 @@ async fn binding_uses_the_host_prefix_at_the_defaults() {
     }
 }
 
-/// T17: the token is accepted with its cookie, and rejected without it or
-/// with a cookie carrying another nonce — in both request forms.
+/// T17, FR-ABUSE-02: the token is accepted with its cookie, and rejected
+/// without it or with a cookie carrying another nonce — in both request forms.
 #[tokio::test]
 async fn binding_requires_the_matching_cookie() {
     let h = bound();
@@ -78,9 +78,9 @@ async fn binding_requires_the_matching_cookie() {
     assert_eq!(h.deliveries(), 2);
 }
 
-/// T17: a sibling subdomain can plant the *bare* cookie name but not a
-/// `__Host-` one.  With the prefix in force, the bare name is ignored even
-/// when it carries the right nonce — in both request forms.
+/// T17, FR-ABUSE-02: a sibling subdomain can plant the *bare* cookie name but
+/// not a `__Host-` one.  With the prefix in force, the bare name is ignored
+/// even when it carries the right nonce — in both request forms.
 #[tokio::test]
 async fn binding_rejects_a_tossed_bare_cookie() {
     let h = bound();
@@ -101,9 +101,9 @@ async fn binding_rejects_a_tossed_bare_cookie() {
     assert_eq!(h.deliveries(), 0);
 }
 
-/// RFC 004 D3 as amended, T17: the nonce is per browser, not per render.  A
-/// second render for the same browser reuses the cookie's nonce and re-sends
-/// the cookie, so the token from the **first** render still submits.
+/// T17, FR-ABUSE-02 (RFC 004 D3 as amended): the nonce is per browser, not per
+/// render.  A second render for the same browser reuses the cookie's nonce and
+/// re-sends the cookie, so the token from the **first** render still submits.
 #[tokio::test]
 async fn binding_reuses_the_browser_nonce_across_renders() {
     let h = bound();
@@ -135,8 +135,8 @@ async fn binding_reuses_the_browser_nonce_across_renders() {
     assert_eq!(h.deliveries(), 1);
 }
 
-/// RFC 004 handoff 03 amendment: the token endpoint reuses the browser's nonce
-/// too, and re-sends the same `__Host-` cookie.
+/// T17, T20, FR-ABUSE-02 (RFC 004 handoff 03 amendment): the token endpoint
+/// reuses the browser's nonce too, and re-sends the same `__Host-` cookie.
 #[tokio::test]
 async fn the_token_endpoint_reuses_the_nonce() {
     let h = bound();

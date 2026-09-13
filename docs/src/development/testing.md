@@ -41,6 +41,7 @@ never inline.  Groups:
 | `delivery/smtp/tests.rs` | message headers, `Reply-To` encoding, body content |
 | `axum_helpers/tests.rs` | closure is `Clone` |
 | `tests/server/` | the crate over HTTP, in process: every behaviour a response or a delivery shows (see below) |
+| `tests/browser/` | the component in headless Chrome: focus, token acquisition and refresh, explicit widget rendering (see below) |
 
 Tests are written from the [Requirements](./requirements.md) and
 [External Design](./external-design.md), not from the code: when a test
@@ -157,6 +158,144 @@ Native `cargo test` does not build this suite.  It is compiled only for
 **Rules for a new case:** stub before mounting, since the widget reads the
 vendor global when the component is built.  Never wait on real time: fire the
 recorded timer instead.  Cite the requirement or threat ID in the doc comment.
+
+## Requirement traceability
+
+Every **MUST** row of the [Requirements Specification](./requirements.md)
+appears here once, with the tests that assert it.
+
+- **L1** is a unit test, `module::test`, in `src/<module>/tests.rs`.
+- **L2** is `file::test` in `tests/server/`.
+- **L3** is `file::test` in `tests/browser/`.
+- **none** means no automated test asserts the requirement.  The last column
+  then says how it is verified instead.
+
+A test is listed only for what it asserts.  When tests cover part of a row,
+the last column names the part they leave out.
+
+MUST rows are:
+
+- the functional rows whose Level is MUST (75);
+- the non-functional rows whose wording says MUST (22).
+
+The non-functional tables have no Level column.  Their rows without MUST
+state a policy or record a decision, and are not listed: NFR-COMPAT-01, -02,
+-05, NFR-PORT-02, NFR-PERF-03, NFR-DEP-02, NFR-DOC-04, NFR-TEST-04 and
+NFR-REL-01.
+
+**Keeping it true.**  A handoff that adds a MUST requirement, or changes the
+behaviour behind one, updates that row in the same commit.  So does a change
+that adds, renames or removes a test named here.  Every test in
+`tests/server/` and `tests/browser/` cites at least one requirement or
+threat ID in its doc comment; `grep -rn "FR-UI-12" crates/` finds a row's
+tests from the code side.
+
+### Functional requirements
+
+| Requirement | L1 unit | L2 server | L3 browser | Otherwise, or not covered |
+|---|---|---|---|---|
+| FR-UI-01 | `components::form_renders_all_ids_once`, `components::subject_hidden_when_option_false` | — | — | the `required` attributes: review of `components.rs` |
+| FR-UI-02 | `config::field_text_substitutes_in_a_translated_label`, `components::the_noscript_message_escapes_label_and_class` | — | — | every other string: review of `ContactFormLabels` |
+| FR-UI-03 | `config::classes_default_is_all_empty`, `components::the_noscript_message_escapes_label_and_class` | — | — | a hook on every structural element: review |
+| FR-UI-04 | — | `validation::field_errors_round_trip_without_javascript`, `validation::a_banner_error_sets_no_field_error`, `delivery::the_success_page_is_applied_when_configured` | `focus::focus_moves_to_the_first_invalid_field`, `token::the_hidden_token_survives_a_failed_submission` | the pending state and inline success: review |
+| FR-UI-05 | **none** | **none** | **none** | review of the submit button in `components.rs` (`disabled`, `aria-busy`, pending text) |
+| FR-UI-06 | — | `delivery::the_success_page_is_applied_when_configured` | — | inline success with JavaScript: review |
+| FR-UI-07 | — | — | `focus::focus_moves_to_the_first_invalid_field` | — |
+| FR-UI-08 | `config::field_text_renders_required_and_line_breaks` | `validation::field_errors_round_trip_without_javascript` | — | — |
+| FR-UI-09 | `config::code_text_maps_unexpected_to_delivery_failed` | `delivery::a_delivery_error_reaches_the_client_only_as_delivery_failed`, `routing::a_missing_delivery_context_is_not_configured`, `validation::a_banner_error_sets_no_field_error` | — | — |
+| FR-UI-10 | **none** | **none** | **none** | review of the honeypot markup in `components.rs` (`aria-hidden`, `tabindex="-1"`, `autocomplete="off"`, off-screen style) |
+| FR-UI-11 | `config::options_default_shows_subject`, `config::options_effective_len_is_clamped`, `components::subject_hidden_when_option_false` | — | — | `require_subject` in the rendered form: review |
+| FR-UI-12 | `components::hidden_token_is_rendered_from_context`, `components::the_reactive_token_attribute_renders_the_ssr_value`, `server::a_mounted_token_refreshes_at_its_refresh_point`, `server::an_overdue_mounted_token_refreshes_immediately`, `server::a_fast_browser_clock_costs_one_immediate_refresh`, `server::a_slow_browser_clock_is_capped_at_the_interval`, `config::options_default_never_calls_the_token_endpoint` | `binding::binding_reuses_the_browser_nonce_across_renders`, `binding::the_token_endpoint_reuses_the_nonce` | `token::without_refresh_the_token_endpoint_is_never_called`, `token::an_empty_token_field_acquires_exactly_once`, `token::an_overdue_mounted_token_refreshes_once`, `token::a_fetched_token_schedules_its_refresh_from_arrival`, `token::the_hidden_token_survives_a_failed_submission` | — |
+| FR-SUB-01 | — | `routing::context_in_the_one_closure_reaches_submit_contact`, `delivery::a_valid_submission_is_delivered_once_in_both_forms` | — | — |
+| FR-SUB-02 | `form_token::age_is_checked_before_the_signature` | **none** | — | the order of the steps in `submit_contact`: review of `server.rs` |
+| FR-SUB-03 | `model::whitespace_only_name_yields_required_code`, `model::empty_subject_uses_fallback` | `validation::a_blank_subject_is_delivered_as_absent` | — | — |
+| FR-SUB-04 | `model::honeypot_input_is_detected` | `silent::a_silent_outcome_is_indistinguishable_from_delivery`, `logging::no_personal_data_or_secret_is_logged` | — | the `warn` level: review |
+| FR-SUB-05 | `model::valid_input_passes_validation` and the other `model::` rule tests | `validation::each_rule_rejects_with_its_field_code` | — | — |
+| FR-SUB-06 | `error::field_errors_roundtrip_json`, `server::field_error_message_has_prefix` | `validation::each_rule_rejects_with_its_field_code`, `validation::field_errors_round_trip_without_javascript` | — | — |
+| FR-SUB-07 | `config::policy_check_requires_subject_when_set`, `config::policy_check_counts_characters_not_bytes`, `config::policy_check_reports_both_errors_at_once` | `policy::server_policy_requires_the_subject`, `policy::server_policy_counts_the_message_in_characters` | — | — |
+| FR-SUB-08 | — | `routing::a_missing_delivery_context_is_not_configured`, `logging::no_personal_data_or_secret_is_logged` | — | — |
+| FR-SUB-09 | — | `delivery::a_delivery_error_reaches_the_client_only_as_delivery_failed`, `logging::no_personal_data_or_secret_is_logged` | — | — |
+| FR-SUB-10 | **none** | **none** | — | review: `std::env` appears in `src/` only inside rustdoc examples |
+| FR-VAL-01 | `model::empty_name_fails`, `model::newline_in_name_fails`, `model::over_long_name_still_yields_length_code`, `model::newline_in_name_yields_line_breaks_code` | `validation::each_rule_rejects_with_its_field_code` | — | — |
+| FR-VAL-02 | `model::invalid_email_fails`, `model::bad_email_yields_format_code` | `validation::each_rule_rejects_with_its_field_code` | — | — |
+| FR-VAL-03 | `model::newline_in_subject_fails`, `model::over_long_subject_yields_length_code_with_zero_min`, `model::empty_subject_uses_fallback` | `validation::each_rule_rejects_with_its_field_code`, `validation::a_blank_subject_is_delivered_as_absent` | — | — |
+| FR-VAL-04 | `model::too_long_message_fails`, `model::empty_message_yields_required_code`, `model::over_long_message_yields_length_code_at_the_ceiling` | `validation::each_rule_rejects_with_its_field_code` | — | — |
+| FR-VAL-05 | `model::honeypot_input_is_detected` | `silent::a_silent_outcome_is_indistinguishable_from_delivery` | — | — |
+| FR-VAL-06 | `form_token::issued_token_verifies_once_old_enough`, `form_token::malformed_tokens_are_rejected`, `form_token::an_old_token_is_expired`, `form_token::a_token_younger_than_the_minimum_is_too_young` | `form_token::a_missing_malformed_or_expired_token_is_rejected`, `form_token::a_too_young_token_is_retryable`, `form_token::the_0_4_csrf_token_field_is_accepted` | — | — |
+| FR-VAL-07 | `model::message_length_counts_characters`, `config::policy_check_counts_characters_not_bytes` | `policy::server_policy_counts_the_message_in_characters` | — | the rendered `maxlength` agreeing with both: review |
+| FR-VAL-08 | `model::message_ceiling_constant_is_enforced_by_validator`, `config::options_effective_len_is_clamped`, `config::policy_check_clamps_to_ceiling`, `config::policy_default_matches_ceiling` | — | — | — |
+| FR-ABUSE-01 | `model::honeypot_input_is_detected` | `silent::a_silent_outcome_is_indistinguishable_from_delivery` (no honeypot configuration in the harness) | — | — |
+| FR-ABUSE-02 | `form_token::binding_cookie_requires_a_matching_nonce`, `axum_helpers::the_prefix_is_applied_at_the_defaults`, `axum_helpers::a_bare_name_is_ignored_while_the_prefix_is_in_force`, `axum_helpers::two_renders_for_one_browser_share_a_nonce` | `binding::binding_uses_the_host_prefix_at_the_defaults`, `binding::binding_requires_the_matching_cookie`, `binding::binding_rejects_a_tossed_bare_cookie`, `binding::binding_reuses_the_browser_nonce_across_renders`, `binding::the_token_endpoint_reuses_the_nonce` | — | the statement that Origin validation stays the application's control: documentation (`security/form-token.md`) |
+| FR-ABUSE-03 | `form_token::an_old_token_is_expired`, `form_token::a_far_future_token_is_rejected`, `form_token::a_tampered_signature_is_a_bad_signature` | `form_token::a_missing_malformed_or_expired_token_is_rejected` | — | constant-time comparison: review (`form_token.rs`, `constant_time_eq`); see NFR-SEC-03 |
+| FR-ABUSE-04 | `form_token::a_fetched_token_is_refused_without_the_config` | `form_token::a_missing_token_config_fails_closed` | — | the `error` log: review |
+| FR-ABUSE-05 | **none** | **none** | — | documentation, and the `axum-with-security` example compiled by the CI `examples` job |
+| FR-ABUSE-06 | **none** | **none** | — | documentation, and the `axum-with-security` example compiled by the CI `examples` job |
+| FR-ABUSE-07 | **none** | **none** | — | documentation, and the examples compiled by the CI `examples` job |
+| FR-ABUSE-08 | **none** | **none** | — | documentation |
+| FR-ABUSE-09 | `server::succeed_applies_the_success_redirect_only_when_configured` | `silent::a_silent_outcome_is_indistinguishable_from_delivery` | — | — |
+| FR-ABUSE-10 | `challenge::row_5_passed_proceeds`, `challenge::row_6_not_passed_fails`, `challenge::http::each_provider_uses_its_vendor_endpoint_by_default`, `components::turnstile_renders_its_element_and_script`, `components::hcaptcha_renders_its_element_and_script_and_omits_auto_theme`, `components::recaptcha_v2_renders_its_element_and_script_and_omits_auto_theme`, `components::recaptcha_v3_renders_the_hidden_input_render_url_and_submit_script` | `challenge::challenge_decision_table_rows_1_to_7` | `challenge::a_widget_mounted_after_its_vendor_global_renders_once`, `challenge::a_vendor_script_already_in_head_is_not_inserted_again` | the live vendor contracts: the `#[ignore]`d `live_` tests, by hand |
+| FR-ABUSE-11 | `challenge::row_3_context_no_token_under_reject_is_required`, `challenge::row_4_context_no_token_under_accept_proceeds`, `components::reject_renders_noscript_and_accept_does_not`, `config::no_js_policy_defaults_to_reject` | `challenge::challenge_decision_table_rows_1_to_7` | — | — |
+| FR-ABUSE-12 | `challenge::row_7_verifier_error_is_unavailable_for_every_variant`, `challenge::http::a_server_error_is_unavailable`, `challenge::http::a_silent_server_is_a_timeout`, `challenge::http::a_redirect_is_not_followed_and_is_unavailable`, `challenge::http::an_empty_secret_is_misconfigured_and_sends_nothing`, `challenge::http::the_default_timeout_is_five_seconds` | `challenge::challenge_decision_table_rows_1_to_7` | — | — |
+| FR-DEL-01 | `axum_helpers::delivery_context_fn_is_clone` | `delivery::a_valid_submission_is_delivered_once_in_both_forms` (a test double provided as `Arc<dyn ContactDelivery>`) | — | object safety and `Send`: checked at compile time |
+| FR-DEL-02 | — | `validation::a_blank_subject_is_delivered_as_absent`, `validation::each_rule_rejects_with_its_field_code` | — | — |
+| FR-DEL-03 | `delivery::noop::noop_delivery_succeeds` | — | — | the `debug` log without PII: review |
+| FR-DEL-04 | **none** | **none** | — | review of `SmtpTlsMode` in `delivery/smtp.rs`; a TLS session needs a relay, so not testable offline |
+| FR-DEL-05 | `delivery::smtp::from_uses_configured_address`, `delivery::smtp::reply_to_uses_user_email`, `delivery::smtp::reply_to_with_special_chars_in_name`, `delivery::smtp::reply_to_uses_mailbox_new_not_string_parse`, `delivery::smtp::message_builder_creates_expected_headers` | — | — | — |
+| FR-DEL-06 | `delivery::smtp::body_includes_expected_fields` | — | — | — |
+| FR-DEL-07 | — | `delivery::a_valid_submission_is_delivered_once_in_both_forms`, `delivery::a_delivery_error_reaches_the_client_only_as_delivery_failed` (custom backends in `tests/server/support/doubles.rs`) | — | — |
+| FR-CFG-01 | **none** | **none** | — | CI: `clippy` with all features and with `ssr,smtp-lettre,axum-helpers`, and the `browser` job with `hydrate` alone |
+| FR-CFG-02 | `axum_helpers::delivery_context_fn_is_clone` | `routing::context_in_the_one_closure_reaches_submit_contact` | — | the documentation of each context value: documentation |
+| FR-CFG-03 | `challenge::http::an_empty_secret_is_misconfigured_and_sends_nothing` | `routing::a_missing_delivery_context_is_not_configured`, `form_token::a_missing_token_config_fails_closed`, `challenge::challenge_decision_table_rows_1_to_7` (row 2) | — | the examples' startup panics: review |
+| FR-CFG-04 | `form_token::debug_redacts_the_secret`, `challenge::http::debug_redacts_the_secret`, `config::redirect_debug_does_not_expose_the_executor` | — | — | the SMTP password in `SmtpConfig`: review, no test |
+| FR-CFG-05 | `form_token::default_config_has_a_two_second_minimum_age`, `axum_helpers::cookie_defaults_are_the_documented_ones`, `config::policy_default_matches_ceiling`, `config::no_js_policy_defaults_to_reject`, `challenge::the_policy_defaults_are_the_documented_ones`, `challenge::http::the_default_timeout_is_five_seconds` | — | — | the STARTTLS default and the one-hour token TTL: review |
+| FR-I18N-01 | `config::field_text_substitutes_in_a_translated_label`, `components::the_noscript_message_escapes_label_and_class` | — | — | — |
+| FR-I18N-02 | `error::contact_error_code_round_trips_through_the_wire_string`, `config::code_text_maps_unexpected_to_delivery_failed`, `config::field_text_substitutes_min_and_max` | `validation::field_errors_round_trip_without_javascript` | — | — |
+| FR-I18N-04 | **none** | **none** | — | review: the rendered markup carries no `dir`, `lang` or locale formatting |
+| FR-I18N-05 | `model::message_length_counts_characters`, `delivery::smtp::reply_to_with_special_chars_in_name` | `validation::each_rule_rejects_with_its_field_code` (a non-ASCII message) | — | a non-ASCII value reaching delivery unchanged, and header encoding: review (lettre) |
+| FR-A11Y-01 | **none** | **none** | **none** | review of the `<label for>` pairs in `components.rs` |
+| FR-A11Y-02 | **none** | **none** | **none** | review of `required` and `aria-required` in `components.rs` |
+| FR-A11Y-03 | — | `validation::field_errors_round_trip_without_javascript` | `focus::focus_moves_to_the_first_invalid_field` | — |
+| FR-A11Y-04 | — | `validation::a_banner_error_sets_no_field_error` (the assertive banner) | — | the polite success region and field alerts: review |
+| FR-A11Y-05 | **none** | **none** | **none** | review of `aria-busy` on the submit button |
+| FR-A11Y-06 | **none** | **none** | **none** | review of the honeypot markup (see FR-UI-10) |
+| FR-A11Y-07 | **none** | **none** | **none** | review: native controls only, and the crate ships no CSS |
+| FR-A11Y-08 | **none** | **none** | **none** | review: every state has text; the crate ships no colours |
+| FR-A11Y-09 | **none** | **none** | **none** | by construction and review; no automated accessibility audit runs |
+| FR-PE-01 | — | `delivery::a_valid_submission_is_delivered_once_in_both_forms` | — | — |
+| FR-PE-02 | — | `validation::field_errors_round_trip_without_javascript`, `validation::each_rule_rejects_with_its_field_code` | — | — |
+| FR-PE-03 | — | `delivery::the_success_page_is_applied_when_configured` | — | — |
+| FR-PE-04 | — | `validation::each_rule_rejects_with_its_field_code`, `policy::server_policy_requires_the_subject`, `policy::server_policy_counts_the_message_in_characters`, `delivery::a_valid_submission_is_delivered_once_in_both_forms` | — | — |
+| FR-OBS-01 | — | `logging::no_personal_data_or_secret_is_logged` | — | each event's level: review |
+| FR-OBS-02 | `server::pii_not_present_in_expected_log_messages` | `logging::no_personal_data_or_secret_is_logged` | — | — |
+| FR-OBS-03 | — | `logging::no_personal_data_or_secret_is_logged` | — | — |
+| FR-OBS-04 | **none** | **none** | — | review: no storage in the crate or its dependencies |
+
+### Non-functional requirements
+
+| Requirement | L1 unit | L2 server | L3 browser | Otherwise, or not covered |
+|---|---|---|---|---|
+| NFR-SEC-01 | — | — | — | **none**; the `browser` CI job builds the crate without `ssr`, where the configuration types do not exist; review |
+| NFR-SEC-02 | `security::header_injection_attempt_is_sanitised`, `model::newline_in_name_fails`, `model::newline_in_subject_fails` | `validation::each_rule_rejects_with_its_field_code` | — | — |
+| NFR-SEC-03 | **none** | **none** | — | review of `constant_time_eq` in `form_token.rs` |
+| NFR-SEC-04 | `challenge::row_7_verifier_error_is_unavailable_for_every_variant`, `challenge::http::a_server_error_is_unavailable` | `form_token::a_missing_token_config_fails_closed`, `routing::a_missing_delivery_context_is_not_configured`, `challenge::challenge_decision_table_rows_1_to_7` | — | — |
+| NFR-SEC-05 | **none** | **none** | — | review, at each RFC that adds a data flow |
+| NFR-SEC-06 | **none** | **none** | — | review of the dependency tree at the release security audit |
+| NFR-PRIV-01 | `server::pii_not_present_in_expected_log_messages` | `logging::no_personal_data_or_secret_is_logged` | — | never persisted: see FR-OBS-04 |
+| NFR-PRIV-02 | **none** | **none** | — | documentation (per-provider notes) |
+| NFR-COMPAT-03 | **none** | **none** | — | review of `Cargo.toml` (`axum` is optional, behind `axum-helpers`); the `browser` job builds the crate without it |
+| NFR-COMPAT-04 | `csrf::deprecated_aliases_still_name_the_new_types` | `form_token::the_0_4_csrf_token_field_is_accepted` | — | the rest of the policy: review at release |
+| NFR-PORT-01 | **none** | **none** | — | wasm32 is built by the `browser` job and the example's wasm check, both with `hydrate`; `default = []` on wasm32 is not built in CI |
+| NFR-PERF-01 | **none** | **none** | — | review |
+| NFR-PERF-02 | **none** | **none** | — | review; the input limits themselves: FR-VAL-01 to -04 |
+| NFR-DEP-01 | **none** | **none** | — | review of `Cargo.toml`; CI builds with and without the optional features |
+| NFR-DOC-01 | **none** | **none** | — | the documentation verification pass at each release |
+| NFR-DOC-02 | the doctests run by `cargo test --all-features` | — | — | — |
+| NFR-DOC-03 | **none** | **none** | — | the documentation verification pass; `mdbook test` does not run in CI |
+| NFR-TEST-01 | **none** | **none** | — | the CI workflow itself |
+| NFR-TEST-02 | — | — | — | this table |
+| NFR-TEST-03 | — | the `tests/server/` suite; each case is listed in its row above | — | — |
+| NFR-REL-02 | **none** | **none** | — | review at release |
+| NFR-REL-03 | **none** | **none** | — | the release process |
 
 ## Live challenge tests
 

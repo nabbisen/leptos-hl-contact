@@ -30,8 +30,8 @@ async fn a_filter_reject_returns_the_rejected_code() {
     assert_eq!(h.deliveries(), 0);
 }
 
-/// RFC 006 D1: a chain stops at the first decision other than `Accept`; the
-/// filters after it are never called.
+/// FR-ABUSE-14 (RFC 006 D1): a chain stops at the first decision other
+/// than `Accept`; the filters after it are never called.
 #[tokio::test]
 async fn a_filter_chain_short_circuits() {
     let first = Arc::new(FixedFilter::new(FilterDecision::Accept, "First"));

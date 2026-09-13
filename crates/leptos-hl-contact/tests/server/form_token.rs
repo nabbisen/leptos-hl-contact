@@ -84,9 +84,10 @@ async fn a_too_young_token_is_retryable() {
     assert_eq!(h.deliveries(), 0);
 }
 
-/// Compatibility promise from 0.5.0: a page rendered by 0.4 posts its token
-/// as `csrf_token`, and it is still accepted.  **Remove this test, and the
-/// `csrf_token` argument, in 0.6.0** — the CHANGELOG promises one minor.
+/// FR-VAL-06, NFR-COMPAT-04 — compatibility promise from 0.5.0: a page
+/// rendered by 0.4 posts its token as `csrf_token`, and it is still accepted.
+/// **Remove this test, and the `csrf_token` argument, in 0.6.0** — the
+/// CHANGELOG promises one minor.
 #[tokio::test]
 async fn the_0_4_csrf_token_field_is_accepted() {
     let h = Harness::new(Setup::default());
