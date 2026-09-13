@@ -310,8 +310,8 @@ input the browser accepted.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | NFR-TEST-01 | CI gates (fmt, clippy `-D warnings`, tests, doc) MUST be green on `main` at every tag | Met (M1; first green run 2026-09-12, plus a feature-combination clippy step and an examples job) |
-| NFR-TEST-02 | Test cases MUST be derived from this specification and the external design, not from the code | Partial (P-15) |
-| NFR-TEST-03 | `submit_contact` MUST have integration tests covering: happy path, honeypot, each validation rule, policy, token fail-closed, token invalid, missing delivery context, delivery error | Gap (P-15) |
+| NFR-TEST-02 | Test cases MUST be derived from this specification and the external design, not from the code | Partial (P-15, RFC 008 D5) |
+| NFR-TEST-03 | `submit_contact` MUST have integration tests covering: happy path, honeypot, each validation rule, policy, token fail-closed, token invalid, missing delivery context, delivery error | Gap (P-15, RFC 008 D2–D3) |
 | NFR-TEST-04 | Tests live in `src/<module>/tests.rs`, never inline (project rule) | Met |
 
 ### 6.9 Release (NFR-REL)
