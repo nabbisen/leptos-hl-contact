@@ -226,7 +226,7 @@ through individual attribute closures.
 | Field | Required | Server treatment |
 |-------|----------|------------------|
 | `name` | yes | trim; 1–80 chars; no CR/LF |
-| `email` | yes | trim; valid address |
+| `email` | yes | trim; valid syntax; ≤ 254 chars; domain of at least two labels, none empty; no address literal (`[…]`) |
 | `subject` | no | trim; blank → absent; ≤ 120 chars; no CR/LF; may be required by policy |
 | `message` | yes | trim; 1–4 000 chars; policy may lower the ceiling |
 | `website` | must be empty | non-empty → honeypot: success response, no delivery |

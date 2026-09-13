@@ -218,3 +218,5 @@ fn over_long_message_yields_length_code_at_the_ceiling() {
         }
     );
 }
+
+mod email;

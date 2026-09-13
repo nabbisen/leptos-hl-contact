@@ -46,6 +46,24 @@ fn optional_no_newlines(value: &str) -> Result<(), validator::ValidationError> {
     no_newlines(value)
 }
 
+/// Rejects an email domain that no public mailbox could reply to: an address
+/// literal (`a@[127.0.0.1]`), a single-label name (`abc@bar`), or an empty
+/// label (`a@example.`, `a@.com`, `a@example..com`).
+///
+/// The domain is everything after the last `@`.  A value without `@` is left
+/// to the `email` syntax check, so it is not reported twice.
+fn reply_to_domain(value: &str) -> Result<(), validator::ValidationError> {
+    let Some((_, domain)) = value.rsplit_once('@') else {
+        return Ok(());
+    };
+    let labels: Vec<&str> = domain.split('.').collect();
+    if domain.starts_with('[') || labels.len() < 2 || labels.iter().any(|l| l.is_empty()) {
+        Err(validator::ValidationError::new("email"))
+    } else {
+        Ok(())
+    }
+}
+
 // ---------------------------------------------------------------------------
 // ContactInput
 // ---------------------------------------------------------------------------
@@ -79,8 +97,14 @@ pub struct ContactInput {
 
     /// Email address used as the `Reply-To` header.
     ///
-    /// Validated as an RFC 5321-style address by the `validator` crate.
-    #[validate(email)]
+    /// Constraints: a syntactically valid address (the `validator` crate), at
+    /// most 254 characters, whose domain is a name of at least two non-empty
+    /// labels; address literals such as `[127.0.0.1]` are rejected.
+    #[validate(
+        email,
+        length(max = 254),
+        custom(function = "reply_to_domain", code = "email")
+    )]
     pub email: String,
 
     /// Optional subject line for the enquiry.
@@ -168,8 +192,14 @@ impl ContactInput {
 
         if let Err(ve) = self.validate() {
             for (name, errors) in ve.field_errors() {
-                let (Some(field), Some(first)) = (contact_field(name.as_ref()), errors.first())
-                else {
+                // A length error is reported before any other on the same field,
+                // so a visitor who pasted something far too long is told why
+                // (RFC 010 D2), whatever order `validator` lists the errors in.
+                let chosen = errors
+                    .iter()
+                    .find(|e| e.code == "length")
+                    .or_else(|| errors.first());
+                let (Some(field), Some(first)) = (contact_field(name.as_ref()), chosen) else {
                     continue;
                 };
 

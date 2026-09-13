@@ -4,13 +4,14 @@ use leptos_hl_contact::{FieldError, FieldErrorCode};
 
 use crate::support::{Harness, Setup};
 
-/// FR-SUB-05, FR-SUB-06, FR-VAL-01, FR-VAL-02, FR-VAL-03, FR-VAL-04, FR-PE-04,
-/// NFR-SEC-02: each rule rejects with its own field code, in both request
-/// forms, and nothing is delivered.
+/// FR-SUB-05, FR-SUB-06, FR-VAL-01, FR-VAL-02, FR-VAL-03, FR-VAL-04,
+/// FR-VAL-07, FR-PE-04, NFR-SEC-02: each rule rejects with its own field
+/// code, in both request forms, and nothing is delivered.
 #[tokio::test]
 async fn each_rule_rejects_with_its_field_code() {
     let h = Harness::new(Setup::default());
     let code = |c| Some(FieldError::Code(c));
+    let long_email = format!("{}@example.com", "a".repeat(243));
 
     let cases = [
         ("name", "", "name", code(FieldErrorCode::Required)),
@@ -25,6 +26,14 @@ async fn each_rule_rejects_with_its_field_code() {
             "not-an-email",
             "email",
             code(FieldErrorCode::Format),
+        ),
+        // A single-label domain, and one character over the SMTP path limit.
+        ("email", "abc@bar", "email", code(FieldErrorCode::Format)),
+        (
+            "email",
+            &long_email,
+            "email",
+            code(FieldErrorCode::Length { min: 0, max: 254 }),
         ),
         // Header injection through the name.
         (
@@ -87,32 +96,38 @@ async fn a_blank_subject_is_delivered_as_absent() {
     assert_eq!(h.delivery.last().expect("delivered").subject, None);
 }
 
-/// FR-PE-02, FR-UI-08: without JavaScript a field error comes back through
-/// the redirect: `302`, and the page it lands on renders the label's text next
-/// to the field with `aria-invalid="true"` — and no assertive banner, because
-/// a field error never also raises the banner.
+/// FR-PE-02, FR-UI-08, FR-VAL-02: without JavaScript a field error comes back
+/// through the redirect: `302`, and the page it lands on renders the label's
+/// text next to the field with `aria-invalid="true"` — and no assertive
+/// banner, because a field error never also raises the banner.  Shown for a
+/// malformed address and for a single-label domain, which the browser's own
+/// `type="email"` check lets through.
 #[tokio::test]
 async fn field_errors_round_trip_without_javascript() {
     let h = Harness::new(Setup::default());
 
-    let reply = h
-        .submit_nojs(&h.fields().set("email", "not-an-email"))
-        .await;
-    assert_eq!(reply.status.as_u16(), 302);
-    assert!(
-        reply.location().is_some_and(|l| l.contains("__err")),
-        "{:?}",
-        reply.location()
-    );
+    for email in ["not-an-email", "abc@bar"] {
+        let reply = h.submit_nojs(&h.fields().set("email", email)).await;
+        assert_eq!(reply.status.as_u16(), 302, "{email}");
+        assert!(
+            reply.location().is_some_and(|l| l.contains("__err")),
+            "{email}: {:?}",
+            reply.location()
+        );
 
-    let page = h.follow(&reply).await;
-    assert_eq!(page.status.as_u16(), 200);
-    assert!(
-        page.html.contains("Enter a valid email address."),
-        "the email label's text is rendered"
-    );
-    assert_eq!(page.aria_invalid_count(), 1, "exactly the email field");
-    assert_eq!(page.banner(), None, "no banner for a field error");
+        let page = h.follow(&reply).await;
+        assert_eq!(page.status.as_u16(), 200, "{email}");
+        assert!(
+            page.html.contains("Enter a valid email address."),
+            "{email}: the email label's text is rendered"
+        );
+        assert_eq!(
+            page.aria_invalid_count(),
+            1,
+            "{email}: exactly the email field"
+        );
+        assert_eq!(page.banner(), None, "{email}: no banner for a field error");
+    }
     assert_eq!(h.deliveries(), 0);
 }
 

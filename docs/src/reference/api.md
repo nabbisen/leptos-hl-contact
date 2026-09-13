@@ -220,7 +220,7 @@ impl ContactInput {
 | Field | Rule |
 |-------|------|
 | `name` | 1–80 characters, no `\r` `\n` |
-| `email` | valid address |
+| `email` | valid address, at most 254 characters; the domain needs at least two labels and no empty one; address literals are refused |
 | `subject` | absent, or 1–120 characters, no `\r` `\n` |
 | `message` | 1 to `MESSAGE_MAX_LEN` characters |
 | `website` | empty |

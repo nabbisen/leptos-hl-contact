@@ -13,7 +13,20 @@ No version assigned; the owner decides the release number.
   posts only `csrf_token`, is now refused as `token_invalid`; a 0.5 page is
   unaffected.
 
+### Changed
+
+- **Stricter email addresses.**  `email` is refused, with the existing
+  `format_email` text, when its domain is an address literal
+  (`user@[127.0.0.1]`), a single label (`user@localhost`), or has an empty
+  label (`user@example.`); and with the `length` text when it is over 254
+  characters, the limit the form's `maxlength` already applied.  No new
+  error code or label.
+
 ### Migration
+
+**Newly refused addresses.**  `user@localhost`, `user@[127.0.0.1]` and
+addresses over 254 characters are now refused; they cannot be replied to
+from a public mailbox.
 
 | 0.4 name | Use |
 |----------|-----|

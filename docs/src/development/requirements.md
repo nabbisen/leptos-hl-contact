@@ -1,6 +1,6 @@
 # Requirements Specification
 
-> **Document status.** Draft 14, 2026-09-13, against release `0.5.0`.
+> **Document status.** Draft 15, 2026-09-13, against release `0.5.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
 > M1–M3 are released and M4 is owner-authorized; the document as a whole
 > awaits formal approval.
@@ -146,7 +146,7 @@ crate's boundaries.  [Architecture](./architecture.md) describes internals.
 | ID | Field | Rule | Level | Status |
 |----|-------|------|-------|--------|
 | FR-VAL-01 | `name` | 1–80 characters after trimming; MUST NOT contain CR or LF | MUST | Met |
-| FR-VAL-02 | `email` | Syntactically valid email address after trimming | MUST | Met |
+| FR-VAL-02 | `email` | Syntactically valid email address after trimming, at most 254 characters, whose domain is a name of at least two labels; address literals are rejected | MUST | Met (0.6.0) |
 | FR-VAL-03 | `subject` | When present: 1–120 characters; MUST NOT contain CR or LF.  Blank becomes absent | MUST | Met |
 | FR-VAL-04 | `message` | 1–4 000 characters after trimming | MUST | Met |
 | FR-VAL-05 | `website` (honeypot) | MUST be empty | MUST | Met |
@@ -379,6 +379,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 15 | RFC 010 D2: FR-VAL-02 refuses address literals, single-label domains, empty labels, and addresses over 254 characters |
 | 2026-09-13 | Draft 14 | RFC 010 D1: `csrf` alias removed (FR-CFG-01) |
 | 2026-09-13 | Draft 13 | RFC 008 handoff 04: NFR-TEST-02 Met; testing gaps removed from the gap summary |
 | 2026-09-13 | Draft 12 | RFC 008 handoffs 01–03: NFR-TEST-03 Met.  MUST made explicit in NFR-COMPAT-01, -02, -05, NFR-TEST-04 and NFR-REL-01, which were always binding policies; NFR-DOC-04 marked SHOULD |
