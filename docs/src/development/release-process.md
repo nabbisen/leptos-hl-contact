@@ -40,8 +40,8 @@ Tags are `X.Y.Z` with **no** `v` prefix.
 7. **Documentation check.**  Every page in this book describes the
    behaviour being released; `mdbook build` succeeds (its output
    `docs/book/` is ignored by git); no page outside `development/` names
-   a past version, except an upgrade note that names the release removing
-   something; known issues are stated in the release-candidate request and,
+   a past version, except a note that explains an upgrade or why older
+   instructions differ (for example, the release that removed something); known issues are stated in the release-candidate request and,
    when they affect integrators, in the CHANGELOG; the README matches.
 8. **Mutation run.**  Once per milestone, before the readiness report:
    `cargo mutants -p leptos-hl-contact --all-features` (output under

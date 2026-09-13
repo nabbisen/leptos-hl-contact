@@ -79,8 +79,9 @@ Owner decisions 2026-09-13: M4 starts with the test strategy (done).  M4
 ships as **0.6.0**, with the removal of the deprecated 0.4 names promised in
 0.5.0 (P-37), stricter email syntax (P-34), the delivery-error rule (P-33)
 and a bound on delivery time (P-32).  RFC 010 tracks the first three and RFC 009
-carries P-32; both are implemented, so 0.6.0's scope is complete and the
-release process (mutation run, release candidate) is next.
+carries P-32; both are implemented, so 0.6.0's scope is complete.  Release
+candidate `a4d4d46` verified 2026-09-13; the architect recommends approval,
+and 0.6.0 awaits the owner.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
@@ -103,6 +104,7 @@ release process (mutation run, release candidate) is next.
 | P-26 | Scheduled CI job running the `#[ignore]` live vendor tests; deferred by the owner on 2026-09-12 because it carries a cost | TBD (owner) | RFC |
 | P-35 | Opt-in mail-domain check: a DNS lookup for a mail exchanger (falling back to an address record, RFC 5321 §5.1) behind a feature, time-bounded, reported as an error under the email field so a visitor can fix a typo; accepts with a `warn` log when DNS does not answer.  Catches non-existent domains, not non-existent mailboxes | Low — **approved** 2026-09-13, less prioritized | RFC |
 | P-36 | Messages the site cannot translate — **on hold** (owner, 2026-09-13): the app team upgrades after the anti-abuse releases, and the report is re-checked on the upgraded version; no questions sent, no schedule, no RFC.  Since 0.4.0 `labels.errors` covers every server message under a field.  Candidate gaps: the browser's own validation pop-ups from `required`, `type="email"` and `maxlength`, which no label reaches; one text per rule, not per field; the Customization page mentions `errors` only as a link | TBD | pending facts |
+| P-38 | Mutation-run follow-up from 0.6.0: pin the form token's TTL and future-skew boundaries with tests; assert the `challenge unavailable` and missing-context log events; test `provide_contact_delivery`; browser tests for `remove_widget`, the reCAPTCHA v2 `ready` arm, hCaptcha and reCAPTCHA global names, and the hydrating path.  No defect found; each would catch a silent regression | Low — **proposed** | handoff (tests only) |
 
 ### Future
 

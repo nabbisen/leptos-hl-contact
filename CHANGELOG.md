@@ -19,7 +19,8 @@ It also bounds delivery time and refuses email addresses a form cannot reply to.
 - **The SMTP backend stops at 30 seconds by default.**  A relay that accepts
   the connection and then stalls no longer holds the request until a proxy
   gives up; the visitor sees `delivery_timeout` instead of a proxy error
-  page.  `smtp-lettre` now enables `delivery-timeout`.
+  page.  `smtp-lettre` now enables `delivery-timeout`.  If your relay
+  legitimately needs longer, set a larger `SmtpConfig::timeout`.
 - **Stricter email addresses.**  `email` is refused, with the existing
   `format_email` text, when its domain is an address literal
   (`user@[127.0.0.1]`), a single label (`user@localhost`), or has an empty
