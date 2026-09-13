@@ -426,6 +426,8 @@ reputation); visitor PII in transit; the application's availability.
 | T16 | Open redirect or header injection through the success page | a configured redirect path that leaves the site, or carries CR/LF into the `Location` header | `ContactSuccessRedirect::new` accepts only site-relative paths: it requires a leading `/`, rejects `//`, `\`, `://`, and every control or whitespace character, so neither an off-site target nor a header break survives construction.  The path is fixed at startup and never read from form input or a query parameter | crate | Met (0.4.0) |
 | T17 | Cookie tossing defeats binding | a sibling subdomain sets the binding cookie with `Domain` and `SameSite=None`, paired with a token the attacker fetched for that nonce | `__Host-` cookie prefix, applied when the cookie is `Secure` on `/`; a second `__Host-` cookie from our own origin fails closed (`BindingMismatch`); Origin validation still rejects the POST | crate + app | Met at defaults (0.5.0); not with `secure: false` or a non-root path, documented |
 | T18 | Detection oracle on silent outcomes | a bot compares the response to a honeypot hit or `SilentDrop` with a genuine submission's: with a success page configured, only the genuine one carried the redirect | every successful outcome applies the success redirect through one helper | crate | Met (0.5.0, `67c1ac1`); regressed in 0.4.0 |
+| T19 | Vendor verify call leaks or stalls | a redirect from the verify endpoint (or a proxy set by `with_verify_url`) receives the request body, which carries the vendor secret; a slow or failing vendor holds the request | redirects disabled on the verify client, so a 3xx is `Unavailable`; 5-second timeout; every error fails closed (`challenge_unavailable`); secret redacted in `Debug`, absent from logs; `with_verify_url` is integrator configuration, never request input | crate | Met (0.5.0) |
+| T20 | Abuse of the public token endpoint | scripted `POST /api/form_token` to mint tokens or flood the server | a minted token grants nothing a page render does not; the endpoint sits behind the router-wide Origin check (`403` cross-origin) and rate limit (`429` after the burst, verified 2026-09-13); the browser calls it only when `token_refresh_secs` is set, and never in a loop | app + crate | Met (0.5.0) |
 
 New in 0.4.0: the success redirect (T16) is the crate's first outward
 response header, so it is the first place a configuration value reaches a
@@ -599,6 +601,7 @@ The project rule is "less is more".  Applied here:
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial external design from architect baseline review of `0.3.3` |
+| 2026-09-13 | Draft 8 | 0.5.0 security audit: T19 vendor verify call, T20 public token endpoint |
 | 2026-09-13 | Draft 7 | T18: silent outcomes must end like success (regression from 0.4.0) |
 | 2026-09-13 | Draft 6 | RFC 004 handoff 02: T5 updated for binding; T17 cookie tossing and the `__Host-` prefix |
 | 2026-09-13 | Draft 5 | RFC 004 handoff 01: the token is named *form token* throughout; the hidden field is `form_token`; minimum age recorded |
