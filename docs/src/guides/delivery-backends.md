@@ -111,7 +111,10 @@ Contract for implementations:
 - Return one of `ContactDeliveryError::{Configuration, Transport,
   MessageBuild, Internal}`; the crate logs the detail and shows the visitor
   a generic message.
-- Do not log the visitor's name, email, or message.
+- The text of a returned `ContactDeliveryError` is written to the server log
+  for operators.  Put the category and the transport detail in it — status
+  codes, the relay's reply.  Never put the submission in it, and never log it
+  yourself: no name, email address, subject, message, token or credential.
 - The call is not time-limited by the crate.  Wrap slow APIs in a timeout.
 
 ## Testing delivery locally

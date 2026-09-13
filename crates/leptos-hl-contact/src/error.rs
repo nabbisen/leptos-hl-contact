@@ -274,6 +274,11 @@ impl ContactFieldErrors {
 ///
 /// Keep these on the server — log them and return only a generic string to
 /// the client.
+///
+/// `submit_contact` writes the error's `Display` text to the server log.  An
+/// implementation puts the category and the transport detail in it — status
+/// codes, the relay's reply — and never the submission: no name, email
+/// address, subject, message, token or credential.
 #[derive(Debug, Error)]
 pub enum ContactDeliveryError {
     /// The delivery backend is not configured or unavailable.

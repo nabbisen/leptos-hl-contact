@@ -32,6 +32,15 @@ use crate::{error::ContactDeliveryError, model::ContactInput};
 /// The trait uses `Pin<Box<dyn Future>>` rather than `async fn` so it can be
 /// used as `Arc<dyn ContactDelivery>` (object-safe / dyn-compatible).
 ///
+/// # Errors
+///
+/// The text of a returned [`ContactDeliveryError`] is written to the server
+/// log for operators, and never sent to the visitor.  Put the category and
+/// the transport detail in it — status codes, the relay's reply.  Never put
+/// the submission in it: no name, email address, subject, message, token or
+/// credential.  This is the same rule the crate follows for its own log
+/// events.
+///
 /// # Security
 ///
 /// Implementations **must not** expose credentials, SMTP passwords, or API

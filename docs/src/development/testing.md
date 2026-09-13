@@ -241,7 +241,7 @@ tests from the code side.
 | FR-DEL-04 | **none** | **none** | — | review of `SmtpTlsMode` in `delivery/smtp.rs`; a TLS session needs a relay, so not testable offline |
 | FR-DEL-05 | `delivery::smtp::from_uses_configured_address`, `delivery::smtp::reply_to_uses_user_email`, `delivery::smtp::reply_to_with_special_chars_in_name`, `delivery::smtp::reply_to_uses_mailbox_new_not_string_parse`, `delivery::smtp::message_builder_creates_expected_headers` | — | — | — |
 | FR-DEL-06 | `delivery::smtp::body_includes_expected_fields` | — | — | — |
-| FR-DEL-07 | — | `delivery::a_valid_submission_is_delivered_once_in_both_forms`, `delivery::a_delivery_error_reaches_the_client_only_as_delivery_failed` (custom backends in `tests/server/support/doubles.rs`) | — | — |
+| FR-DEL-07 | — | `delivery::a_valid_submission_is_delivered_once_in_both_forms`, `delivery::a_delivery_error_reaches_the_client_only_as_delivery_failed` (custom backends in `tests/server/support/doubles.rs`) | — | the error-text contract for implementers: documentation (`ContactDelivery`'s `# Errors`, the delivery guide, External Design §4.4.1) |
 | FR-CFG-01 | **none** | **none** | — | CI: `clippy` with all features and with `ssr,smtp-lettre,axum-helpers`, and the `browser` job with `hydrate` alone |
 | FR-CFG-02 | `axum_helpers::delivery_context_fn_is_clone` | `routing::context_in_the_one_closure_reaches_submit_contact` | — | the documentation of each context value: documentation |
 | FR-CFG-03 | `challenge::http::an_empty_secret_is_misconfigured_and_sends_nothing` | `routing::a_missing_delivery_context_is_not_configured`, `form_token::a_missing_token_config_fails_closed`, `challenge::challenge_decision_table_rows_1_to_7` (row 2) | — | the examples' startup panics: review |

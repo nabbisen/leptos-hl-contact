@@ -42,6 +42,10 @@ from a public mailbox.
 
 ### Documentation
 
+- Delivery backends: the text of a returned `ContactDeliveryError` is
+  written to the server log.  The trait's rustdoc, the delivery guide and the
+  external design now say what belongs in it — the category and transport
+  detail — and that the submission never does.
 - Development: a server integration suite in `crates/leptos-hl-contact/tests/server/`
   now tests the crate through a router built exactly as the documentation
   instructs.  It covers delivery and delivery errors, the success page, every silent outcome,

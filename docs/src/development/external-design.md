@@ -304,6 +304,7 @@ Covered by §2.2.  Additional guarantees:
 | Input | already trimmed, validated, honeypot-checked, policy-checked [FR-DEL-02] |
 | Concurrency | may be called concurrently; implementations hold no per-call mutable state |
 | Errors | four categories: `Configuration`, `Transport`, `MessageBuild`, `Internal`; detail is logged by the crate, never shown to the visitor |
+| Error text | logged verbatim for operators: the category and transport detail (status codes, the relay's reply), never the submission — no name, email address, subject, message, token or credential [FR-OBS-02, FR-OBS-03] |
 | Time | **current**: unbounded; **target**: integrators wrap slow backends with a timeout, and a queue adapter exists (Future) [FR-DEL-08] |
 
 #### 4.4.2 Email message specification (SMTP backend)
@@ -393,6 +394,9 @@ documentation use these names consistently so integrators can copy them:
 | `error` | delivery failed | `error` (category + transport text) | none by contract; relays may echo addresses in SMTP replies, integrators SHOULD review log retention |
 | `info` | delivered via SMTP | — | none |
 | `debug` | no-op backend discarded submission | — | none |
+
+A delivery error's `Display` text is logged verbatim in the `delivery failed`
+event, so an implementation keeps it free of submission data (§4.4.1).
 
 ---
 
