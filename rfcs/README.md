@@ -15,13 +15,13 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 008 | [Test strategy](./proposed/008-test-strategy.md) | High (M4) — two owner questions |
+| — | *(none)* | |
 
 ## Accepted
 
 | ID | Title | Handoff |
 |----|-------|---------|
-| — | *(none)* | |
+| 008 | [Test strategy](./accepted/008-test-strategy.md) | [handoffs/008-test-strategy/](./handoffs/008-test-strategy/README.md) |
 
 ## Implemented
 

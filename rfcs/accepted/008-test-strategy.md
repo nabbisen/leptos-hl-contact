@@ -1,8 +1,8 @@
 # RFC 008 — Test strategy
 
-**Status.** Proposed — 2026-09-13.  Milestone M4 theme approved by the owner
-the same day.  Two decisions in §Open questions are the owner's; the rest the
-architect can accept.
+**Status.** Accepted — 2026-09-13.  Milestone M4 theme and both open
+questions decided by the owner the same day (see §Owner decisions).
+**Handoffs.** [`../handoffs/008-test-strategy/README.md`](../handoffs/008-test-strategy/README.md)
 **Tracks.** Roadmap P-15.  Requirements NFR-TEST-02 (Partial), NFR-TEST-03
 (Gap).
 **Touches.** A new `crates/leptos-hl-contact/tests/` integration suite, dev-
@@ -91,9 +91,11 @@ Test doubles, in `tests/server/support.rs`:
 Every case runs in both forms where both exist, because the 0.4.0 regression
 differed only in headers.
 
-**Spike first.**  `#[server]` functions register through `inventory`; they
-must be registered inside an integration-test binary for the router to serve
-them.  Handoff 01 proves this with one passing request before writing the
+**Spike first.**  `#[server]` functions are registered by `server_fn` through a
+global registry populated at link time (the exact mechanism in 0.8 is not
+confirmed by the architect; the RFC originally named `inventory`, which a
+source check did not find).  They must be registered inside an
+integration-test binary for the router to serve them.  Handoff 01 proves this with one passing request before writing the
 matrix.  If registration does not happen, the fallback is to call
 `leptos_axum::handle_server_fns_with_context` directly with a built request,
 which exercises the same server-function code without the route table; the
@@ -137,8 +139,10 @@ test is listed with "none" rather than omitted, which satisfies NFR-TEST-02's
 ### D6 — CI
 
 - L2 runs inside the existing `cargo test --all-features` step; no new job.
-- L3 needs a new job (wasm target, `wasm-bindgen-test-runner`, headless
-  Chromium) — see Open question 1.
+- L3 runs in a new `browser` job on **every push** (owner decision).
+- Mutation testing (`cargo-mutants`) runs **once per milestone, before the
+  release candidate**, as information for the architect's readiness report,
+  never as a gate (owner decision); see the release process.
 - L4 stays manual.
 
 ## Alternatives considered
@@ -178,7 +182,13 @@ Three handoffs: **01** L2 harness, spike, and the D3 matrix; **02** L3
 browser tests; **03** the traceability table and requirement IDs.  01 comes
 first; 02 and 03 may follow in parallel.
 
-## Open questions for the owner
+## Owner decisions (2026-09-13)
+
+1. Browser tests run in CI **on every push**.
+2. Mutation testing runs **once per milestone, before the release candidate**,
+   informational only.
+
+## Open questions as originally put
 
 1. **Browser tests in CI.**  Run the L3 job on every push (GitHub Actions
    minutes on a public repository; adds a few minutes per run), or locally

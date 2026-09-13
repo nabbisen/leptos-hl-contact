@@ -80,7 +80,7 @@ timeout was recommended alongside it and is **not yet approved**.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
-| P-15 | Test strategy: a server integration suite built as the integrator's router, browser tests for hydrate-only logic, requirement-to-test traceability.  Required cases recorded by reviews: the 0.4 `csrf_token` field still accepted; the component rendering an error code end to end; the field-error / banner routing pair; the one-context-closure routing property; every successful outcome applying the success redirect | **High** | [RFC 008](./rfcs/proposed/008-test-strategy.md) (proposed, two owner questions) | inventory 2026-09-13: about 200 unit tests, no test drives `submit_contact` over HTTP |
+| P-15 | Test strategy: a server integration suite built as the integrator's router, browser tests for hydrate-only logic, requirement-to-test traceability.  Required cases recorded by reviews: the 0.4 `csrf_token` field still accepted; the component rendering an error code end to end; the field-error / banner routing pair; the one-context-closure routing property; every successful outcome applying the success redirect | **High** | [RFC 008](./rfcs/accepted/008-test-strategy.md) (accepted; browser tests on every push, mutation run once per milestone) | inventory 2026-09-13: about 200 unit tests, no test drives `submit_contact` over HTTP |
 | P-32 | Delivery timeout: a slow relay can hold a request indefinitely (FR-DEL-08, threat T15) | Medium | **proposed**, awaiting owner approval | open since the baseline |
 
 ---
@@ -112,10 +112,8 @@ timeout was recommended alongside it and is **not yet approved**.
 
 ## Decisions required from the owner
 
-1. RFC 008 open questions: browser tests in CI on every push, or locally
-   first; mutation testing periodically and informational, or not at all.
-2. P-32: schedule the delivery timeout in M4, or later.
-3. P-23: is Cloudflare Workers a target platform for this crate?
+1. P-32: schedule the delivery timeout in M4, or later.
+2. P-23: is Cloudflare Workers a target platform for this crate?
 
 ---
 
@@ -177,3 +175,4 @@ HTTP client behind a `challenge-http` feature.
 - 2026-09-12: anti-forgery token direction set in RFC 004; bundled challenge providers in scope.
 - 2026-09-12, 2026-09-13: versions 0.3.4, 0.4.0 and 0.5.0 approved and released.
 - 2026-09-13: M4 theme approved, test strategy first.
+- 2026-09-13: RFC 008 — browser tests in CI on every push; mutation testing once per milestone before the release candidate, informational.

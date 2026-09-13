@@ -42,13 +42,19 @@ Tags are `X.Y.Z` with **no** `v` prefix.
    `docs/book/` is ignored by git); no page outside `development/` names
    a past version; the known-issues table lists only what still holds;
    the README matches.
-8. **Readiness report.**  Version, commit, included and excluded changes,
-   test and build evidence, known issues, rollback note, recommendation.
-9. **Owner approval.**
-10. **Tag and publish.**  Tags are annotated (the repository forces
+8. **Mutation run.**  Once per milestone, before the readiness report:
+   `cargo mutants -p leptos-hl-contact --all-features` (output under
+   `mutants.out/`, git-ignored).  The architect reads the surviving mutants
+   and records in the report which matter and which are accepted.
+   Informational, never a gate.
+9. **Readiness report.**  Version, commit, included and excluded changes,
+   test and build evidence, known issues, rollback note, mutation-run
+   summary, recommendation.
+10. **Owner approval.**
+11. **Tag and publish.**  Tags are annotated (the repository forces
     signed-annotated tags): `git tag -a X.Y.Z -m "Release X.Y.Z"`, then
     `git push origin X.Y.Z` and `cargo publish -p leptos-hl-contact`.
     Publishing is irreversible; a version can only be yanked.
-11. **Records.**  Move the milestone's RFCs to `rfcs/done/` with
+12. **Records.**  Move the milestone's RFCs to `rfcs/done/` with
     "Implemented (X.Y.Z)", fix inbound links, update `rfcs/README.md` and
     the roadmap, close the review folder for the milestone.
