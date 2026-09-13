@@ -99,6 +99,65 @@ If the suite fails to compile with "found an item that was configured out",
 the build artifacts came from a narrower feature set: run
 `cargo clean -p leptos-hl-contact`, as described above.
 
+## Browser tests
+
+`crates/leptos-hl-contact/tests/browser/` tests what only happens in a
+browser: focus after an error, the form token's acquisition and refresh, and
+explicit rendering of a challenge widget.  Each test mounts `ContactForm` with
+`leptos::mount::mount_to` into a fresh element of the test page, in headless
+Chrome, and removes it afterwards.
+
+```bash
+cargo install wasm-bindgen-cli --version <the wasm-bindgen version in Cargo.lock> --locked
+CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
+CHROMEDRIVER=$(which chromedriver) \
+cargo test -p leptos-hl-contact --target wasm32-unknown-unknown --features hydrate --test browser
+```
+
+The runner refuses to run a test built with any other `wasm-bindgen`, so
+install the CLI at exactly the version `Cargo.lock` resolves.  The CI
+`browser` job reads that version from the lock.  `wasm-bindgen-test` is
+pinned in `Cargo.toml` to the release that requires that same
+`wasm-bindgen`: a caret requirement lets Cargo choose a newer one and move
+`wasm-bindgen` for the whole workspace.  When the lock's `wasm-bindgen`
+moves, move the pin with it.  Chrome and chromedriver major versions must
+match.
+
+Native `cargo test` does not build this suite.  It is compiled only for
+`wasm32` with `hydrate` and without `ssr`.
+
+**The harness** (`tests/browser/support/`):
+
+- **`FetchStub`** replaces `window.fetch`.  It records every request URL and
+  answers with a scripted status and body.  Success bodies are JSON (the
+  server-function default), errors are `Variant|message` with a 4xx or 5xx
+  status.  Nothing leaves the page.
+- **`Clock`** replaces `window.setTimeout`, `clearTimeout` and `Date.now`.  A
+  scheduled callback runs only when the test fires it, so "an hour later"
+  takes no time at all.
+- **`settle`** lets the page finish what it has started: pending promises and
+  one browser task, which is when a `Response` body becomes readable.  It
+  uses a `MessageChannel` message, not a timer.
+- **Vendor globals** such as `window.turnstile` are plain objects with a
+  recording `render`.  No vendor script is ever loaded.
+
+**Cases:**
+
+| File | Test | Shows |
+|------|------|-------|
+| `token.rs` | `without_refresh_the_token_endpoint_is_never_called` | `token_refresh_secs = None`: no request, no timer |
+| `token.rs` | `an_empty_token_field_acquires_exactly_once` | an empty field fetches one token |
+| `token.rs` | `an_overdue_mounted_token_refreshes_once` | an overdue rendered token refreshes on a zero-delay timer, once |
+| `token.rs` | `a_fetched_token_schedules_its_refresh_from_arrival` | the next refresh is a full interval after arrival, whatever the browser clock says |
+| `token.rs` | `the_hidden_token_survives_a_failed_submission` | a failed submission keeps the token and the typed input |
+| `focus.rs` | `focus_moves_to_the_first_invalid_field` | focus, `aria-invalid` and `aria-describedby` after a field-error payload |
+| `challenge.rs` | `a_widget_mounted_after_its_vendor_global_renders_once` | explicit `render`, once, into the form's own element |
+| `challenge.rs` | `a_vendor_script_already_in_head_is_not_inserted_again` | no second vendor `<script>` |
+
+**Rules for a new case:** stub before mounting, since the widget reads the
+vendor global when the component is built.  Never wait on real time: fire the
+recorded timer instead.  Cite the requirement or threat ID in the doc comment.
+
 ## Live challenge tests
 
 The `challenge-http` verifiers have tests that call the real vendor

@@ -36,6 +36,44 @@ jobs:
           RUSTDOCFLAGS: -D warnings
         run: cargo doc --all-features --no-deps
 
+  # Browser tests (RFC 008 L3): `ContactForm` mounted in headless Chrome, with
+  # server functions answered by a stubbed `fetch`.  Owner decision: every push.
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Rust 1.91
+        uses: dtolnay/rust-toolchain@1.91
+        with:
+          targets: wasm32-unknown-unknown
+
+      # The test runner refuses a wasm-bindgen other than its own, so its
+      # version is read from Cargo.lock, never written here.
+      - name: wasm-bindgen version from Cargo.lock
+        id: wasm-bindgen
+        run: |
+          version=$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/"/, "", $3); print $3 }' Cargo.lock)
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Install wasm-bindgen-cli
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen@${{ steps.wasm-bindgen.outputs.version }}
+
+      # Chrome and chromedriver both come from the runner image, which keeps
+      # them in step; print them so a mismatch is visible in the log.
+      - name: versions
+        run: |
+          wasm-bindgen-test-runner --version
+          google-chrome --version
+          "$CHROMEWEBDRIVER/chromedriver" --version
+
+      - name: browser tests
+        env:
+          CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER: wasm-bindgen-test-runner
+        run: CHROMEDRIVER="$CHROMEWEBDRIVER/chromedriver" cargo test -p leptos-hl-contact --target wasm32-unknown-unknown --features hydrate --test browser
+
   # Examples are excluded from the workspace (see Cargo.toml), so the `check`
   # job never compiles them.  Separate job so a slow example build does not
   # delay the crate gates.

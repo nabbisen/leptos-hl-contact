@@ -54,7 +54,9 @@ hex = { version = "0.4", optional = true }
 # only, so there is no second TLS stack and no system library to install.
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "http2"], optional = true }
 
-[dev-dependencies]
+# Native-only: tokio's `net` and `rt-multi-thread` do not build for wasm32, and
+# the browser tests below are the only tests compiled for it.
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 # `net`, `io-util`, `sync` and `time` run the local siteverify responder in
 # the challenge-http tests.
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time"] }
@@ -69,3 +71,29 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["r
 # (no sleeping); the same crates the form token itself uses.
 hmac = "0.13"
 sha2 = "0.11"
+
+# Browser tests (tests/browser), run in headless Chromium.  wasm-bindgen-test
+# is pinned exactly: 0.3.71 is the release that requires the wasm-bindgen the
+# workspace lock resolves (0.2.121), and a caret requirement lets Cargo pick a
+# newer one that moves wasm-bindgen for the whole workspace.  CI installs
+# `wasm-bindgen-cli` at the version read from Cargo.lock.
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "=0.3.71"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+    "Document",
+    "Element",
+    "HtmlElement",
+    "HtmlFormElement",
+    "HtmlHeadElement",
+    "HtmlInputElement",
+    "MessageChannel",
+    "MessagePort",
+    "NodeList",
+    "Request",
+    "Response",
+    "ResponseInit",
+    "Window",
+] }

@@ -13,6 +13,14 @@ No version assigned; the owner decides the release number.
   and its cookie binding, the challenge decision table, the filter, and log
   hygiene.  Tests and development dependencies only; the published crate is
   unchanged.  `development/testing.md` describes the harness.
+- Development: browser tests in `crates/leptos-hl-contact/tests/browser/` mount
+  `ContactForm` in headless Chrome.  They cover focus after a field error,
+  the form token's acquisition and refresh (with a clock the test
+  controls), the token surviving a failed submission, and explicit rendering
+  of a challenge widget.  Server functions are answered by a stubbed `fetch`
+  and no vendor script is loaded.  CI runs them in a new `browser` job on
+  every push.  Tests, development dependencies and CI only; the published
+  crate is unchanged.
 
 ## [0.5.0] — 2026-09-13
 
