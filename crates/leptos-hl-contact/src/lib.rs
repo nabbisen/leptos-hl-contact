@@ -80,7 +80,7 @@ pub use config::{
     ContactFormOptions, ContactServerPolicy, ContactSuccessRedirect, InvalidChallengeConfig,
     InvalidRedirectPath, NoJsPolicy,
 };
-pub use delivery::{ContactDelivery, ContactDeliveryContext};
+pub use delivery::{ContactDelivery, ContactDeliveryContext, DeliveryFuture};
 
 #[cfg(feature = "delivery-timeout")]
 pub use delivery::timeout::DeliveryTimeout;
@@ -94,13 +94,14 @@ pub use server::submit_contact;
 #[cfg(feature = "ssr")]
 pub use challenge::{
     ChallengeContext, ChallengeError, ChallengeOutcome, ChallengePolicy, ChallengeVerifier,
+    VerifyFuture,
 };
 
 #[cfg(feature = "challenge-http")]
 pub use challenge::http::HttpChallengeVerifier;
 
 #[cfg(feature = "ssr")]
-pub use filter::{ContactFilter, ContactFilterContext, FilterChain, FilterDecision};
+pub use filter::{ContactFilter, ContactFilterContext, FilterChain, FilterDecision, FilterFuture};
 
 #[cfg(feature = "form-token")]
 pub use form_token::{

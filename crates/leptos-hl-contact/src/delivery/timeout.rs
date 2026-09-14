@@ -3,9 +3,13 @@
 // Enabled by the `delivery-timeout` feature, which `smtp-lettre` turns on: the
 // SMTP backend uses the same deadline.
 
-use std::{future::Future, pin::Pin, time::Duration};
+use std::{future::Future, time::Duration};
 
-use crate::{delivery::ContactDelivery, error::ContactDeliveryError, model::ContactInput};
+use crate::{
+    delivery::{ContactDelivery, DeliveryFuture},
+    error::ContactDeliveryError,
+    model::ContactInput,
+};
 
 /// Bounds any backend's [`deliver`](ContactDelivery::deliver) by a deadline.
 ///
@@ -56,10 +60,7 @@ impl<D: std::fmt::Debug> std::fmt::Debug for DeliveryTimeout<D> {
 }
 
 impl<D: ContactDelivery> ContactDelivery for DeliveryTimeout<D> {
-    fn deliver(
-        &self,
-        input: ContactInput,
-    ) -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>> {
+    fn deliver(&self, input: ContactInput) -> DeliveryFuture<'_> {
         Box::pin(with_deadline(self.limit, self.inner.deliver(input)))
     }
 }
@@ -68,6 +69,7 @@ impl<D: ContactDelivery> ContactDelivery for DeliveryTimeout<D> {
 ///
 /// The one implementation of the deadline, shared by [`DeliveryTimeout`] and
 /// the SMTP backend.
+#[cfg(not(all(target_arch = "wasm32", feature = "ssr")))]
 pub(crate) async fn with_deadline<F>(
     limit: Duration,
     delivery: F,
@@ -79,6 +81,21 @@ where
         Ok(result) => result,
         Err(_elapsed) => Err(ContactDeliveryError::Timeout(limit)),
     }
+}
+
+/// On a wasm32 server there is no tokio timer.  Until handoff 011-02 adds a
+/// JavaScript timer, the delivery is awaited without a deadline.
+// TODO(011-02): JavaScript timer
+#[cfg(all(target_arch = "wasm32", feature = "ssr"))]
+pub(crate) async fn with_deadline<F>(
+    limit: Duration,
+    delivery: F,
+) -> Result<(), ContactDeliveryError>
+where
+    F: Future<Output = Result<(), ContactDeliveryError>>,
+{
+    let _ = limit;
+    delivery.await
 }
 
 // ---------------------------------------------------------------------------

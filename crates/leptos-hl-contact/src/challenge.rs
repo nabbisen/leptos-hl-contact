@@ -46,16 +46,35 @@ pub enum ChallengeError {
     Misconfigured(String),
 }
 
+/// The future [`ChallengeVerifier::verify`] returns.
+///
+/// It is `Send` on every target except a wasm32 server build
+/// (`all(target_arch = "wasm32", feature = "ssr")`, such as Cloudflare
+/// Workers), where an implementation may await JavaScript futures, which are
+/// not `Send`.  The implementing type itself must still be `Send + Sync` on
+/// every target: Leptos context requires it.
+#[cfg(not(all(target_arch = "wasm32", feature = "ssr")))]
+pub type VerifyFuture<'a> =
+    Pin<Box<dyn Future<Output = Result<ChallengeOutcome, ChallengeError>> + Send + 'a>>;
+
+/// The future [`ChallengeVerifier::verify`] returns.
+///
+/// It is `Send` on every target except a wasm32 server build
+/// (`all(target_arch = "wasm32", feature = "ssr")`, such as Cloudflare
+/// Workers), where an implementation may await JavaScript futures, which are
+/// not `Send`.  The implementing type itself must still be `Send + Sync` on
+/// every target: Leptos context requires it.
+#[cfg(all(target_arch = "wasm32", feature = "ssr"))]
+pub type VerifyFuture<'a> =
+    Pin<Box<dyn Future<Output = Result<ChallengeOutcome, ChallengeError>> + 'a>>;
+
 /// Checks a challenge token with its vendor.
 ///
 /// Implementations own whatever they need from `token` before returning the
 /// future: the future may borrow only `self`.  Never log the token.
 pub trait ChallengeVerifier: Send + Sync + 'static {
     /// Ask the vendor about `token`.
-    fn verify(
-        &self,
-        token: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<ChallengeOutcome, ChallengeError>> + Send + '_>>;
+    fn verify(&self, token: &str) -> VerifyFuture<'_>;
 }
 
 // ---------------------------------------------------------------------------

@@ -18,6 +18,27 @@ use crate::{
     model::ContactInput,
 };
 
+/// Awaits an extension future — a delivery, a challenge verification, a
+/// filter — inside `submit_contact`, whose own future must be `Send` on every
+/// target (`server_fn` requires it).
+///
+/// Natively the extension future is already `Send` and is returned as is.
+#[cfg(all(feature = "ssr", not(target_arch = "wasm32")))]
+fn sendable<F: std::future::Future>(future: F) -> F {
+    future
+}
+
+/// On a wasm32 server (Cloudflare Workers) an extension future need not be
+/// `Send`, so it is wrapped in `SendWrapper` (RFC 011 D2).
+///
+/// A Worker isolate runs one thread, so the wrapper's thread check always
+/// passes.  A multi-threaded wasm runtime would make it panic, loudly, rather
+/// than let a non-`Send` value cross threads.
+#[cfg(all(feature = "ssr", target_arch = "wasm32"))]
+fn sendable<F: std::future::Future>(future: F) -> send_wrapper::SendWrapper<F> {
+    send_wrapper::SendWrapper::new(future)
+}
+
 /// Submit a contact form enquiry.
 ///
 /// Leptos server function compiled to `POST /api/submit_contact`.
@@ -249,7 +270,7 @@ pub async fn submit_contact(
                     let (Some(ctx), Some(token)) = (challenge_ctx, challenge_token) else {
                         unreachable!("gate returns Verify only with a context and a token");
                     };
-                    let result = ctx.verifier.verify(&token).await;
+                    let result = sendable(ctx.verifier.verify(&token)).await;
                     let error_codes = result.as_ref().ok().map(|o| o.error_codes.clone());
                     let error = result.as_ref().err().map(ToString::to_string);
                     if let Err(code) = challenge::judge(result, &ctx.policy) {
@@ -279,7 +300,7 @@ pub async fn submit_contact(
                 filter = filter.name(),
                 decided_by = tracing::field::Empty
             );
-            match filter.filter(&input).instrument(span.clone()).await {
+            match sendable(filter.filter(&input).instrument(span.clone())).await {
                 FilterDecision::Accept => {}
                 FilterDecision::Reject => {
                     span.in_scope(|| tracing::warn!("submission rejected by filter"));
@@ -295,7 +316,7 @@ pub async fn submit_contact(
         }
 
         // 9. Deliver.
-        if let Err(e) = delivery.deliver(input).await {
+        if let Err(e) = sendable(delivery.deliver(input)).await {
             // A timeout may have delivered the message, so it has its own code
             // (RFC 009 D3).  Both are `ServerError`, so both reach the banner.
             let code = match e {

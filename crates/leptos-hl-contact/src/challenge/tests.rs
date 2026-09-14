@@ -8,10 +8,7 @@ use super::*;
 struct MockVerifier(Result<ChallengeOutcome, ChallengeError>);
 
 impl ChallengeVerifier for MockVerifier {
-    fn verify(
-        &self,
-        _token: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<ChallengeOutcome, ChallengeError>> + Send + '_>> {
+    fn verify(&self, _token: &str) -> VerifyFuture<'_> {
         // `ChallengeError` is not `Clone`; rebuild the answer each call.
         let answer = match &self.0 {
             Ok(outcome) => Ok(outcome.clone()),

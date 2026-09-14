@@ -1,8 +1,9 @@
 // delivery/noop.rs — No-op delivery backend for testing and local development.
 
-use std::{future::Future, pin::Pin};
-
-use crate::{delivery::ContactDelivery, error::ContactDeliveryError, model::ContactInput};
+use crate::{
+    delivery::{ContactDelivery, DeliveryFuture},
+    model::ContactInput,
+};
 
 /// A delivery backend that silently discards every submission.
 ///
@@ -23,10 +24,7 @@ use crate::{delivery::ContactDelivery, error::ContactDeliveryError, model::Conta
 pub struct NoopDelivery;
 
 impl ContactDelivery for NoopDelivery {
-    fn deliver(
-        &self,
-        _input: ContactInput,
-    ) -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>> {
+    fn deliver(&self, _input: ContactInput) -> DeliveryFuture<'_> {
         Box::pin(async move {
             tracing::debug!("NoopDelivery: discarding contact form submission");
             Ok(())

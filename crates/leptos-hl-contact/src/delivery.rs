@@ -19,6 +19,27 @@ use crate::{error::ContactDeliveryError, model::ContactInput};
 // ContactDelivery trait
 // ---------------------------------------------------------------------------
 
+/// The future [`ContactDelivery::deliver`] returns.
+///
+/// It is `Send` on every target except a wasm32 server build
+/// (`all(target_arch = "wasm32", feature = "ssr")`, such as Cloudflare
+/// Workers), where an implementation may await JavaScript futures, which are
+/// not `Send`.  The implementing type itself must still be `Send + Sync` on
+/// every target: Leptos context requires it.
+#[cfg(not(all(target_arch = "wasm32", feature = "ssr")))]
+pub type DeliveryFuture<'a> =
+    Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + 'a>>;
+
+/// The future [`ContactDelivery::deliver`] returns.
+///
+/// It is `Send` on every target except a wasm32 server build
+/// (`all(target_arch = "wasm32", feature = "ssr")`, such as Cloudflare
+/// Workers), where an implementation may await JavaScript futures, which are
+/// not `Send`.  The implementing type itself must still be `Send + Sync` on
+/// every target: Leptos context requires it.
+#[cfg(all(target_arch = "wasm32", feature = "ssr"))]
+pub type DeliveryFuture<'a> = Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + 'a>>;
+
 /// Abstraction over message delivery backends.
 ///
 /// Implement this trait to add a custom delivery backend (SendGrid, AWS SES,
@@ -71,10 +92,7 @@ pub trait ContactDelivery: Send + Sync + 'static {
     ///
     /// Implementations should avoid leaking internal error details; callers
     /// will log errors and return a generic message to the client.
-    fn deliver(
-        &self,
-        input: ContactInput,
-    ) -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>>;
+    fn deliver(&self, input: ContactInput) -> DeliveryFuture<'_>;
 }
 
 // ---------------------------------------------------------------------------

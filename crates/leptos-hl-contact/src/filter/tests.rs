@@ -27,10 +27,7 @@ impl Fixed {
 }
 
 impl ContactFilter for Fixed {
-    fn filter(
-        &self,
-        _input: &ContactInput,
-    ) -> Pin<Box<dyn Future<Output = FilterDecision> + Send + '_>> {
+    fn filter(&self, _input: &ContactInput) -> FilterFuture<'_> {
         self.calls.fetch_add(1, Ordering::SeqCst);
         let decision = self.decision;
         Box::pin(async move { decision })

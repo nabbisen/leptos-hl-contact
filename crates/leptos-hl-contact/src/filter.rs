@@ -81,16 +81,33 @@ pub enum FilterDecision {
 /// ```
 pub trait ContactFilter: Send + Sync + 'static {
     /// Called after validation, policy, and challenge; before delivery.
-    fn filter(
-        &self,
-        input: &ContactInput,
-    ) -> Pin<Box<dyn Future<Output = FilterDecision> + Send + '_>>;
+    fn filter(&self, input: &ContactInput) -> FilterFuture<'_>;
 
     /// Short name for logs; default = type name.
     fn name(&self) -> &'static str {
         std::any::type_name::<Self>()
     }
 }
+
+/// The future [`ContactFilter::filter`] returns.
+///
+/// It is `Send` on every target except a wasm32 server build
+/// (`all(target_arch = "wasm32", feature = "ssr")`, such as Cloudflare
+/// Workers), where an implementation may await JavaScript futures, which are
+/// not `Send`.  The implementing type itself must still be `Send + Sync` on
+/// every target: Leptos context requires it.
+#[cfg(not(all(target_arch = "wasm32", feature = "ssr")))]
+pub type FilterFuture<'a> = Pin<Box<dyn Future<Output = FilterDecision> + Send + 'a>>;
+
+/// The future [`ContactFilter::filter`] returns.
+///
+/// It is `Send` on every target except a wasm32 server build
+/// (`all(target_arch = "wasm32", feature = "ssr")`, such as Cloudflare
+/// Workers), where an implementation may await JavaScript futures, which are
+/// not `Send`.  The implementing type itself must still be `Send + Sync` on
+/// every target: Leptos context requires it.
+#[cfg(all(target_arch = "wasm32", feature = "ssr"))]
+pub type FilterFuture<'a> = Pin<Box<dyn Future<Output = FilterDecision> + 'a>>;
 
 /// Turns filtering on for `submit_contact`.
 ///
@@ -120,10 +137,7 @@ impl std::fmt::Debug for FilterChain {
 }
 
 impl ContactFilter for FilterChain {
-    fn filter(
-        &self,
-        input: &ContactInput,
-    ) -> Pin<Box<dyn Future<Output = FilterDecision> + Send + '_>> {
+    fn filter(&self, input: &ContactInput) -> FilterFuture<'_> {
         let input = input.clone();
         Box::pin(async move {
             for filter in &self.0 {

@@ -1,11 +1,11 @@
 // http.rs — Built-in challenge verifiers that call the vendors' siteverify
 // endpoints (feature `challenge-http`).
 
-use std::{future::Future, pin::Pin, time::Duration};
+use std::time::Duration;
 
 use serde::Deserialize;
 
-use super::{ChallengeError, ChallengeOutcome, ChallengeVerifier};
+use super::{ChallengeError, ChallengeOutcome, ChallengeVerifier, VerifyFuture};
 use crate::config::ChallengeProvider;
 
 /// How long a verification may take before it fails with
@@ -119,10 +119,7 @@ impl std::fmt::Debug for HttpChallengeVerifier {
 }
 
 impl ChallengeVerifier for HttpChallengeVerifier {
-    fn verify(
-        &self,
-        token: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<ChallengeOutcome, ChallengeError>> + Send + '_>> {
+    fn verify(&self, token: &str) -> VerifyFuture<'_> {
         let token = token.to_owned();
         Box::pin(async move {
             if self.secret.is_empty() {

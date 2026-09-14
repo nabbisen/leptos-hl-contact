@@ -11,10 +11,7 @@ use super::*;
 struct Never;
 
 impl ContactDelivery for Never {
-    fn deliver(
-        &self,
-        _input: ContactInput,
-    ) -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>> {
+    fn deliver(&self, _input: ContactInput) -> DeliveryFuture<'_> {
         Box::pin(pending())
     }
 }
@@ -23,10 +20,7 @@ impl ContactDelivery for Never {
 struct Answers(fn() -> Result<(), ContactDeliveryError>);
 
 impl ContactDelivery for Answers {
-    fn deliver(
-        &self,
-        _input: ContactInput,
-    ) -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>> {
+    fn deliver(&self, _input: ContactInput) -> DeliveryFuture<'_> {
         let result = (self.0)();
         Box::pin(async move { result })
     }

@@ -1,17 +1,13 @@
 //! Test doubles for the context values an integrator provides.
 
-use std::{
-    future::Future,
-    pin::Pin,
-    sync::{
-        Mutex,
-        atomic::{AtomicUsize, Ordering},
-    },
+use std::sync::{
+    Mutex,
+    atomic::{AtomicUsize, Ordering},
 };
 
 use leptos_hl_contact::{
     ChallengeError, ChallengeOutcome, ChallengeVerifier, ContactDelivery, ContactDeliveryError,
-    ContactFilter, ContactInput, FilterDecision,
+    ContactFilter, ContactInput, DeliveryFuture, FilterDecision, FilterFuture, VerifyFuture,
 };
 
 /// The transport detail `FailingDelivery` reports.  Operators need it in
@@ -37,10 +33,7 @@ impl RecordingDelivery {
 }
 
 impl ContactDelivery for RecordingDelivery {
-    fn deliver(
-        &self,
-        input: ContactInput,
-    ) -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>> {
+    fn deliver(&self, input: ContactInput) -> DeliveryFuture<'_> {
         self.calls.fetch_add(1, Ordering::SeqCst);
         *self.last.lock().unwrap() = Some(input);
         Box::pin(async { Ok(()) })
@@ -60,10 +53,7 @@ impl FailingDelivery {
 }
 
 impl ContactDelivery for FailingDelivery {
-    fn deliver(
-        &self,
-        _input: ContactInput,
-    ) -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>> {
+    fn deliver(&self, _input: ContactInput) -> DeliveryFuture<'_> {
         self.calls.fetch_add(1, Ordering::SeqCst);
         Box::pin(async {
             Err(ContactDeliveryError::Transport(
@@ -78,10 +68,7 @@ impl ContactDelivery for FailingDelivery {
 pub struct NeverDelivery;
 
 impl ContactDelivery for NeverDelivery {
-    fn deliver(
-        &self,
-        _input: ContactInput,
-    ) -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>> {
+    fn deliver(&self, _input: ContactInput) -> DeliveryFuture<'_> {
         Box::pin(std::future::pending())
     }
 }
@@ -126,10 +113,7 @@ impl ScriptedVerifier {
 }
 
 impl ChallengeVerifier for ScriptedVerifier {
-    fn verify(
-        &self,
-        token: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<ChallengeOutcome, ChallengeError>> + Send + '_>> {
+    fn verify(&self, token: &str) -> VerifyFuture<'_> {
         self.seen.lock().unwrap().push(token.to_owned());
         let answer = match &self.answer {
             Ok(outcome) => Ok(outcome.clone()),
@@ -163,10 +147,7 @@ impl FixedFilter {
 }
 
 impl ContactFilter for FixedFilter {
-    fn filter(
-        &self,
-        _input: &ContactInput,
-    ) -> Pin<Box<dyn Future<Output = FilterDecision> + Send + '_>> {
+    fn filter(&self, _input: &ContactInput) -> FilterFuture<'_> {
         self.calls.fetch_add(1, Ordering::SeqCst);
         let decision = self.decision;
         Box::pin(async move { decision })

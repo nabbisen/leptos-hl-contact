@@ -2,7 +2,7 @@
 //
 // Enabled by the `smtp-lettre` feature flag.
 
-use std::{future::Future, pin::Pin, time::Duration};
+use std::time::Duration;
 
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
@@ -11,7 +11,9 @@ use lettre::{
 };
 
 use crate::{
-    delivery::ContactDelivery, error::ContactDeliveryError, model::ContactInput,
+    delivery::{ContactDelivery, DeliveryFuture},
+    error::ContactDeliveryError,
+    model::ContactInput,
     security::sanitize_header_value,
 };
 
@@ -271,10 +273,7 @@ impl LettreSmtpDelivery {
 }
 
 impl ContactDelivery for LettreSmtpDelivery {
-    fn deliver(
-        &self,
-        input: ContactInput,
-    ) -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>> {
+    fn deliver(&self, input: ContactInput) -> DeliveryFuture<'_> {
         // The whole exchange runs under one deadline; lettre bounds only the
         // connect.  A timeout is logged once, by `submit_contact`.
         Box::pin(crate::delivery::timeout::with_deadline(

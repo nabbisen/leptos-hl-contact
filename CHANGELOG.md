@@ -4,6 +4,17 @@
 
 ### Added
 
+- **Future aliases for the extension traits.**  `DeliveryFuture`,
+  `VerifyFuture` and `FilterFuture` name the futures `ContactDelivery`,
+  `ChallengeVerifier` and `ContactFilter` return.  Natively they are exactly
+  the types written before, so existing implementations still compile.  On a
+  wasm32 server build (Cloudflare Workers) the futures need not be `Send`;
+  there, switch an implementation that spells out `+ Send` to the alias.
+- **A wasm32 server build enables `getrandom`'s `wasm_js` backend** for the
+  two versions a Leptos server pulls in, so a Cloudflare Workers build
+  compiles.  The application still passes
+  `RUSTFLAGS='--cfg getrandom_backend="wasm_js"'`, which `getrandom` 0.3
+  requires and a library cannot set.
 - **The honeypot without an inline style.**  `ContactFormClasses::honeypot`
   puts a class on the honeypot's wrapper, and
   `ContactFormOptions::honeypot_inline_style` (default `true`) can turn off
@@ -11,8 +22,17 @@
   without `'unsafe-inline'`.  With `false`, hide the wrapper with your own
   CSS through the class; the Styling guide has the rule to copy.
 
+### Changed
+
+- **`axum-helpers` no longer turns on `leptos_axum`'s and `axum`'s default
+  features.**  The application chooses them: a native Axum application
+  enables the defaults, a Worker enables `leptos_axum`'s `wasm` feature.
+
 ### Migration
 
+- An application using `axum-helpers` must depend on `leptos_axum` itself.
+  Every Axum application using the form already does, because it calls
+  `leptos_routes_with_context`.
 - A `ContactFormClasses { … }` or `ContactFormOptions { … }` literal without
   `..Default::default()` must add the new field.  The rendered form is
   unchanged unless you set `honeypot_inline_style: false`.

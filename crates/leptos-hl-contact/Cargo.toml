@@ -18,7 +18,7 @@ crate-type = ["cdylib", "rlib"]
 [features]
 default = []
 hydrate = ["leptos/hydrate"]
-ssr = ["leptos/ssr"]
+ssr = ["leptos/ssr", "dep:send_wrapper", "dep:getrandom", "dep:getrandom_04"]
 islands = ["leptos/islands"]
 smtp-lettre = ["ssr", "dep:lettre", "dep:tokio", "delivery-timeout"]
 # `DeliveryTimeout`: a deadline for any delivery backend.  Its timer is
@@ -37,13 +37,15 @@ thiserror = "2"
 validator = { version = "0.20", features = ["derive"] }
 tracing = "0.1"
 
-# SSR-only (optional)
-leptos_axum = { version = "0.8", optional = true }
-axum = { version = "0.8", optional = true }
+# SSR-only (optional).  No default features: the application chooses them.  A
+# native Axum application depends on `leptos_axum` with its defaults, because it
+# calls `leptos_routes_with_context`; a Cloudflare Worker enables its `wasm`
+# feature instead, which brings no tokio (RFC 011 D6).
+leptos_axum = { version = "0.8", optional = true, default-features = false }
+axum = { version = "0.8", optional = true, default-features = false }
 
 # SMTP (optional, smtp-lettre feature)
 lettre = { version = "0.11", features = ["smtp-transport", "tokio1", "tokio1-native-tls", "builder", "hostname"], default-features = false, optional = true }
-tokio = { version = "1", features = ["rt"], optional = true }
 
 # Form token (optional, form-token feature)
 hmac = { version = "0.13", optional = true }
@@ -55,9 +57,33 @@ hex = { version = "0.4", optional = true }
 # only, so there is no second TLS stack and no system library to install.
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "http2"], optional = true }
 
+# Native only: a Cloudflare Worker has no tokio runtime (RFC 011 D6, D7).
+# `smtp-lettre` and `delivery-timeout` still name it; on wasm32 it is inert.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1", features = ["rt"], optional = true }
+
+# wasm32 server only (RFC 011 D2): `submit_contact` awaits extension futures
+# that need not be `Send` through `SendWrapper`.  `ssr` enables it; a browser
+# build never enables `ssr`, and on native it is not compiled.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+send_wrapper = { version = "0.6", features = ["futures"], optional = true }
+# A Leptos server on wasm32 (Cloudflare Workers, RFC 011) pulls in two
+# getrandom versions without their wasm backend: 0.3 through `rand` 0.9
+# (this crate's form token, and Leptos's `nonce` feature) and 0.4 through
+# Leptos's `nonce` feature, which leptos_axum enables.  Enabling `wasm_js`
+# here lets a Workers build compile; 0.3 still needs the application's
+# `--cfg getrandom_backend="wasm_js"`.  Drop the 0.4 entry once Leptos enables
+# it for server builds itself.
+getrandom = { version = "0.3", features = ["wasm_js"], optional = true }
+getrandom_04 = { package = "getrandom", version = "0.4", features = ["wasm_js"], optional = true }
+
 # Native-only: tokio's `net` and `rt-multi-thread` do not build for wasm32, and
 # the browser tests below are the only tests compiled for it.
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+# `axum-helpers` no longer turns on their default features, so the unit tests
+# and the server suite ask for them, as a native application does.
+leptos_axum = "0.8"
+axum = "0.8"
 # `net`, `io-util`, `sync` and `time` run the local siteverify responder in
 # the challenge-http tests.
 # `test-util` pauses the clock, so no test waits for a delivery deadline.

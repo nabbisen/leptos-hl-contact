@@ -41,6 +41,7 @@ never inline.  Groups:
 | `axum_helpers/tests.rs` | closure is `Clone` |
 | `tests/server/` | the crate over HTTP, in process: every behaviour a response or a delivery shows (see below) |
 | `tests/browser/` | the component in headless Chrome: focus, token acquisition and refresh, explicit widget rendering (see below) |
+| `tests/worker/` | the wasm32 server build (Cloudflare Workers): extension futures that are not `Send`.  Compiled by the CI step `check (wasm32 server, Workers features)` |
 
 Tests are written from the [Requirements](./requirements.md) and
 [External Design](./external-design.md), not from the code: when a test
