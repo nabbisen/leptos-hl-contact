@@ -82,7 +82,15 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 
 ## Current
 
-No milestone in progress.  The next milestone is planned jointly with the owner; candidates are listed under Unscheduled below.
+### M5 — Cloudflare Workers → 0.7.0 — **authorized 2026-09-15**
+
+Owner decisions 2026-09-15: Cloudflare Workers is a supported server target (P-23); it ships as milestone M5 → 0.7.0, with the reflerd.com team testing on `wrangler dev` and their live Worker before release.  The honeypot request is a separate small item.  Origin: the reflerd.com team's request of 2026-09-13.
+
+| ID | Item | Priority | Kind | Evidence |
+|----|------|----------|------|----------|
+| P-23 | Cloudflare Workers as a supported server target: `Send` relaxed for extension futures on a wasm32 server, the built-in challenge verifier over `fetch` with redirects still refused, a wasm-safe clock for the form token, `DeliveryTimeout` without tokio, `axum-helpers` without tokio, a Workers guide and CSP directives | **High** | [RFC 011](./rfcs/proposed/011-cloudflare-workers.md) (proposed; three owner decisions) | measured 2026-09-15: on wasm32 `challenge-http` fails to compile, `form-token` panics at run time, `axum-helpers` fails on `mio`, `delivery-timeout` cannot run |
+| P-40 | Pass the visitor's IP to challenge verification (`remoteip`), additive: `ChallengeRequest`, a default `verify_request`, `ChallengeClientIp` context | Medium | [RFC 011](./rfcs/proposed/011-cloudflare-workers.md) D5 | Turnstile recommends `remoteip`; `verify` receives only the token |
+| P-39 | The honeypot without an inline style: `ContactFormClasses::honeypot` and `ContactFormOptions::honeypot_inline_style` (default `true`) | Medium | [RFC 012](./rfcs/proposed/012-honeypot-without-inline-style.md) (proposed; one owner decision) | under a CSP without `'unsafe-inline'` the field becomes visible and a visitor who fills it is silently discarded |
 
 ---
 
@@ -92,7 +100,6 @@ No milestone in progress.  The next milestone is planned jointly with the owner;
 |----|------|----------|------|
 | P-20 | Multi-language label presets (GUI rule requires i18n) | Medium | RFC |
 | P-22 | HTTP-API delivery adapters: Resend, SendGrid, AWS SES | TBD | RFC per adapter |
-| P-23 | Cloudflare Workers compatibility: `lettre` with tokio and native TLS cannot run on Workers; needs a fetch-based delivery adapter and a runtime-neutral core | TBD (owner decision on target platforms) | RFC |
 | P-24 | Dependency and CI hygiene: consider `subtle` for constant-time comparison; CI on MSRV 1.85 plus stable; pin GitHub Actions by commit SHA rather than tag (the workflow uses `actions/checkout`, `dtolnay/rust-toolchain` and, since RFC 008, `taiki-e/install-action`).  `sha2` 0.10.9 beside our 0.11.0 comes only from a Leptos proc-macro and is not ours to unify; transitive advisories in Leptos's own dependencies (`paste`, `proc-macro-error2`, `anyhow`) remain as of 0.5.0 | Low | task |
 | P-26 | Scheduled CI job running the `#[ignore]` live vendor tests; deferred by the owner on 2026-09-12 because it carries a cost | TBD (owner) | RFC |
 | P-35 | Opt-in mail-domain check: a DNS lookup for a mail exchanger (falling back to an address record, RFC 5321 §5.1) behind a feature, time-bounded, reported as an error under the email field so a visitor can fix a typo; accepts with a `warn` log when DNS does not answer.  Catches non-existent domains, not non-existent mailboxes | Low — **approved** 2026-09-13, less prioritized | RFC |
@@ -117,7 +124,8 @@ No milestone in progress.  The next milestone is planned jointly with the owner;
 
 ## Decisions required from the owner
 
-1. P-23: is Cloudflare Workers a target platform for this crate?
+1. RFC 011: delivery on Workers stays the integrator's own backend in 0.7.0 (recommended); how the reflerd.com team tests before release — a git revision (recommended) or a `0.7.0-rc.1` pre-release on crates.io; no workerd job in CI for now (recommended).
+2. RFC 012: the honeypot's inline style stays the default, with an opt-out for strict CSP (recommended).
 
 ---
 
@@ -196,3 +204,4 @@ Owner decisions of 2026-09-13: test strategy first (RFC 008: browser tests on ev
 - 2026-09-13: RFC 008 complete.  M4 ships as 0.6.0: the 0.4 names removed (P-37), P-34, P-33 (approved) and P-32 (approved; RFC 009).  RFC 010 accepted for the first three.
 - 2026-09-13: RFC 009 accepted — the SMTP backend stops at 30 s by default, a timeout reports its own `delivery_timeout` code, and `DeliveryTimeout` is public for custom backends.
 - 2026-09-13: 0.6.0 released — tag `0.6.0` on `33fc677`, published by the architect under the owner's authorisation; M4 complete.
+- 2026-09-15: P-23 decided — Cloudflare Workers is a supported server target; milestone M5 → 0.7.0 with the reflerd.com team as runtime testers; the reply to their request is written after the 0.7.0 release.  RFC 011 and RFC 012 proposed.

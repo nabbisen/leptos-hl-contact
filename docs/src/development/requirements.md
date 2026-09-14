@@ -1,8 +1,9 @@
 # Requirements Specification
 
-> **Document status.** Draft 18, 2026-09-13, against release `0.6.0`.
+> **Document status.** Draft 19, 2026-09-15, against release `0.6.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
-> M1–M4 are released; the document as a whole awaits formal approval.
+> M1–M4 are released and M5 is owner-authorized; the document as a whole
+> awaits formal approval.
 > Once approved, this document is the requirements baseline; later changes
 > go through RFCs listed in [`rfcs/README.md`](https://github.com/nabbisen/leptos-hl-contact/blob/main/rfcs/README.md).
 >
@@ -279,7 +280,7 @@ input the browser accepted.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | NFR-PORT-01 | The core (`default = []`) MUST compile for `wasm32-unknown-unknown` and native targets | Met |
-| NFR-PORT-02 | Cloudflare Workers: the SMTP backend cannot run there (tokio, native TLS).  Whether a fetch-based delivery adapter and a runtime-neutral server path are required is an owner decision | Decision (P-23) |
+| NFR-PORT-02 | Cloudflare Workers: the SMTP backend cannot run there (tokio, native TLS).  Whether a fetch-based delivery adapter and a runtime-neutral server path are required is an owner decision | Planned (P-23, RFC 011, milestone M5 → 0.7.0): owner decision 2026-09-15 — Cloudflare Workers is a supported server target |
 
 ### 6.5 Performance (NFR-PERF)
 
@@ -351,7 +352,7 @@ input the browser accepted.
 | Requirement | Status | Roadmap item |
 |-------------|--------|--------------|
 | FR-I18N-03 | Planned | P-20 |
-| NFR-PORT-02 | Decision | P-23 |
+| NFR-PORT-02 | Planned | P-23 / RFC 011 (M5) |
 | NFR-DEP-02 | Partial | P-24 |
 
 ---
@@ -360,8 +361,9 @@ input the browser accepted.
 
 1. ~~**Anti-forgery token (FR-ABUSE-02).**~~ Decided 2026-09-12 (RFC 004):
    form token with minimum age; cookie binding opt-in in `axum-helpers`.
-2. **Target platforms (NFR-PORT-02).** Is Cloudflare Workers a supported
-   target?  If yes, a fetch-based delivery adapter becomes a requirement.
+2. ~~**Target platforms (NFR-PORT-02).**~~ Decided 2026-09-15: Cloudflare
+   Workers is a supported server target (milestone M5, RFC 011).  Whether a
+   built-in Workers delivery adapter is required is RFC 011 owner decision 1.
 3. ~~**Turnstile adapter.**~~ Decided 2026-09-12: challenge providers are in
    scope (Turnstile, hCaptcha, reCAPTCHA v2/v3), opt-in, no-JS rejected
    by default, HTTP client behind `challenge-http`.
@@ -377,6 +379,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-15 | Draft 19 | Owner decision: Cloudflare Workers is a supported server target — NFR-PORT-02 Planned (RFC 011), open question 2 resolved |
 | 2026-09-13 | Draft 18 | 0.6.0 released: document status against `0.6.0`; M4 released |
 | 2026-09-13 | Draft 17 | 0.6.0 documentation check: FR-CFG-01 Met (the crate rustdoc feature table lists `challenge-http` and every flag's implications) |
 | 2026-09-13 | Draft 16 | RFC 009: FR-DEL-08 and NFR-PERF-03 Met (SMTP deadline, `DeliveryTimeout`); `delivery-timeout` added to FR-CFG-01; gap row removed |

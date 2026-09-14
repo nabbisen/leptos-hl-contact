@@ -15,7 +15,8 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Priority |
 |----|-------|----------|
-| — | *(none)* | |
+| 011 | [Cloudflare Workers as a supported server target](./proposed/011-cloudflare-workers.md) | High (P-23, P-40; milestone M5) |
+| 012 | [The honeypot without an inline style](./proposed/012-honeypot-without-inline-style.md) | Medium (P-39; milestone M5) |
 
 ## Accepted
 
@@ -53,5 +54,5 @@ Derived from the roadmap milestones; each becomes a numbered RFC in
 | Roadmap item | Topic |
 |--------------|-------|
 | P-20 | Multi-language label presets |
-| P-22 / P-23 | HTTP-API delivery adapters and runtime portability |
+| P-22 | HTTP-API delivery adapters |
 | P-26 | Scheduled CI job for live challenge-vendor tests (owner-cost decision) |
