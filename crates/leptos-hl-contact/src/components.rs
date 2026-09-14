@@ -670,6 +670,13 @@ pub fn ContactForm(
                         l.name.clone(), l.email.clone(), l.subject.clone(), l.message.clone(),
                         l.submit.clone(), l.sending.clone(), l.honeypot_label.clone(),
                     ));
+                // The honeypot wrapper: a class only when one is set, and the
+                // inline style unless the site hides the wrapper itself (RFC 012).
+                let honeypot_class = classes
+                    .with_value(|c| (!c.honeypot.is_empty()).then(|| c.honeypot.clone()));
+                let honeypot_style = options.with_value(|o| o.honeypot_inline_style).then_some(
+                    "position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden",
+                );
                 let show_subject = options.with_value(|o| o.show_subject);
                 let require_subject = options.with_value(|o| o.require_subject);
                 let max_msg_len = options.with_value(|o| o.effective_max_message_len());
@@ -790,19 +797,34 @@ pub fn ContactForm(
                         />
 
                         // Honeypot — visually hidden; excluded from assistive tech.
-                        <div
-                            aria-hidden="true"
-                            style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden"
-                        >
-                            <label for="contact-website">{l_honey}</label>
-                            <input
-                                id="contact-website"
-                                name="website"
-                                type="text"
-                                tabindex="-1"
-                                autocomplete="off"
-                            />
-                        </div>
+                        // Without a class the wrapper renders exactly as in 0.6:
+                        // an empty `class` would still be rendered as `class=""`.
+                        {
+                            let body = view! {
+                                <label for="contact-website">{l_honey}</label>
+                                <input
+                                    id="contact-website"
+                                    name="website"
+                                    type="text"
+                                    tabindex="-1"
+                                    autocomplete="off"
+                                />
+                            };
+                            match honeypot_class {
+                                Some(class) => view! {
+                                    <div class=class aria-hidden="true" style=honeypot_style>
+                                        {body}
+                                    </div>
+                                }
+                                .into_any(),
+                                None => view! {
+                                    <div aria-hidden="true" style=honeypot_style>
+                                        {body}
+                                    </div>
+                                }
+                                .into_any(),
+                            }
+                        }
 
                         // Submit button
                         <div class=fc.clone()>

@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- **The honeypot without an inline style.**  `ContactFormClasses::honeypot`
+  puts a class on the honeypot's wrapper, and
+  `ContactFormOptions::honeypot_inline_style` (default `true`) can turn off
+  the wrapper's inline `style` attribute, for a Content Security Policy
+  without `'unsafe-inline'`.  With `false`, hide the wrapper with your own
+  CSS through the class; the Styling guide has the rule to copy.
+
+### Migration
+
+- A `ContactFormClasses { … }` or `ContactFormOptions { … }` literal without
+  `..Default::default()` must add the new field.  The rendered form is
+  unchanged unless you set `honeypot_inline_style: false`.
+
 ## [0.6.0] — 2026-09-13
 
 This is the minor release in which the deprecated 0.4 names were removed.

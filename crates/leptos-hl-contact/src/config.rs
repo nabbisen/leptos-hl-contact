@@ -53,6 +53,13 @@ pub struct ContactFormClasses {
     pub error: String,
     /// Success message shown after a successful submission.
     pub success: String,
+    /// The honeypot's wrapper `<div>`.
+    ///
+    /// Needed when [`ContactFormOptions::honeypot_inline_style`] is `false`:
+    /// the site's CSS must then hide the wrapper through this class.  Optional
+    /// otherwise.  When empty, no `class` attribute is rendered.
+    #[serde(default)]
+    pub honeypot: String,
 }
 
 // ---------------------------------------------------------------------------
@@ -536,6 +543,29 @@ pub struct ContactFormOptions {
     /// reached by client-side navigation submits an empty token and shows the
     /// token-invalid message.
     pub token_refresh_secs: Option<u64>,
+
+    /// Whether the honeypot's wrapper carries the inline style that moves it
+    /// off screen.  Defaults to `true`.
+    ///
+    /// A Content Security Policy without `'unsafe-inline'` blocks that
+    /// attribute.  Set this to `false` under such a policy: the crate then
+    /// renders **no** `style` attribute, and the site must hide the wrapper
+    /// through [`ContactFormClasses::honeypot`] with a rule such as:
+    ///
+    /// ```css
+    /// .your-honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+    /// ```
+    ///
+    /// With `false` and no such rule the field is visible, and a visitor who
+    /// fills it in is silently discarded as a bot.  `aria-hidden`,
+    /// `tabindex="-1"` and `autocomplete="off"` are rendered in both modes.
+    #[serde(default = "default_true")]
+    pub honeypot_inline_style: bool,
+}
+
+/// Serde default for fields added after 0.6 whose default is `true`.
+fn default_true() -> bool {
+    true
 }
 
 impl Default for ContactFormOptions {
@@ -546,6 +576,7 @@ impl Default for ContactFormOptions {
             max_message_len: MESSAGE_MAX_LEN,
             focus_first_error: true,
             token_refresh_secs: None,
+            honeypot_inline_style: true,
         }
     }
 }

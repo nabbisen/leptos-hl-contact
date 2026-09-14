@@ -527,3 +527,46 @@ fn code_text_renders_delivery_timeout() {
         "送信に時間がかかりすぎました。"
     );
 }
+
+/// FR-UI-10 (RFC 012): the honeypot keeps its inline style unless a site opts
+/// out, and has no class by default.
+#[test]
+fn the_honeypot_defaults_keep_the_inline_style() {
+    assert!(ContactFormClasses::default().honeypot.is_empty());
+    assert!(ContactFormOptions::default().honeypot_inline_style);
+}
+
+/// NFR-COMPAT-04 (RFC 012): settings serialized by 0.6, which have neither
+/// new field, still deserialize, and take the defaults.
+#[test]
+fn settings_serialized_by_0_6_still_deserialize() {
+    let mut classes = serde_json::to_value(ContactFormClasses {
+        honeypot: "set-by-a-newer-version".into(),
+        ..ContactFormClasses::default()
+    })
+    .unwrap();
+    assert!(
+        classes
+            .as_object_mut()
+            .unwrap()
+            .remove("honeypot")
+            .is_some()
+    );
+    let classes: ContactFormClasses = serde_json::from_value(classes).unwrap();
+    assert_eq!(classes.honeypot, "");
+
+    let mut options = serde_json::to_value(ContactFormOptions {
+        honeypot_inline_style: false,
+        ..ContactFormOptions::default()
+    })
+    .unwrap();
+    assert!(
+        options
+            .as_object_mut()
+            .unwrap()
+            .remove("honeypot_inline_style")
+            .is_some()
+    );
+    let options: ContactFormOptions = serde_json::from_value(options).unwrap();
+    assert!(options.honeypot_inline_style);
+}

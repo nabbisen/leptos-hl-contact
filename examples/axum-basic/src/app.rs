@@ -41,6 +41,7 @@ fn ContactPage() -> impl IntoView {
                     button: "contact-button".into(),
                     error: "contact-error".into(),
                     success: "contact-success".into(),
+                    ..Default::default()
                 }
                 labels=ContactFormLabels::default()
                 options=ContactFormOptions::default()

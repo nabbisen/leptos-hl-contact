@@ -5,7 +5,11 @@
 use leptos::prelude::*;
 
 use super::{count, render};
-use crate::{components::ContactForm, config::ContactFormOptions, model::MESSAGE_MAX_LEN};
+use crate::{
+    components::ContactForm,
+    config::{ContactFormClasses, ContactFormOptions},
+    model::MESSAGE_MAX_LEN,
+};
 
 const VISIBLE_CONTROLS: [&str; 4] = [
     "contact-name",
@@ -16,6 +20,10 @@ const VISIBLE_CONTROLS: [&str; 4] = [
 
 fn form(options: ContactFormOptions) -> String {
     render(move || view! { <ContactForm options=options /> }.into_any())
+}
+
+fn form_with(options: ContactFormOptions, classes: ContactFormClasses) -> String {
+    render(move || view! { <ContactForm options=options classes=classes /> }.into_any())
 }
 
 /// The start tag of the element whose `id` is exactly `id`.
@@ -96,12 +104,15 @@ fn required_fields_carry_both_required_attributes() {
     );
 }
 
-/// FR-UI-10, FR-A11Y-06: the honeypot input is out of the tab order and
-/// autofill, and sits inside an `aria-hidden` wrapper placed off screen.
-#[test]
-fn the_honeypot_is_hidden_from_everyone() {
-    let html = form(ContactFormOptions::default());
-    let input = tag(&html, "contact-website");
+/// The inline style 0.6 renders on the honeypot wrapper.
+/// Server rendering ends the value with `;`.
+const HONEYPOT_STYLE: &str = "position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;";
+
+/// The honeypot input's start tag and its wrapper's, after checking what
+/// holds in both modes: the input is out of the tab order and autofill, the
+/// wrapper is `aria-hidden`, and the input sits inside the wrapper.
+fn honeypot(html: &str) -> (&str, &str) {
+    let input = tag(html, "contact-website");
     assert_eq!(attribute(input, "name"), Some("website"), "{input}");
     assert_eq!(attribute(input, "tabindex"), Some("-1"), "{input}");
     assert_eq!(attribute(input, "autocomplete"), Some("off"), "{input}");
@@ -110,15 +121,67 @@ fn the_honeypot_is_hidden_from_everyone() {
     let start = html[..at].rfind("<div").expect("a wrapper");
     let wrapper = &html[start..=start + html[start..].find('>').expect("tag end")];
     assert_eq!(attribute(wrapper, "aria-hidden"), Some("true"), "{wrapper}");
-    let style = attribute(wrapper, "style").unwrap_or_default();
-    assert!(
-        style.contains("position:absolute") && style.contains("left:-9999px"),
-        "{wrapper}"
-    );
     assert!(
         !html[start..at].contains("</div>"),
         "the input is inside the wrapper"
     );
+    (input, wrapper)
+}
+
+/// FR-UI-10, FR-A11Y-06: by default the honeypot input is out of the tab
+/// order and autofill, and sits inside an `aria-hidden` wrapper placed off
+/// screen by its inline style — the markup 0.6 rendered, with no class.
+#[test]
+fn the_honeypot_is_hidden_from_everyone() {
+    let html = form(ContactFormOptions::default());
+    let (_, wrapper) = honeypot(&html);
+    assert_eq!(
+        attribute(wrapper, "style"),
+        Some(HONEYPOT_STYLE),
+        "{wrapper}"
+    );
+    assert!(!has_attribute(wrapper, "class"), "{wrapper}");
+}
+
+/// FR-UI-10, FR-A11Y-06, FR-UI-03 (RFC 012): with `honeypot_inline_style`
+/// `false` the wrapper carries the site's class and no `style` attribute at
+/// all, so a Content Security Policy without `'unsafe-inline'` has nothing to
+/// block; `aria-hidden`, `tabindex` and `autocomplete` are unchanged.
+#[test]
+fn an_opted_out_honeypot_has_its_class_and_no_inline_style() {
+    let html = form_with(
+        ContactFormOptions {
+            honeypot_inline_style: false,
+            ..ContactFormOptions::default()
+        },
+        ContactFormClasses {
+            honeypot: "hp".into(),
+            ..ContactFormClasses::default()
+        },
+    );
+    let (_, wrapper) = honeypot(&html);
+    assert!(!has_attribute(wrapper, "style"), "{wrapper}");
+    assert_eq!(attribute(wrapper, "class"), Some("hp"), "{wrapper}");
+}
+
+/// FR-UI-03 (RFC 012 D1): the class hook also applies with the inline style
+/// kept.
+#[test]
+fn the_honeypot_class_is_added_beside_the_inline_style() {
+    let html = form_with(
+        ContactFormOptions::default(),
+        ContactFormClasses {
+            honeypot: "hp".into(),
+            ..ContactFormClasses::default()
+        },
+    );
+    let (_, wrapper) = honeypot(&html);
+    assert_eq!(
+        attribute(wrapper, "style"),
+        Some(HONEYPOT_STYLE),
+        "{wrapper}"
+    );
+    assert_eq!(attribute(wrapper, "class"), Some("hp"), "{wrapper}");
 }
 
 /// FR-VAL-07, FR-VAL-08: `maxlength` agrees with the validator — 80 on

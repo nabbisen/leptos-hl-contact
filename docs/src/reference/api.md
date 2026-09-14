@@ -97,7 +97,7 @@ the first non-blank one is the challenge token.
 ## `config`
 
 ```rust,ignore
-pub struct ContactFormClasses { pub root, field, label, input, textarea, button, error, success: String }
+pub struct ContactFormClasses { pub root, field, label, input, textarea, button, error, success, honeypot: String }
 pub struct ContactFormLabels  { pub name, email, subject, message, submit, sending, success, error, honeypot_label: String, pub errors: ContactErrorLabels }
 pub struct ContactErrorLabels {
     pub required, length, format_email, format, line_breaks, token_invalid, too_fast,
@@ -150,7 +150,11 @@ impl ContactErrorLabels {
     pub fn field_text(&self, field: ContactField, err: &FieldError) -> String;
     pub fn code_text(&self, code: ContactErrorCode) -> String;
 }
-pub struct ContactFormOptions { pub show_subject: bool, pub require_subject: bool, pub max_message_len: usize, pub focus_first_error: bool }
+pub struct ContactFormOptions {
+    pub show_subject: bool, pub require_subject: bool, pub max_message_len: usize, pub focus_first_error: bool,
+    pub token_refresh_secs: Option<u64>,
+    pub honeypot_inline_style: bool,   // default true; false renders no style attribute on the honeypot wrapper
+}
 pub struct ContactServerPolicy { pub require_subject: bool, pub max_message_len: usize }
 
 impl ContactFormOptions {

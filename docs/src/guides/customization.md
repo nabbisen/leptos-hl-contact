@@ -26,10 +26,13 @@ let classes = ContactFormClasses {
     button:   "contact-button".into(),
     error:    "contact-error".into(),    // per-field and generic errors
     success:  "contact-success".into(),
+    honeypot: "contact-honeypot".into(), // the honeypot's wrapper
 };
 ```
 
-Framework examples are in [Styling](./styling.md).
+`honeypot` is needed only when `honeypot_inline_style` is `false`; see
+[Styling → Honeypot](./styling.md#honeypot).  Framework examples are in
+[Styling](./styling.md).
 
 ## ContactFormLabels
 
@@ -71,6 +74,7 @@ let options = ContactFormOptions {
     max_message_len:   4000,   // textarea maxlength; clamped to 4 000
     focus_first_error: true,   // focus the first invalid input after a failure
     token_refresh_secs: None,  // Some(ttl_secs - 60) when the server issues form tokens
+    honeypot_inline_style: true, // false under a CSP without 'unsafe-inline'
 };
 ```
 
@@ -80,6 +84,7 @@ let options = ContactFormOptions {
 | `require_subject` | `false` | Mark the subject required in the UI |
 | `max_message_len` | `4000` | `maxlength` on the textarea |
 | `focus_first_error` | `true` | After a failed submission, move keyboard focus to the first invalid input.  Client-side only; set `false` if your page manages focus itself |
+| `honeypot_inline_style` | `true` | Put the inline style that hides the honeypot on its wrapper.  Set `false` under a Content Security Policy without `'unsafe-inline'`, and hide the wrapper through `ContactFormClasses::honeypot` with your own CSS, or the field is visible.  [Details](./styling.md#honeypot) |
 | `token_refresh_secs` | `None` | When `Some`, the browser fetches a form token for a form reached by client-side navigation and refreshes it before expiry.  Set it to `ttl_secs - 60` whenever the server issues form tokens; without it such a form submits an empty token and shows the token-invalid message.  [Details](../security/form-token.md#tokens-in-the-browser-acquisition-and-refresh) |
 
 These control the browser only.  Anyone can POST to the server function

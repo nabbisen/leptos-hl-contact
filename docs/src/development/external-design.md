@@ -158,7 +158,7 @@ The following identifiers and attributes are **public API** [NFR-COMPAT-05].
 | message `<textarea>` | `contact-message` | `message` | `required maxlength=<options> rows=6 aria-required=true` | `textarea` |
 | field error `<p>` | `<input-id>-error` | — | `role="alert" aria-live="polite"` | `error` |
 | token `<input>` | — | `form_token` | `type=hidden` | — |
-| honeypot wrapper `<div>` | — | — | `aria-hidden=true`, off-screen inline style | — |
+| honeypot wrapper `<div>` | — | — | `aria-hidden=true`; off-screen inline style unless `honeypot_inline_style` is `false` (RFC 012) | `honeypot` |
 | honeypot `<input>` | `contact-website` | `website` | `type=text tabindex=-1 autocomplete=off` | — |
 | submit `<button>` | — | — | `type=submit`; `disabled` and `aria-busy` while pending | `button` |
 

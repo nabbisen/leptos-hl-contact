@@ -199,14 +199,14 @@ tests from the code side.
 |---|---|---|---|---|
 | FR-UI-01 | `components::form_renders_all_ids_once`, `components::subject_hidden_when_option_false`, `components::attributes::required_fields_carry_both_required_attributes` | — | — | — |
 | FR-UI-02 | `config::field_text_substitutes_in_a_translated_label`, `components::the_noscript_message_escapes_label_and_class` | — | `pending::the_submit_button_is_busy_while_sending` | every other string: review of `ContactFormLabels` |
-| FR-UI-03 | `config::classes_default_is_all_empty`, `components::the_noscript_message_escapes_label_and_class` | — | — | a hook on every structural element: review |
+| FR-UI-03 | `config::classes_default_is_all_empty`, `components::the_noscript_message_escapes_label_and_class`, `components::attributes::an_opted_out_honeypot_has_its_class_and_no_inline_style`, `components::attributes::the_honeypot_class_is_added_beside_the_inline_style` | — | — | a hook on every structural element: review |
 | FR-UI-04 | — | `validation::field_errors_round_trip_without_javascript`, `validation::a_banner_error_sets_no_field_error`, `delivery::the_success_page_is_applied_when_configured` | `focus::focus_moves_to_the_first_invalid_field`, `token::the_hidden_token_survives_a_failed_submission` | the pending state and inline success: review |
 | FR-UI-05 | — | — | `pending::the_submit_button_is_busy_while_sending` | — |
 | FR-UI-06 | — | `delivery::the_success_page_is_applied_when_configured` | — | inline success with JavaScript: review |
 | FR-UI-07 | — | — | `focus::focus_moves_to_the_first_invalid_field` | — |
 | FR-UI-08 | `config::field_text_renders_required_and_line_breaks` | `validation::field_errors_round_trip_without_javascript` | — | — |
 | FR-UI-09 | `config::code_text_maps_unexpected_to_delivery_failed`, `config::code_text_renders_delivery_timeout` | `delivery::a_delivery_error_reaches_the_client_only_as_delivery_failed`, `routing::a_missing_delivery_context_is_not_configured`, `validation::a_banner_error_sets_no_field_error`, `delivery::a_delivery_timeout_reaches_the_client_as_delivery_timeout` | — | — |
-| FR-UI-10 | `components::attributes::the_honeypot_is_hidden_from_everyone` | — | — | — |
+| FR-UI-10 | `components::attributes::the_honeypot_is_hidden_from_everyone`, `components::attributes::an_opted_out_honeypot_has_its_class_and_no_inline_style`, `config::the_honeypot_defaults_keep_the_inline_style` | — | — | with `honeypot_inline_style: false` the site's CSS hides the wrapper: documentation (Styling) |
 | FR-UI-11 | `config::options_default_shows_subject`, `config::options_effective_len_is_clamped`, `components::subject_hidden_when_option_false`, `components::attributes::required_fields_carry_both_required_attributes`, `components::attributes::maxlength_matches_the_validator` | — | — | — |
 | FR-UI-12 | `components::hidden_token_is_rendered_from_context`, `components::the_reactive_token_attribute_renders_the_ssr_value`, `server::a_mounted_token_refreshes_at_its_refresh_point`, `server::an_overdue_mounted_token_refreshes_immediately`, `server::a_fast_browser_clock_costs_one_immediate_refresh`, `server::a_slow_browser_clock_is_capped_at_the_interval`, `config::options_default_never_calls_the_token_endpoint` | `binding::binding_reuses_the_browser_nonce_across_renders`, `binding::the_token_endpoint_reuses_the_nonce` | `token::without_refresh_the_token_endpoint_is_never_called`, `token::an_empty_token_field_acquires_exactly_once`, `token::an_overdue_mounted_token_refreshes_once`, `token::a_fetched_token_schedules_its_refresh_from_arrival`, `token::the_hidden_token_survives_a_failed_submission` | — |
 | FR-SUB-01 | — | `routing::context_in_the_one_closure_reaches_submit_contact`, `delivery::a_valid_submission_is_delivered_once_in_both_forms` | — | — |
@@ -260,7 +260,7 @@ tests from the code side.
 | FR-A11Y-03 | — | `validation::field_errors_round_trip_without_javascript` | `focus::focus_moves_to_the_first_invalid_field` | — |
 | FR-A11Y-04 | — | `validation::a_banner_error_sets_no_field_error` (the assertive banner) | — | the polite success region and field alerts: review |
 | FR-A11Y-05 | — | — | `pending::the_submit_button_is_busy_while_sending` | — |
-| FR-A11Y-06 | `components::attributes::the_honeypot_is_hidden_from_everyone` | — | — | — |
+| FR-A11Y-06 | `components::attributes::the_honeypot_is_hidden_from_everyone`, `components::attributes::an_opted_out_honeypot_has_its_class_and_no_inline_style` | — | — | — |
 | FR-A11Y-07 | **none** | **none** | **none** | review: native controls only, and the crate ships no CSS |
 | FR-A11Y-08 | **none** | **none** | **none** | review: every state has text; the crate ships no colours |
 | FR-A11Y-09 | **none** | **none** | **none** | by construction and review; no automated accessibility audit runs |
@@ -288,7 +288,7 @@ tests from the code side.
 | NFR-COMPAT-01 | **none** | **none** | **none** | CI builds: `cargo test --all-features` (the `ssr`, `hydrate` and `islands` features together) and the `browser` job (`hydrate` on wasm32); Islands mode behaviour: review |
 | NFR-COMPAT-02 | **none** | **none** | **none** | review: CI runs Rust 1.91, not the MSRV 1.85, so nothing builds on 1.85 until P-24 |
 | NFR-COMPAT-03 | **none** | **none** | — | review of `Cargo.toml` (`axum` is optional, behind `axum-helpers`); the `browser` job builds the crate without it |
-| NFR-COMPAT-04 | — | `form_token::a_0_4_csrf_token_field_is_no_longer_accepted` | — | the rest of the policy: review at release |
+| NFR-COMPAT-04 | `config::settings_serialized_by_0_6_still_deserialize` | `form_token::a_0_4_csrf_token_field_is_no_longer_accepted` | — | the rest of the policy: review at release |
 | NFR-COMPAT-05 | **none** | **none** | **none** | review at release; the SSR tests in `components::` pin the ids, field names and the ARIA attributes tested above, so a change to those fails a test |
 | NFR-PORT-01 | **none** | **none** | **none** | CI: the `check` job builds `default = []` for wasm32 (`cargo check -p leptos-hl-contact --target wasm32-unknown-unknown`); the `browser` job and the example's wasm check build it with `hydrate` |
 | NFR-PERF-01 | **none** | **none** | — | review |
