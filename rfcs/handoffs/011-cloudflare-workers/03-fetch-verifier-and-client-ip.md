@@ -104,6 +104,28 @@ accept it, omit it for that vendor and say so.
   `Response`, `AbortController`, `AbortSignal`), plus `js-sys`,
   `wasm-bindgen` and `wasm-bindgen-futures`.  All are wasm32-only.
 
+### 3a. Carried over from the handoff 02 review
+
+- **Widen the timer's `cfg`.**  `wasm_timer` is compiled under
+  `all(target_arch = "wasm32", feature = "delivery-timeout")`.  Make it
+  `all(target_arch = "wasm32", any(feature = "delivery-timeout", feature = "challenge-http"))`.
+  Let `challenge-http` enable `js-sys` and `wasm-bindgen` on wasm32, as
+  `delivery-timeout` does.  Confirm with the Workers check for
+  `ssr,challenge-http` alone.
+- **`wasm-bindgen-futures` for `fetch`.**  Awaiting the `fetch` promise
+  through `JsFuture` is fine: a `fetch` promise always settles, including
+  when aborted, so its callbacks are freed.  That is unlike the cleared timer
+  handoff 02 avoided.  Add `wasm-bindgen-futures` as a wasm32-only optional
+  dependency enabled by `challenge-http`.
+- **Abort on drop.**  Hold the `AbortController` in a guard.  If the
+  verification future is dropped before the response arrives (the request
+  was cancelled), the guard's `Drop` aborts it, so no request runs on.
+  Once the response has arrived, `Drop` does nothing.  Test it in
+  `tests/worker`:
+  - **`fetch_verifier::a_dropped_verification_aborts_its_request`:** the stub
+    records the request's `AbortSignal`; drop the verification future after
+    one poll; the signal reports `aborted`.
+
 ### 4. CI
 
 Add `challenge-http` to handoff 01's Workers step and to handoff 02's

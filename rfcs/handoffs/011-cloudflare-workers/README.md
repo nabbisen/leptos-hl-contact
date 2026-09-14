@@ -16,7 +16,7 @@ Review requests go to `.git-exclude/review-request/011-cloudflare-workers/`.
 | 03 | [Challenge verification over `fetch`; the visitor's IP](./03-fetch-verifier-and-client-ip.md) | D3, D5 | 02 | large |
 | 04 | [Workers guide, CSP directives, records](./04-docs-and-records.md) | D8, D9 | 03 | medium |
 
-**State.** Handoff 01 approved 2026-09-15 (`7bcf450`); step 0 decision recorded (option A).  02–04 open.
+**State.** Handoff 01 approved 2026-09-15 (`7bcf450`); step 0 decision recorded (option A).  Handoff 02 approved 2026-09-15 (`749e7e0`).  03–04 open.
 
 **Strictly in order.**
 - **01 first.**  Its step 0 spike can stop the design.
