@@ -75,8 +75,10 @@ with the application's `getrandom` `wasm_js` configuration:
 
 ### D1 — What "supported on Workers" means
 
-**The target.**  A Leptos server compiled for `wasm32-unknown-unknown`, with
-`leptos_axum`'s `wasm` feature and no tokio.  The term "server on wasm32"
+**The target.**  A Leptos server compiled for `wasm32-unknown-unknown`, with `leptos_axum`'s `wasm` feature and no tokio runtime.  (tokio itself is
+still compiled in, because `leptos_axum` depends on it unconditionally;
+nothing starts a tokio runtime, and tokio's networking, `mio`, is absent.
+Amended at the handoff 01 review, 2026-09-15.)  The term "server on wasm32"
 below means `all(target_arch = "wasm32", feature = "ssr")`.  A browser
 (`hydrate`) build never enables `ssr`, so none of this touches it.
 
@@ -253,8 +255,11 @@ it when present.
   created with the global `setTimeout`.  It clears the timer when the
   delivery finishes first, so no timer outlives the request.  Expiry drops
   the delivery and returns `Timeout(limit)`, exactly as natively.
-- **Features.**  tokio becomes a native-only dependency of `delivery-timeout`.
-  `cargo tree -i tokio` for the Workers feature set prints nothing.
+- **Features.**  tokio becomes a native-only dependency of this crate.  On
+  wasm32 this crate adds no tokio dependency, and `mio` is absent.  (The
+  proposal said `cargo tree -i tokio` would print nothing.  It cannot while
+  `leptos_axum` depends on tokio unconditionally; amended at the handoff 01
+  review, 2026-09-15.)
 
 ### D8 — Documentation
 
@@ -282,8 +287,7 @@ it when present.
 ### D9 — Records
 
 - **NFR-PORT-02 becomes a requirement:** "The server path (`ssr`,
-  `form-token`, `challenge-http`, `axum-helpers`, `delivery-timeout`) MUST
-  build for and run on Cloudflare Workers (wasm32, no tokio).  Delivery
+  `form-token`, `challenge-http`, `axum-helpers`, `delivery-timeout`) MUST build for and run on Cloudflare Workers (wasm32, no tokio runtime).  Delivery
   there is the integrator's own backend."  Status Planned → Met (0.7.0).
 - **Traceability.**  The table gains the row, with the CI step and the
   reflerd.com runtime report as its verification.

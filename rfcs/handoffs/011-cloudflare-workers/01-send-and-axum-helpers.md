@@ -169,7 +169,9 @@ its evidence are in `.git-exclude/reviewed/011-cloudflare-workers/01-step0-spike
    default check, tests, doc.  So do both suites and both examples, with
    `--locked`.
 3. **The new CI step** passes locally and in CI, including `--tests`.
-4. **tokio is gone from wasm32:** the output of
+4. **tokio is gone from wasm32** *(amended at review, 2026-09-15: `leptos_axum`
+   depends on tokio unconditionally, so the criterion is that this crate adds
+   no tokio dependency on wasm32 and `mio` is absent)*: the output of
    `cargo tree -p leptos-hl-contact --target wasm32-unknown-unknown --no-default-features --features ssr,form-token,axum-helpers,delivery-timeout -e normal -i tokio`
    (expected: nothing).
 5. **Native `axum-helpers`, checked with an application that enables the

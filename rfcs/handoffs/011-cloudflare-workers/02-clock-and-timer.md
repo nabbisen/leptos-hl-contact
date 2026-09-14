@@ -69,6 +69,17 @@ then the timer.  No `futures` crate.
 **`delivery-timeout`'s features** become `["ssr", "dep:tokio", "tokio/time"]`
 plus the wasm32 dependencies above.  tokio remains native-only (handoff 01).
 
+### 4. Carried over from the handoff 01 review
+
+- **`src/filter.rs` rustdoc example (`MaxLinks`).**  Return `FilterFuture<'_>`
+  instead of spelling out the native future type.  A Workers integrator who
+  copies the example must not get a type mismatch.
+- **`.github/workflows/ci.yml`.**  The Workers step's comment says "no
+  tokio"; make it "no tokio runtime".  `leptos_axum` compiles tokio in
+  unconditionally.
+- **The interim `with_deadline`.**  Remove it (§3).
+  `git grep -n "TODO(011-02)"` must print nothing.
+
 ## Tests
 
 **L1, native:** `form_token::now_unix_secs_matches_the_system_clock`.  It is
