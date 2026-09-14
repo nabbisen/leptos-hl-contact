@@ -1,7 +1,8 @@
 # RFC 012 — The honeypot without an inline style
 
-**Status.** Proposed — 2026-09-15.  Part of milestone M5 → 0.7.0, as a
-small separate item (owner, 2026-09-15).
+**Status.** Accepted — 2026-09-15, with the recommended default (§Owner
+decision).  Part of milestone M5 → 0.7.0, as a small separate item.
+**Handoffs.** [`../handoffs/012-honeypot-without-inline-style/README.md`](../handoffs/012-honeypot-without-inline-style/README.md)
 **Tracks.** Roadmap P-39.  Requirements FR-UI-10, FR-UI-03, FR-SUB-04,
 NFR-COMPAT-05 (the DOM contract).
 **Touches.** `config.rs`, `components.rs`, their tests, the styling and
@@ -109,7 +110,7 @@ states that responsibility plainly, with the rule to copy.
   opted-out case fails.
 - **Traceability:** the FR-UI-10 and FR-A11Y-06 rows cite both cases.
 
-## Owner decision requested
+## Owner decision (2026-09-15)
 
-1. **The inline style stays the default** (`honeypot_inline_style: true`),
-   and sites under a strict CSP opt out.  *Recommended: yes.*
+1. **The inline style stays the default** (`honeypot_inline_style: true`);
+   sites under a strict Content Security Policy opt out.

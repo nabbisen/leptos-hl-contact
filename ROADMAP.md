@@ -88,9 +88,9 @@ Owner decisions 2026-09-15: Cloudflare Workers is a supported server target (P-2
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
-| P-23 | Cloudflare Workers as a supported server target: `Send` relaxed for extension futures on a wasm32 server, the built-in challenge verifier over `fetch` with redirects still refused, a wasm-safe clock for the form token, `DeliveryTimeout` without tokio, `axum-helpers` without tokio, a Workers guide and CSP directives | **High** | [RFC 011](./rfcs/proposed/011-cloudflare-workers.md) (proposed; three owner decisions) | measured 2026-09-15: on wasm32 `challenge-http` fails to compile, `form-token` panics at run time, `axum-helpers` fails on `mio`, `delivery-timeout` cannot run |
-| P-40 | Pass the visitor's IP to challenge verification (`remoteip`), additive: `ChallengeRequest`, a default `verify_request`, `ChallengeClientIp` context | Medium | [RFC 011](./rfcs/proposed/011-cloudflare-workers.md) D5 | Turnstile recommends `remoteip`; `verify` receives only the token |
-| P-39 | The honeypot without an inline style: `ContactFormClasses::honeypot` and `ContactFormOptions::honeypot_inline_style` (default `true`) | Medium | [RFC 012](./rfcs/proposed/012-honeypot-without-inline-style.md) (proposed; one owner decision) | under a CSP without `'unsafe-inline'` the field becomes visible and a visitor who fills it is silently discarded |
+| P-23 | Cloudflare Workers as a supported server target: `Send` relaxed for extension futures on a wasm32 server, the built-in challenge verifier over `fetch` with redirects still refused, a wasm-safe clock for the form token, `DeliveryTimeout` without tokio, `axum-helpers` without tokio, a Workers guide and CSP directives | **High** | [RFC 011](./rfcs/accepted/011-cloudflare-workers.md) (accepted 2026-09-15; handoffs 01–04) | measured 2026-09-15: on wasm32 `challenge-http` fails to compile, `form-token` panics at run time, `axum-helpers` fails on `mio`, `delivery-timeout` cannot run |
+| P-40 | Pass the visitor's IP to challenge verification (`remoteip`), additive: `ChallengeRequest`, a default `verify_request`, `ChallengeClientIp` context | Medium | [RFC 011](./rfcs/accepted/011-cloudflare-workers.md) D5 | Turnstile recommends `remoteip`; `verify` receives only the token |
+| P-39 | The honeypot without an inline style: `ContactFormClasses::honeypot` and `ContactFormOptions::honeypot_inline_style` (default `true`) | Medium | [RFC 012](./rfcs/accepted/012-honeypot-without-inline-style.md) (accepted 2026-09-15; handoff 01) | under a CSP without `'unsafe-inline'` the field becomes visible and a visitor who fills it is silently discarded |
 
 ---
 
@@ -124,8 +124,7 @@ Owner decisions 2026-09-15: Cloudflare Workers is a supported server target (P-2
 
 ## Decisions required from the owner
 
-1. RFC 011: delivery on Workers stays the integrator's own backend in 0.7.0 (recommended); how the reflerd.com team tests before release — a git revision (recommended) or a `0.7.0-rc.1` pre-release on crates.io; no workerd job in CI for now (recommended).
-2. RFC 012: the honeypot's inline style stays the default, with an opt-out for strict CSP (recommended).
+*(none open)*
 
 ---
 
@@ -205,3 +204,4 @@ Owner decisions of 2026-09-13: test strategy first (RFC 008: browser tests on ev
 - 2026-09-13: RFC 009 accepted — the SMTP backend stops at 30 s by default, a timeout reports its own `delivery_timeout` code, and `DeliveryTimeout` is public for custom backends.
 - 2026-09-13: 0.6.0 released — tag `0.6.0` on `33fc677`, published by the architect under the owner's authorisation; M4 complete.
 - 2026-09-15: P-23 decided — Cloudflare Workers is a supported server target; milestone M5 → 0.7.0 with the reflerd.com team as runtime testers; the reply to their request is written after the 0.7.0 release.  RFC 011 and RFC 012 proposed.
+- 2026-09-15: RFC 011 and RFC 012 accepted with the recommended options: delivery on Workers stays the integrator's backend; the reflerd.com team tests from a git revision; no workerd job in CI for 0.7.0; the honeypot's inline style stays the default with an opt-out.

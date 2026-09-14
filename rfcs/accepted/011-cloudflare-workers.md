@@ -1,9 +1,11 @@
 # RFC 011 — Cloudflare Workers as a supported server target
 
-**Status.** Proposed — 2026-09-15.  The owner decided the target and the
-milestone the same day: Cloudflare Workers is a supported server target
+**Status.** Accepted — 2026-09-15.  The owner accepted the RFC with the
+recommended option on each open question (§Owner decisions), having
+decided the same day that Cloudflare Workers is a supported server target
 (P-23), delivered as milestone M5 → 0.7.0, with the reflerd.com team as
-runtime testers.  The design decisions below await the owner.
+runtime testers.
+**Handoffs.** [`../handoffs/011-cloudflare-workers/README.md`](../handoffs/011-cloudflare-workers/README.md)
 **Tracks.** Roadmap P-23, P-40.  Requirements NFR-PORT-02 (Decision →
 Planned), NFR-PORT-01, FR-ABUSE-10 and -12, NFR-PRIV-02.  RFC 005's
 redirect guarantee.
@@ -350,18 +352,16 @@ extensions without a bridge.
   - the success redirect;
   - the delivery timeout.
 
-## Owner decisions requested
+## Owner decisions (2026-09-15)
+
+Accepted with the recommended option on each question:
 
 1. **Delivery on Workers stays the integrator's own backend in 0.7.0.**  No
    built-in Workers delivery adapter; that stays with P-22.
-   *Recommended: yes.*
-2. **How the reflerd.com team tests before release:**
-   - **(a) a git revision dependency** on `main`: nothing published, and
-     repeatable (*recommended*);
-   - **(b) a `0.7.0-rc.1` pre-release on crates.io:** closer to the real
-     artefact, but publishing is irreversible.
-3. **A workerd or wrangler runtime job in our CI:** not in 0.7.0; revisit
-   after the reflerd.com report.  *Recommended: not now.*
+2. **The reflerd.com team tests from a git revision** of `main` before the
+   release.  Nothing is published before 0.7.0 itself.
+3. **No workerd or wrangler runtime job in our CI** for 0.7.0; revisit after
+   the reflerd.com runtime report.
 
 ## Release implications
 

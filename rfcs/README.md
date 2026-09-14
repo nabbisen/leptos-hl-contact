@@ -15,14 +15,14 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 011 | [Cloudflare Workers as a supported server target](./proposed/011-cloudflare-workers.md) | High (P-23, P-40; milestone M5) |
-| 012 | [The honeypot without an inline style](./proposed/012-honeypot-without-inline-style.md) | Medium (P-39; milestone M5) |
+| — | *(none)* | |
 
 ## Accepted
 
 | ID | Title | Handoff |
 |----|-------|---------|
-| — | *(none)* | |
+| 011 | [Cloudflare Workers as a supported server target](./accepted/011-cloudflare-workers.md) | [handoffs/011-cloudflare-workers/](./handoffs/011-cloudflare-workers/README.md) |
+| 012 | [The honeypot without an inline style](./accepted/012-honeypot-without-inline-style.md) | [handoffs/012-honeypot-without-inline-style/](./handoffs/012-honeypot-without-inline-style/README.md) |
 
 ## Implemented
 
