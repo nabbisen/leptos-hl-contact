@@ -24,6 +24,7 @@
 //    the submitted token.
 
 use std::sync::Arc;
+#[cfg(not(all(target_arch = "wasm32", feature = "ssr")))]
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use hmac::{Hmac, Mac, digest::KeyInit};
@@ -205,9 +206,8 @@ pub struct FormToken(pub String);
 /// Call this once per page render and provide the result via Leptos context
 /// so that `ContactForm` can embed it in the hidden field.
 ///
-/// # Panics
-///
-/// Panics if the system clock is before the Unix epoch.
+/// A system clock before the Unix epoch signs timestamp 0, which verification
+/// rejects as expired.
 pub fn issue_form_token(config: &FormTokenConfig) -> FormToken {
     let mut nonce_bytes = [0u8; 16];
     rand::rng().fill_bytes(&mut nonce_bytes);
@@ -238,9 +238,8 @@ pub fn issue_form_token(config: &FormTokenConfig) -> FormToken {
 /// does all of this.  Reach for this function when wiring binding into
 /// another framework.
 ///
-/// # Panics
-///
-/// Panics if the system clock is before the Unix epoch.
+/// A system clock before the Unix epoch signs timestamp 0, which verification
+/// rejects as expired.
 pub fn issue_form_token_with_nonce(config: &FormTokenConfig, nonce: &str) -> Option<FormToken> {
     let usable = nonce.len() == NONCE_HEX_LEN && nonce.bytes().all(|b| b.is_ascii_hexdigit());
 
@@ -282,10 +281,7 @@ pub fn verify_form_token(
         return Err(FormTokenError::Malformed);
     }
 
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
+    let now = now_unix_secs();
 
     if timestamp > now.saturating_add(ALLOWED_FUTURE_SKEW_SECS) {
         return Err(FormTokenError::FromFuture);
@@ -412,12 +408,32 @@ pub type FormTokenContext = Arc<FormTokenConfig>;
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+/// Seconds since the Unix epoch.  A clock before 1970 reads as 0.
+///
+/// A token signed at 0 is rejected as expired, so a broken clock fails
+/// closed instead of panicking.
+#[cfg(not(all(target_arch = "wasm32", feature = "ssr")))]
+fn now_unix_secs() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
+/// Seconds since the Unix epoch, from the JavaScript clock.  A clock before
+/// 1970 reads as 0.
+///
+/// A wasm32 server (Cloudflare Workers) has no `SystemTime::now()`: it is
+/// `unimplemented` on `wasm32-unknown-unknown` (RFC 011 D4).
+#[cfg(all(target_arch = "wasm32", feature = "ssr"))]
+fn now_unix_secs() -> u64 {
+    // A negative value saturates to 0.
+    (js_sys::Date::now() / 1000.0) as u64
+}
+
 /// Stamp `nonce` with the current time and sign the pair.
 fn sign_token(nonce_hex: &str, config: &FormTokenConfig) -> FormToken {
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("system clock before Unix epoch")
-        .as_secs();
+    let timestamp = now_unix_secs();
 
     let signed_payload = format!("{timestamp}|{nonce_hex}");
     let signature = sign(&signed_payload, &config.secret_key);

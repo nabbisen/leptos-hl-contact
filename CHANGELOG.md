@@ -4,6 +4,10 @@
 
 ### Added
 
+- **The form token and `DeliveryTimeout` on a wasm32 server** (Cloudflare
+  Workers).  The token reads the JavaScript clock, where `SystemTime` is not
+  available, and `DeliveryTimeout` enforces its deadline on a wasm32 server
+  with a JavaScript timer, which it clears when the delivery finishes first.
 - **Future aliases for the extension traits.**  `DeliveryFuture`,
   `VerifyFuture` and `FilterFuture` name the futures `ContactDelivery`,
   `ChallengeVerifier` and `ContactFilter` return.  Natively they are exactly
@@ -24,6 +28,8 @@
 
 ### Changed
 
+- **A form token issued with a clock before 1970** is now signed with
+  timestamp 0, which verification rejects as expired, instead of panicking.
 - **`axum-helpers` no longer turns on `leptos_axum`'s and `axum`'s default
   features.**  The application chooses them: a native Axum application
   enables the defaults, a Worker enables `leptos_axum`'s `wasm` feature.

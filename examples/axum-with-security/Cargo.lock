@@ -1383,6 +1383,7 @@ dependencies = [
  "getrandom 0.4.3",
  "hex",
  "hmac",
+ "js-sys",
  "leptos",
  "leptos_axum",
  "lettre",
@@ -1396,6 +1397,7 @@ dependencies = [
  "tokio",
  "tracing",
  "validator",
+ "wasm-bindgen",
 ]
 
 [[package]]

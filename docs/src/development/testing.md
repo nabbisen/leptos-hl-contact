@@ -41,7 +41,7 @@ never inline.  Groups:
 | `axum_helpers/tests.rs` | closure is `Clone` |
 | `tests/server/` | the crate over HTTP, in process: every behaviour a response or a delivery shows (see below) |
 | `tests/browser/` | the component in headless Chrome: focus, token acquisition and refresh, explicit widget rendering (see below) |
-| `tests/worker/` | the wasm32 server build (Cloudflare Workers): extension futures that are not `Send`.  Compiled by the CI step `check (wasm32 server, Workers features)` |
+| `tests/worker/` | the wasm32 server build (Cloudflare Workers), run in headless Chrome: extension futures that are not `Send`, the form token's JavaScript clock, `DeliveryTimeout`'s JavaScript timer.  Run by the `browser` job's `worker tests` step |
 
 Tests are written from the [Requirements](./requirements.md) and
 [External Design](./external-design.md), not from the code: when a test
@@ -225,7 +225,7 @@ tests from the code side.
 | FR-VAL-03 | `model::newline_in_subject_fails`, `model::over_long_subject_yields_length_code_with_zero_min`, `model::empty_subject_uses_fallback` | `validation::each_rule_rejects_with_its_field_code`, `validation::a_blank_subject_is_delivered_as_absent` | — | — |
 | FR-VAL-04 | `model::too_long_message_fails`, `model::empty_message_yields_required_code`, `model::over_long_message_yields_length_code_at_the_ceiling` | `validation::each_rule_rejects_with_its_field_code` | — | — |
 | FR-VAL-05 | `model::honeypot_input_is_detected` | `silent::a_silent_outcome_is_indistinguishable_from_delivery` | — | — |
-| FR-VAL-06 | `form_token::issued_token_verifies_once_old_enough`, `form_token::malformed_tokens_are_rejected`, `form_token::an_old_token_is_expired`, `form_token::a_token_younger_than_the_minimum_is_too_young` | `form_token::a_missing_malformed_or_expired_token_is_rejected`, `form_token::a_too_young_token_is_retryable`, `form_token::a_0_4_csrf_token_field_is_no_longer_accepted` | — | — |
+| FR-VAL-06 | `form_token::issued_token_verifies_once_old_enough`, `form_token::malformed_tokens_are_rejected`, `form_token::an_old_token_is_expired`, `form_token::a_token_younger_than_the_minimum_is_too_young` | `form_token::a_missing_malformed_or_expired_token_is_rejected`, `form_token::a_too_young_token_is_retryable`, `form_token::a_0_4_csrf_token_field_is_no_longer_accepted` | `worker::clock::a_token_issued_now_verifies`, `worker::clock::a_token_is_too_young_before_its_minimum_age` (wasm32 server, headless Chrome) | — |
 | FR-VAL-07 | `model::message_length_counts_characters`, `config::policy_check_counts_characters_not_bytes`, `components::attributes::maxlength_matches_the_validator`, `model::email::a_255_character_address_is_a_length_error` | `policy::server_policy_counts_the_message_in_characters` | — | — |
 | FR-VAL-08 | `model::message_ceiling_constant_is_enforced_by_validator`, `config::options_effective_len_is_clamped`, `config::policy_check_clamps_to_ceiling`, `config::policy_default_matches_ceiling`, `components::attributes::maxlength_matches_the_validator` | — | — | — |
 | FR-ABUSE-01 | `model::honeypot_input_is_detected` | `silent::a_silent_outcome_is_indistinguishable_from_delivery` (no honeypot configuration in the harness) | — | — |

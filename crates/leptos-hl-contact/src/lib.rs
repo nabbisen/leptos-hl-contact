@@ -65,6 +65,10 @@ pub mod challenge;
 #[cfg(feature = "ssr")]
 pub mod filter;
 
+// A JavaScript timer for `DeliveryTimeout` on a wasm32 server (RFC 011 D7).
+#[cfg(all(target_arch = "wasm32", feature = "delivery-timeout"))]
+mod wasm_timer;
+
 // Axum integration helpers — compiled only when `axum-helpers` is active.
 #[cfg(feature = "axum-helpers")]
 pub mod axum_helpers;

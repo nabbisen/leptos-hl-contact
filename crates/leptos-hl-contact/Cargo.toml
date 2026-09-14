@@ -23,9 +23,9 @@ islands = ["leptos/islands"]
 smtp-lettre = ["ssr", "dep:lettre", "dep:tokio", "delivery-timeout"]
 # `DeliveryTimeout`: a deadline for any delivery backend.  Its timer is
 # declared here rather than left to arrive through lettre.
-delivery-timeout = ["ssr", "dep:tokio", "tokio/time"]
+delivery-timeout = ["ssr", "dep:tokio", "tokio/time", "dep:js-sys", "dep:wasm-bindgen"]
 axum-helpers = ["ssr", "dep:leptos_axum", "dep:axum"]
-form-token = ["ssr", "dep:hmac", "dep:sha2", "dep:rand", "dep:hex"]
+form-token = ["ssr", "dep:hmac", "dep:sha2", "dep:rand", "dep:hex", "dep:js-sys"]
 # Built-in verifiers that call the vendors' siteverify endpoints.
 challenge-http = ["ssr", "dep:reqwest"]
 
@@ -76,6 +76,11 @@ send_wrapper = { version = "0.6", features = ["futures"], optional = true }
 # it for server builds itself.
 getrandom = { version = "0.3", features = ["wasm_js"], optional = true }
 getrandom_04 = { package = "getrandom", version = "0.4", features = ["wasm_js"], optional = true }
+# A JavaScript clock (`form-token`, `delivery-timeout`) and timer
+# (`delivery-timeout`) on a wasm32 server, which has no `SystemTime` and no
+# tokio runtime (RFC 011 D4, D7).
+js-sys = { version = "0.3", optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
 
 # Native-only: tokio's `net` and `rt-multi-thread` do not build for wasm32, and
 # the browser tests below are the only tests compiled for it.

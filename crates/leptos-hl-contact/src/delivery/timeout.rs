@@ -83,9 +83,13 @@ where
     }
 }
 
-/// On a wasm32 server there is no tokio timer.  Until handoff 011-02 adds a
-/// JavaScript timer, the delivery is awaited without a deadline.
-// TODO(011-02): JavaScript timer
+/// On a wasm32 server there is no tokio timer, so the delivery races a
+/// JavaScript timer (RFC 011 D7).
+///
+/// The delivery is polled first, so one that is ready when the timer fires
+/// still returns its own result.  Whichever finishes, the other is dropped
+/// when this function returns: an unfinished delivery is cancelled, and an
+/// unfired timer is cleared by `Sleep`'s `Drop`.
 #[cfg(all(target_arch = "wasm32", feature = "ssr"))]
 pub(crate) async fn with_deadline<F>(
     limit: Duration,
@@ -94,8 +98,20 @@ pub(crate) async fn with_deadline<F>(
 where
     F: Future<Output = Result<(), ContactDeliveryError>>,
 {
-    let _ = limit;
-    delivery.await
+    use std::task::Poll;
+
+    let mut delivery = std::pin::pin!(delivery);
+    let mut timer = crate::wasm_timer::sleep(limit);
+    std::future::poll_fn(|cx| {
+        if let Poll::Ready(result) = delivery.as_mut().poll(cx) {
+            return Poll::Ready(result);
+        }
+        match std::pin::Pin::new(&mut timer).poll(cx) {
+            Poll::Ready(()) => Poll::Ready(Err(ContactDeliveryError::Timeout(limit))),
+            Poll::Pending => Poll::Pending,
+        }
+    })
+    .await
 }
 
 // ---------------------------------------------------------------------------

@@ -35,10 +35,9 @@ pub enum FilterDecision {
 /// # Example
 ///
 /// ```rust
-/// use std::{future::Future, pin::Pin};
 /// use leptos_hl_contact::{
 ///     ContactInput,
-///     filter::{ContactFilter, FilterDecision},
+///     filter::{ContactFilter, FilterDecision, FilterFuture},
 /// };
 ///
 /// /// Reject messages with more than `max` links.
@@ -47,10 +46,7 @@ pub enum FilterDecision {
 /// }
 ///
 /// impl ContactFilter for MaxLinks {
-///     fn filter(
-///         &self,
-///         input: &ContactInput,
-///     ) -> Pin<Box<dyn Future<Output = FilterDecision> + Send + '_>> {
+///     fn filter(&self, input: &ContactInput) -> FilterFuture<'_> {
 ///         let links = input.message.matches("http://").count()
 ///             + input.message.matches("https://").count();
 ///         Box::pin(async move {

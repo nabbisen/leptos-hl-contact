@@ -1093,6 +1093,7 @@ dependencies = [
  "axum",
  "getrandom 0.3.4",
  "getrandom 0.4.3",
+ "js-sys",
  "leptos",
  "leptos_axum",
  "lettre",
@@ -1103,6 +1104,7 @@ dependencies = [
  "tokio",
  "tracing",
  "validator",
+ "wasm-bindgen",
 ]
 
 [[package]]

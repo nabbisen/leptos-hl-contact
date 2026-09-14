@@ -32,7 +32,7 @@ jobs:
       - name: check (wasm32, default features)
         run: cargo check -p leptos-hl-contact --target wasm32-unknown-unknown
 
-      # Cloudflare Workers (RFC 011): the server path on wasm32, no tokio.
+      # Cloudflare Workers (RFC 011): the server path on wasm32, no tokio runtime.
       # `challenge-http` joins this list in handoff 011-03.  `--lib --test
       # worker`, not `--tests`: the unit tests and the server suite need tokio,
       # which is native-only.
@@ -91,6 +91,14 @@ jobs:
         env:
           CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER: wasm-bindgen-test-runner
         run: CHROMEDRIVER="$CHROMEWEBDRIVER/chromedriver" cargo test -p leptos-hl-contact --target wasm32-unknown-unknown --features hydrate --test browser
+
+      # The server path on wasm32 (RFC 011): the form token's JavaScript clock
+      # and `DeliveryTimeout`'s JavaScript timer, run in headless Chrome.
+      - name: worker tests (server features on wasm32)
+        env:
+          CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER: wasm-bindgen-test-runner
+          RUSTFLAGS: --cfg getrandom_backend="wasm_js"
+        run: CHROMEDRIVER="$CHROMEWEBDRIVER/chromedriver" cargo test -p leptos-hl-contact --target wasm32-unknown-unknown --no-default-features --features ssr,form-token,delivery-timeout --test worker
 
   # Examples are excluded from the workspace (see Cargo.toml), so the `check`
   # job never compiles them.  Separate job so a slow example build does not

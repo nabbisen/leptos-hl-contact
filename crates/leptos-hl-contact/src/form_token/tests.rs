@@ -334,3 +334,17 @@ fn a_fetched_token_is_refused_without_the_config() {
     let err = in_owner(issue_for_request).expect_err("not configured");
     assert!(err.to_string().contains("not_configured"), "{err}");
 }
+
+/// FR-VAL-06 (RFC 011 D4): the token's clock reads the present.
+#[test]
+fn now_unix_secs_matches_the_system_clock() {
+    let system = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("a clock after 1970")
+        .as_secs();
+    let token_clock = now_unix_secs();
+    assert!(
+        token_clock.abs_diff(system) <= 2,
+        "token clock {token_clock}, system clock {system}"
+    );
+}
