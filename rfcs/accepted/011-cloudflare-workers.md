@@ -180,13 +180,22 @@ Nothing else in the token changes: TTL, minimum age, future skew, and
 binding.  Binding stays optional; the reflerd.com site sets no cookies and
 will use the token without it.
 
-**Randomness.**  The token's nonce comes from `rand` 0.9, through
-`getrandom` 0.3.  On wasm32 that needs the `wasm_js` backend.
-- **The crate** enables `getrandom`'s `wasm_js` feature for a wasm32 server
-  build.
-- **The application** must still pass `--cfg getrandom_backend="wasm_js"`,
-  which a library cannot set.  The Workers guide says so, with the exact
-  flag.
+**Randomness.**  A Leptos server on wasm32 pulls in two `getrandom`
+versions without their wasm backend.  Amended 2026-09-15 after the
+handoff 01 spike, which found the second one.
+- **`getrandom` 0.3** comes through `rand` 0.9: this crate's form token, and
+  Leptos's `nonce` feature.  It needs the `wasm_js` feature **and** the
+  `--cfg getrandom_backend="wasm_js"` flag.
+- **`getrandom` 0.4** comes through Leptos's `nonce` feature, which
+  `leptos_axum` enables.  It needs only the `wasm_js` feature
+  (`getrandom-0.4.2/src/backends.rs:172`).
+- **The crate** enables `wasm_js` on both, as wasm32-only dependencies
+  switched on by `ssr`.  The 0.4 entry is a renamed dependency whose
+  comment says to drop it once Leptos enables the backend for server builds
+  itself.  A browser (`hydrate`) build never enables `ssr` and is unchanged.
+- **The application** must still pass `--cfg getrandom_backend="wasm_js"`
+  for 0.3, which a library cannot set.  The Workers guide says so, with the
+  exact flag.
 
 ### D5 — The visitor's IP for challenge verification (P-40)
 

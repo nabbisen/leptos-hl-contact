@@ -131,10 +131,18 @@ In the `check` job, after `check (wasm32, default features)`, add:
           -- -D warnings
 ```
 
-If `getrandom` 0.3 also needs its `wasm_js` feature, add it now:
-`getrandom = { version = "0.3", features = ["wasm_js"], optional = true }`
-as a wasm32-only dependency, enabled by `form-token`.  RFC 011 D4 anticipates
-this.  Report which you needed.
+**Randomness (decided after step 0, 2026-09-15, RFC 011 D4 as amended).**
+Add a `[target.'cfg(target_arch = "wasm32")'.dependencies]` table with
+two optional dependencies, both enabled by `ssr`, and a comment naming
+the cause (Leptos's `nonce` feature) and when to drop the 0.4 entry:
+
+```toml
+getrandom = { version = "0.3", features = ["wasm_js"], optional = true }
+getrandom_04 = { package = "getrandom", version = "0.4", features = ["wasm_js"], optional = true }
+```
+
+The CI step must pass with only the `--cfg` flag set.  The decision and
+its evidence are in `.git-exclude/reviewed/011-cloudflare-workers/01-step0-spike.md`.
 
 ## Tests
 

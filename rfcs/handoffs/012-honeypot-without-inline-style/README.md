@@ -11,6 +11,8 @@ Review requests go to `.git-exclude/review-request/012-honeypot-without-inline-s
 |---|---------|------------|------------|------|
 | 01 | [Class hook and inline-style opt-out](./01-class-and-opt-out.md) | D1–D3 | — | small |
 
+**State.** Handoff 01 approved 2026-09-15 (`7a45d69`).  RFC 012 moves to `done/` at the 0.7.0 release.
+
 **It comes before RFC 011's handoffs.**  It is small, and landing it first
 keeps the shared files (`testing.md`, `CHANGELOG.md`) free of three-way
 edits.
