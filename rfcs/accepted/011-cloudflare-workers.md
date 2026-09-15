@@ -186,8 +186,9 @@ will use the token without it.
 versions without their wasm backend.  Amended 2026-09-15 after the
 handoff 01 spike, which found the second one.
 - **`getrandom` 0.3** comes through `rand` 0.9: this crate's form token, and
-  Leptos's `nonce` feature.  It needs the `wasm_js` feature **and** the
-  `--cfg getrandom_backend="wasm_js"` flag.
+  Leptos's `nonce` feature.  Since **0.3.4** it needs only the `wasm_js`
+  feature; 0.3.0–0.3.3 also needed the `--cfg getrandom_backend="wasm_js"`
+  flag (`getrandom-0.3.4/CHANGELOG.md`).
 - **`getrandom` 0.4** comes through Leptos's `nonce` feature, which
   `leptos_axum` enables.  It needs only the `wasm_js` feature
   (`getrandom-0.4.2/src/backends.rs:172`).
@@ -195,9 +196,11 @@ handoff 01 spike, which found the second one.
   switched on by `ssr`.  The 0.4 entry is a renamed dependency whose
   comment says to drop it once Leptos enables the backend for server builds
   itself.  A browser (`hydrate`) build never enables `ssr` and is unchanged.
-- **The application** must still pass `--cfg getrandom_backend="wasm_js"`
-  for 0.3, which a library cannot set.  The Workers guide says so, with the
-  exact flag.
+- **The application needs no build flag.**  The crate requires `getrandom`
+  0.3.4, so the `wasm_js` feature it enables is always enough.  (Amended
+  again at the handoff 04 review, 2026-09-15.  Handoff 04 found that a
+  Workers build compiles without the flag; the earlier amendment had said the
+  application must still pass it.)
 
 ### D5 — The visitor's IP for challenge verification (P-40)
 
