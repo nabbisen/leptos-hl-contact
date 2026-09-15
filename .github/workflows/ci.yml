@@ -36,8 +36,6 @@ jobs:
       # `--lib --test worker`, not `--tests`: the unit tests and the server suite
       # need tokio, which is native-only.
       - name: check (wasm32 server, Workers features)
-        env:
-          RUSTFLAGS: --cfg getrandom_backend="wasm_js"
         run: >-
           cargo clippy -p leptos-hl-contact --target wasm32-unknown-unknown
           --no-default-features --features ssr,form-token,challenge-http,axum-helpers,delivery-timeout
@@ -97,7 +95,6 @@ jobs:
       - name: worker tests (server features on wasm32)
         env:
           CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER: wasm-bindgen-test-runner
-          RUSTFLAGS: --cfg getrandom_backend="wasm_js"
         run: CHROMEDRIVER="$CHROMEWEBDRIVER/chromedriver" cargo test -p leptos-hl-contact --target wasm32-unknown-unknown --no-default-features --features ssr,form-token,challenge-http,delivery-timeout --test worker
 
   # Examples are excluded from the workspace (see Cargo.toml), so the `check`

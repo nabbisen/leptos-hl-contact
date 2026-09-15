@@ -28,9 +28,7 @@
   there, switch an implementation that spells out `+ Send` to the alias.
 - **A wasm32 server build enables `getrandom`'s `wasm_js` backend** for the
   two versions a Leptos server pulls in, so a Cloudflare Workers build
-  compiles.  The application still passes
-  `RUSTFLAGS='--cfg getrandom_backend="wasm_js"'`, which `getrandom` 0.3
-  requires and a library cannot set.
+  compiles.  No build flag is needed.
 - **The honeypot without an inline style.**  `ContactFormClasses::honeypot`
   puts a class on the honeypot's wrapper, and
   `ContactFormOptions::honeypot_inline_style` (default `true`) can turn off

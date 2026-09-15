@@ -43,18 +43,8 @@ tower-service = "0.3"
 `leptos_axum`'s default features are native-only.  `axum-helpers` does not
 turn them on, so the `wasm` feature above is the whole choice.
 
-**The `getrandom` flag.**  Set `getrandom`'s JavaScript backend for the
-wasm32 target in `.cargo/config.toml` in your Worker's crate:
-
-```toml
-[target.wasm32-unknown-unknown]
-rustflags = ["--cfg", 'getrandom_backend="wasm_js"']
-```
-
-or pass `RUSTFLAGS='--cfg getrandom_backend="wasm_js"'` to the build.  This
-project's CI builds the Workers feature set with it.  `getrandom` 0.3.4
-documents the flag as accepted but no longer required once its `wasm_js`
-feature is on, which this crate enables for server builds on wasm32.
+**No build flag is needed.**  This crate enables `getrandom`'s `wasm_js`
+feature for server builds on wasm32, which selects its JavaScript backend.
 
 ## Delivery on a Worker
 
@@ -209,7 +199,7 @@ on a native server.
 > **About these snippets.**  They are fenced `rust,ignore` because they need
 > `worker`, `leptos_axum` and a wasm32 target, which the book's own test run
 > does not have.  When this guide was written, all three snippets, with the
-> dependencies and `.cargo/config.toml` above, were checked together in a
+> dependencies above, were checked together in a
 > scratch crate with `cargo check --target wasm32-unknown-unknown`.
 
 ## The visitor's IP

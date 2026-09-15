@@ -173,7 +173,6 @@ exercised; workerd itself is verified by the reflerd.com team before a
 release (NFR-PORT-02).
 
 ```bash
-RUSTFLAGS='--cfg getrandom_backend="wasm_js"' \
 CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
 CHROMEDRIVER=$(which chromedriver) \
 cargo test -p leptos-hl-contact --target wasm32-unknown-unknown \

@@ -9,7 +9,6 @@
 //!   D5).
 //!
 //! ```bash
-//! RUSTFLAGS='--cfg getrandom_backend="wasm_js"' \
 //! cargo test -p leptos-hl-contact --target wasm32-unknown-unknown \
 //!     --no-default-features --features ssr,form-token,challenge-http,delivery-timeout --test worker
 //! ```

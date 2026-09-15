@@ -78,10 +78,12 @@ send_wrapper = { version = "0.6", features = ["futures"], optional = true }
 # getrandom versions without their wasm backend: 0.3 through `rand` 0.9
 # (this crate's form token, and Leptos's `nonce` feature) and 0.4 through
 # Leptos's `nonce` feature, which leptos_axum enables.  Enabling `wasm_js`
-# here lets a Workers build compile; 0.3 still needs the application's
-# `--cfg getrandom_backend="wasm_js"`.  Drop the 0.4 entry once Leptos enables
-# it for server builds itself.
-getrandom = { version = "0.3", features = ["wasm_js"], optional = true }
+# here lets a Workers build compile.  Since getrandom 0.3.4 the `wasm_js`
+# feature alone selects the JavaScript backend on wasm32-unknown-unknown, so
+# no `--cfg` flag is needed; 0.3.4 is required because 0.3.0–0.3.3 also needed
+# the flag.  Drop the 0.4 entry once Leptos enables it for server builds
+# itself.
+getrandom = { version = "0.3.4", features = ["wasm_js"], optional = true }
 getrandom_04 = { package = "getrandom", version = "0.4", features = ["wasm_js"], optional = true }
 # A JavaScript clock (`form-token`, `delivery-timeout`) and timer
 # (`delivery-timeout`) on a wasm32 server, which has no `SystemTime` and no
