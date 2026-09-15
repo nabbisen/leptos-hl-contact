@@ -143,3 +143,26 @@ async fn challenge_decision_table_rows_1_to_7() {
     assert!(verifier.seen().iter().all(|t| t == "row-7-token"), "row 7");
     assert_eq!(h.deliveries(), 0, "row 7");
 }
+
+/// FR-ABUSE-10, NFR-PRIV-02, RFC 011 D5 (P-40): the IP a site provides as
+/// `ChallengeClientIp` reaches `verify_request`, in both request forms;
+/// without it the verifier sees `None`.
+#[tokio::test]
+async fn the_client_ip_reaches_the_verifier() {
+    let ip: std::net::IpAddr = "203.0.113.7".parse().unwrap();
+    for client_ip in [Some(ip), None] {
+        let verifier = Arc::new(ScriptedVerifier::passing());
+        let h = Harness::new(Setup {
+            challenge: Some(ChallengeContext {
+                verifier: Arc::clone(&verifier) as _,
+                policy: ChallengePolicy::default(),
+            }),
+            client_ip,
+            ..Setup::default()
+        });
+        let fields = h.fields().set("cf-turnstile-response", "ip-token");
+        expect_both(&h, &fields, None, "client IP").await;
+        assert_eq!(verifier.seen_ips(), [client_ip, client_ip], "{client_ip:?}");
+        assert_eq!(verifier.seen(), ["ip-token", "ip-token"], "{client_ip:?}");
+    }
+}

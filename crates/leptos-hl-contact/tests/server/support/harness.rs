@@ -63,6 +63,8 @@ pub struct Setup {
     pub success_page: bool,
     pub policy: Option<ContactServerPolicy>,
     pub challenge: Option<ChallengeContext>,
+    /// Provide `ChallengeClientIp` with this address.
+    pub client_ip: Option<std::net::IpAddr>,
     pub filter: Option<ContactFilterContext>,
 }
 
@@ -77,6 +79,7 @@ impl Default for Setup {
             success_page: false,
             policy: None,
             challenge: None,
+            client_ip: None,
             filter: None,
         }
     }
@@ -147,6 +150,7 @@ impl Harness {
             let deliver = setup.delivery;
             let policy = setup.policy;
             let challenge = setup.challenge;
+            let client_ip = setup.client_ip;
             let filter = setup.filter;
             move || {
                 if deliver {
@@ -181,6 +185,9 @@ impl Harness {
                 }
                 if let Some(challenge) = &challenge {
                     provide_context(challenge.clone());
+                }
+                if let Some(ip) = client_ip {
+                    provide_context(leptos_hl_contact::ChallengeClientIp(ip));
                 }
                 if let Some(filter) = &filter {
                     provide_context(Arc::clone(filter));

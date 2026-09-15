@@ -141,6 +141,54 @@ async fn the_request_is_a_form_post_of_secret_and_response() {
     );
 }
 
+/// FR-ABUSE-10, RFC 011 D5: the visitor's IP goes to the vendor as `remoteip`
+/// when the site provides it, and nothing of the kind otherwise.
+#[tokio::test]
+async fn the_form_body_carries_remoteip_when_provided() {
+    let ip: std::net::IpAddr = "203.0.113.7".parse().unwrap();
+
+    let (url, request) = respond_once(ok_json(r#"{"success":true}"#)).await;
+    verifier(&url)
+        .verify_request(&ChallengeRequest::new("the token").with_remote_ip(ip))
+        .await
+        .expect("answered");
+    let request = request.await.unwrap();
+    assert!(
+        request.ends_with("secret=test-secret&response=the+token&remoteip=203.0.113.7"),
+        "{request}"
+    );
+
+    let (url, request) = respond_once(ok_json(r#"{"success":true}"#)).await;
+    verifier(&url)
+        .verify_request(&ChallengeRequest::new("the token"))
+        .await
+        .expect("answered");
+    let request = request.await.unwrap();
+    assert!(!request.contains("remoteip"), "{request}");
+}
+
+/// RFC 011 D5: `verify` is `verify_request` without an IP — the same body on
+/// the wire.
+#[tokio::test]
+async fn verify_is_verify_request_without_an_ip() {
+    let body = |request: String| request.split("\r\n\r\n").nth(1).unwrap().to_owned();
+
+    let (url, by_verify) = respond_once(ok_json(r#"{"success":true}"#)).await;
+    verifier(&url).verify("the token").await.expect("answered");
+    let (url, by_request) = respond_once(ok_json(r#"{"success":true}"#)).await;
+    verifier(&url)
+        .verify_request(&ChallengeRequest::new("the token"))
+        .await
+        .expect("answered");
+
+    let (by_verify, by_request) = (
+        body(by_verify.await.unwrap()),
+        body(by_request.await.unwrap()),
+    );
+    assert_eq!(by_verify, by_request);
+    assert_eq!(by_verify, "secret=test-secret&response=the+token");
+}
+
 // ---- errors: all Unavailable, Timeout or Misconfigured -----------------------------
 
 #[tokio::test]

@@ -1,13 +1,17 @@
 //! Test doubles for the context values an integrator provides.
 
-use std::sync::{
-    Mutex,
-    atomic::{AtomicUsize, Ordering},
+use std::{
+    net::IpAddr,
+    sync::{
+        Mutex,
+        atomic::{AtomicUsize, Ordering},
+    },
 };
 
 use leptos_hl_contact::{
-    ChallengeError, ChallengeOutcome, ChallengeVerifier, ContactDelivery, ContactDeliveryError,
-    ContactFilter, ContactInput, DeliveryFuture, FilterDecision, FilterFuture, VerifyFuture,
+    ChallengeError, ChallengeOutcome, ChallengeRequest, ChallengeVerifier, ContactDelivery,
+    ContactDeliveryError, ContactFilter, ContactInput, DeliveryFuture, FilterDecision,
+    FilterFuture, VerifyFuture,
 };
 
 /// The transport detail `FailingDelivery` reports.  Operators need it in
@@ -78,6 +82,7 @@ impl ContactDelivery for NeverDelivery {
 pub struct ScriptedVerifier {
     answer: Result<ChallengeOutcome, ChallengeError>,
     seen: Mutex<Vec<String>>,
+    seen_ips: Mutex<Vec<Option<IpAddr>>>,
 }
 
 impl ScriptedVerifier {
@@ -104,11 +109,17 @@ impl ScriptedVerifier {
         Self {
             answer,
             seen: Mutex::new(Vec::new()),
+            seen_ips: Mutex::new(Vec::new()),
         }
     }
 
     pub fn seen(&self) -> Vec<String> {
         self.seen.lock().unwrap().clone()
+    }
+
+    /// The `remote_ip` of every `verify_request` call.
+    pub fn seen_ips(&self) -> Vec<Option<IpAddr>> {
+        self.seen_ips.lock().unwrap().clone()
     }
 }
 
@@ -122,6 +133,12 @@ impl ChallengeVerifier for ScriptedVerifier {
             Err(ChallengeError::Misconfigured(s)) => Err(ChallengeError::Misconfigured(s.clone())),
         };
         Box::pin(async move { answer })
+    }
+
+    /// Records the IP, then answers as `verify` does.
+    fn verify_request(&self, request: &ChallengeRequest<'_>) -> VerifyFuture<'_> {
+        self.seen_ips.lock().unwrap().push(request.remote_ip);
+        self.verify(request.token)
     }
 }
 

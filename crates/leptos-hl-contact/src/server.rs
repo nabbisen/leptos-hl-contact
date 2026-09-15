@@ -234,12 +234,13 @@ pub async fn submit_contact(
             ));
         };
         let challenge_ctx = use_context::<crate::challenge::ChallengeContext>();
+        let client_ip = use_context::<crate::challenge::ChallengeClientIp>();
         let filter = use_context::<crate::filter::ContactFilterContext>();
 
         // 7. Challenge — after every local check, so invalid input never costs
         // a vendor call.  Never log the token.
         {
-            use crate::challenge::{self, Gate};
+            use crate::challenge::{self, ChallengeClientIp, ChallengeRequest, Gate};
 
             let challenge_token = [
                 cf_turnstile_response,
@@ -270,7 +271,12 @@ pub async fn submit_contact(
                     let (Some(ctx), Some(token)) = (challenge_ctx, challenge_token) else {
                         unreachable!("gate returns Verify only with a context and a token");
                     };
-                    let result = sendable(ctx.verifier.verify(&token)).await;
+                    // The visitor's IP is PII: it goes to the verifier, never to a log.
+                    let mut request = ChallengeRequest::new(&token);
+                    if let Some(ChallengeClientIp(ip)) = client_ip {
+                        request = request.with_remote_ip(ip);
+                    }
+                    let result = sendable(ctx.verifier.verify_request(&request)).await;
                     let error_codes = result.as_ref().ok().map(|o| o.error_codes.clone());
                     let error = result.as_ref().err().map(ToString::to_string);
                     if let Err(code) = challenge::judge(result, &ctx.policy) {

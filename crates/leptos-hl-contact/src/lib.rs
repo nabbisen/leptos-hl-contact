@@ -25,7 +25,7 @@
 //! | `delivery-timeout` | `ssr`                     | `DeliveryTimeout`, a deadline for any delivery backend (`tokio` with `time`). |
 //! | `axum-helpers`     | `ssr`                     | Axum integration helpers (`axum`, `leptos_axum`). |
 //! | `form-token`       | `ssr`                     | Stateless HMAC-SHA256 form token; `submit_contact` requires `FormTokenContext` (fail-closed). |
-//! | `challenge-http`   | `ssr`                     | `HttpChallengeVerifier`, which calls the vendors' siteverify endpoints (`reqwest`, rustls only). |
+//! | `challenge-http`   | `ssr`                     | `HttpChallengeVerifier`, which calls the vendors' siteverify endpoints (`reqwest` with rustls natively, `fetch` on a wasm32 server). |
 //!
 //! ## Quick start
 //!
@@ -65,8 +65,12 @@ pub mod challenge;
 #[cfg(feature = "ssr")]
 pub mod filter;
 
-// A JavaScript timer for `DeliveryTimeout` on a wasm32 server (RFC 011 D7).
-#[cfg(all(target_arch = "wasm32", feature = "delivery-timeout"))]
+// A JavaScript timer for `DeliveryTimeout` and `HttpChallengeVerifier` on a
+// wasm32 server (RFC 011 D3, D7).
+#[cfg(all(
+    target_arch = "wasm32",
+    any(feature = "delivery-timeout", feature = "challenge-http")
+))]
 mod wasm_timer;
 
 // Axum integration helpers — compiled only when `axum-helpers` is active.
@@ -97,8 +101,8 @@ pub use server::submit_contact;
 
 #[cfg(feature = "ssr")]
 pub use challenge::{
-    ChallengeContext, ChallengeError, ChallengeOutcome, ChallengePolicy, ChallengeVerifier,
-    VerifyFuture,
+    ChallengeClientIp, ChallengeContext, ChallengeError, ChallengeOutcome, ChallengePolicy,
+    ChallengeRequest, ChallengeVerifier, VerifyFuture,
 };
 
 #[cfg(feature = "challenge-http")]

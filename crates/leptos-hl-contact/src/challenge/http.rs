@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use serde::Deserialize;
 
-use super::{ChallengeError, ChallengeOutcome, ChallengeVerifier, VerifyFuture};
+use super::{ChallengeError, ChallengeOutcome, ChallengeRequest, ChallengeVerifier, VerifyFuture};
 use crate::config::ChallengeProvider;
 
 /// How long a verification may take before it fails with
@@ -18,14 +18,21 @@ const RECAPTCHA_URL: &str = "https://www.google.com/recaptcha/api/siteverify";
 
 /// Verifies a challenge token with the vendor's `siteverify` endpoint.
 ///
-/// One `reqwest` client per verifier, reused for every call.  Each call is
-/// capped at five seconds by default and never retried: a failure rejects
-/// the submission with `challenge_unavailable`, which the visitor can retry.
+/// Natively the request goes through one `reqwest` client per verifier,
+/// reused for every call.  On a wasm32 server (Cloudflare Workers) the same
+/// request goes through the global `fetch`.  Each call is capped at five
+/// seconds by default and never retried: a failure rejects the submission with
+/// `challenge_unavailable`, which the visitor can retry.
 ///
 /// Redirects are not followed.  A followed redirect would resend the request
 /// body, secret included, to wherever the `Location` header points; no
 /// vendor endpoint redirects, so a 3xx is `Unavailable` like any other
-/// non-2xx answer.
+/// non-2xx answer.  On a wasm32 server the request uses `redirect: "manual"`,
+/// and a browser's opaque redirect (status 0) is `Unavailable` too.
+///
+/// The visitor's IP is sent as `remoteip` when the site provides
+/// [`ChallengeClientIp`](super::ChallengeClientIp); all three vendors accept
+/// that parameter.
 ///
 /// # Security
 ///
@@ -54,6 +61,7 @@ pub struct HttpChallengeVerifier {
     secret: String,
     timeout: Duration,
     verify_url: Option<String>,
+    #[cfg(not(target_arch = "wasm32"))]
     client: reqwest::Client,
 }
 
@@ -67,20 +75,21 @@ impl HttpChallengeVerifier {
     ///
     /// # Panics
     ///
-    /// If the TLS backend cannot be initialised, as `reqwest::Client::new`
-    /// does.  With rustls there is no system library that could be missing.
+    /// Natively, if the TLS backend cannot be initialised, as
+    /// `reqwest::Client::new` does.  With rustls there is no system library
+    /// that could be missing.
     pub fn new(provider: ChallengeProvider, secret: impl Into<String>) -> Self {
-        let client = reqwest::Client::builder()
-            // Never resend the secret to a `Location` of someone else's choosing.
-            .redirect(reqwest::redirect::Policy::none())
-            .build()
-            .expect("the rustls TLS backend initialises");
         Self {
             provider,
             secret: secret.into(),
             timeout: DEFAULT_TIMEOUT,
             verify_url: None,
-            client,
+            #[cfg(not(target_arch = "wasm32"))]
+            client: reqwest::Client::builder()
+                // Never resend the secret to a `Location` of someone else's choosing.
+                .redirect(reqwest::redirect::Policy::none())
+                .build()
+                .expect("the rustls TLS backend initialises"),
         }
     }
 
@@ -105,6 +114,19 @@ impl HttpChallengeVerifier {
             ChallengeProvider::RecaptchaV2 | ChallengeProvider::RecaptchaV3 { .. } => RECAPTCHA_URL,
         })
     }
+
+    /// The form both paths post: `secret`, `response`, and `remoteip` when the
+    /// site provided the visitor's IP.
+    fn form_body(&self, request: &ChallengeRequest<'_>) -> Vec<(&'static str, String)> {
+        let mut body = vec![
+            ("secret", self.secret.clone()),
+            ("response", request.token.to_owned()),
+        ];
+        if let Some(ip) = request.remote_ip {
+            body.push(("remoteip", ip.to_string()));
+        }
+        body
+    }
 }
 
 impl std::fmt::Debug for HttpChallengeVerifier {
@@ -120,34 +142,56 @@ impl std::fmt::Debug for HttpChallengeVerifier {
 
 impl ChallengeVerifier for HttpChallengeVerifier {
     fn verify(&self, token: &str) -> VerifyFuture<'_> {
-        let token = token.to_owned();
+        self.verify_request(&ChallengeRequest::new(token))
+    }
+
+    fn verify_request(&self, request: &ChallengeRequest<'_>) -> VerifyFuture<'_> {
+        let body = self.form_body(request);
         Box::pin(async move {
             if self.secret.is_empty() {
                 return Err(ChallengeError::Misconfigured("empty secret".into()));
             }
-            let response = self
-                .client
-                .post(self.endpoint())
-                .timeout(self.timeout)
-                .form(&[
-                    ("secret", self.secret.as_str()),
-                    ("response", token.as_str()),
-                ])
-                .send()
-                .await
-                .map_err(transport_error)?;
-            let status = response.status();
-            if !status.is_success() {
-                return Err(ChallengeError::Unavailable(format!("HTTP {status}")));
-            }
-            let body = response.bytes().await.map_err(transport_error)?;
-            parse_response(&body)
+            self.send(&body).await
         })
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl HttpChallengeVerifier {
+    async fn send(
+        &self,
+        body: &[(&'static str, String)],
+    ) -> Result<ChallengeOutcome, ChallengeError> {
+        let response = self
+            .client
+            .post(self.endpoint())
+            .timeout(self.timeout)
+            .form(body)
+            .send()
+            .await
+            .map_err(transport_error)?;
+        let status = response.status();
+        if !status.is_success() {
+            return Err(ChallengeError::Unavailable(format!("HTTP {status}")));
+        }
+        let body = response.bytes().await.map_err(transport_error)?;
+        parse_response(&body)
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl HttpChallengeVerifier {
+    async fn send(
+        &self,
+        body: &[(&'static str, String)],
+    ) -> Result<ChallengeOutcome, ChallengeError> {
+        fetch::send(self.endpoint(), body, self.timeout).await
     }
 }
 
 /// A timeout is `Timeout`; anything else on the wire is `Unavailable`.  The
 /// URL is stripped from the message: it could be a proxy address.
+#[cfg(not(target_arch = "wasm32"))]
 fn transport_error(error: reqwest::Error) -> ChallengeError {
     if error.is_timeout() {
         ChallengeError::Timeout
@@ -182,6 +226,10 @@ pub(crate) fn parse_response(body: &[u8]) -> Result<ChallengeOutcome, ChallengeE
         error_codes: parsed.error_codes,
     })
 }
+
+// The request over the global `fetch`, on a wasm32 server (RFC 011 D3).
+#[cfg(target_arch = "wasm32")]
+mod fetch;
 
 // ---------------------------------------------------------------------------
 // Tests

@@ -5,11 +5,13 @@
 //! - `clock`: the form token reads the JavaScript clock (D4).
 //! - `timer`: `DeliveryTimeout` enforces its deadline with a JavaScript
 //!   timer (D7).
+//! - `fetch_verifier`: `HttpChallengeVerifier` over a stubbed `fetch` (D3,
+//!   D5).
 //!
 //! ```bash
 //! RUSTFLAGS='--cfg getrandom_backend="wasm_js"' \
 //! cargo test -p leptos-hl-contact --target wasm32-unknown-unknown \
-//!     --no-default-features --features ssr,form-token,delivery-timeout --test worker
+//!     --no-default-features --features ssr,form-token,challenge-http,delivery-timeout --test worker
 //! ```
 
 #![cfg(all(target_arch = "wasm32", feature = "ssr"))]
@@ -23,3 +25,9 @@ mod clock;
 
 #[cfg(feature = "delivery-timeout")]
 mod timer;
+
+#[cfg(feature = "challenge-http")]
+mod fetch_verifier;
+
+#[cfg(feature = "challenge-http")]
+mod support;

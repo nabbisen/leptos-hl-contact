@@ -6,7 +6,7 @@
 // decision functions are pure so every row of the table is testable with a
 // mock.
 
-use std::{future::Future, pin::Pin, sync::Arc};
+use std::{future::Future, net::IpAddr, pin::Pin, sync::Arc};
 
 use leptos::server_fn::error::ServerFnError;
 
@@ -75,7 +75,89 @@ pub type VerifyFuture<'a> =
 pub trait ChallengeVerifier: Send + Sync + 'static {
     /// Ask the vendor about `token`.
     fn verify(&self, token: &str) -> VerifyFuture<'_>;
+
+    /// Ask the vendor about a request: the token and, when the site provides
+    /// [`ChallengeClientIp`], the visitor's IP.  `submit_contact` calls this
+    /// method.
+    ///
+    /// The default ignores everything but the token and calls
+    /// [`verify`](Self::verify), so an existing verifier needs no change.
+    /// Override it to use the IP.  As with `verify`, the future may borrow
+    /// only `self`, and neither the token nor the IP may be logged.
+    fn verify_request(&self, request: &ChallengeRequest<'_>) -> VerifyFuture<'_> {
+        self.verify(request.token)
+    }
 }
+
+/// What a verifier is asked about (RFC 011 D5).
+///
+/// Build it with [`ChallengeRequest::new`]: the struct is `#[non_exhaustive]`,
+/// so fields can be added without breaking verifiers.
+///
+/// Its `Debug` output shows the token and the IP; never log it.
+#[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
+pub struct ChallengeRequest<'a> {
+    /// The vendor token from the form.
+    pub token: &'a str,
+    /// The visitor's IP, when the site provides [`ChallengeClientIp`].
+    pub remote_ip: Option<IpAddr>,
+}
+
+impl<'a> ChallengeRequest<'a> {
+    /// A request for `token`, without an IP.
+    pub fn new(token: &'a str) -> Self {
+        Self {
+            token,
+            remote_ip: None,
+        }
+    }
+
+    /// The same request, with the visitor's IP.
+    pub fn with_remote_ip(self, ip: IpAddr) -> Self {
+        Self {
+            remote_ip: Some(ip),
+            ..self
+        }
+    }
+}
+
+/// The visitor's IP for this request, provided by the site (RFC 011 D5).
+///
+/// When it is in context, `submit_contact` passes it to
+/// [`ChallengeVerifier::verify_request`], and `HttpChallengeVerifier` sends it
+/// to the vendor as `remoteip`.
+///
+/// **The crate never reads a header for it.**  Which header can be trusted
+/// depends on the proxy in front of the site, and a guess would accept a
+/// spoofed `X-Forwarded-For`.  Take the IP from what your proxy guarantees:
+/// `CF-Connecting-IP` behind Cloudflare, the peer address with no proxy.
+///
+/// **The IP is personal data.**  The crate never logs it, and a verifier must
+/// not either.
+///
+/// # Example
+///
+/// Behind Cloudflare, in the context closure passed to
+/// `leptos_routes_with_context`, where the request's `Parts` are in context:
+///
+/// ```rust,ignore
+/// use axum::http::request::Parts;
+/// use leptos::prelude::*;
+/// use leptos_hl_contact::ChallengeClientIp;
+///
+/// let context = move || {
+///     // … the other context values …
+///     let ip = use_context::<Parts>().and_then(|parts| {
+///         parts.headers.get("CF-Connecting-IP")?.to_str().ok()?.parse().ok()
+///     });
+///     if let Some(ip) = ip {
+///         provide_context(ChallengeClientIp(ip));
+///     }
+/// };
+/// ```
+#[derive(Clone, Copy, Debug)]
+pub struct ChallengeClientIp(pub IpAddr);
 
 // ---------------------------------------------------------------------------
 // Policy and context

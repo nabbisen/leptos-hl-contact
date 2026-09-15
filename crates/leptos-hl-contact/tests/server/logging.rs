@@ -14,6 +14,7 @@ const EMAIL: &str = "zelda.marker@example.test";
 const SUBJECT: &str = "SUBJECT-MARKER-9d2";
 const MESSAGE: &str = "MESSAGE-MARKER-7c1 with a line of text";
 const CHALLENGE_TOKEN: &str = "CHALLENGE-TOKEN-MARKER";
+const CLIENT_IP: &str = "198.51.100.73";
 
 fn personal(fields: Fields) -> Fields {
     fields
@@ -25,10 +26,11 @@ fn personal(fields: Fields) -> Fields {
 
 /// T9, FR-OBS-02, NFR-PRIV-01: across a representative set of outcomes — a
 /// delivery, the honeypot, a validation failure, a token failure, a binding
-/// failure, a failed challenge, a filter's `Reject` and `SilentDrop`, a
-/// delivery error, a delivery timeout, and missing configuration — no log event or span field contains the visitor's
-/// name, email, subject or message, the form token, the binding cookie's
-/// value, the challenge token, or the form-token secret.
+/// failure, a failed challenge with the visitor's IP in context, a filter's
+/// `Reject` and `SilentDrop`, a delivery error, a delivery timeout, and missing
+/// configuration — no log event or span field contains the visitor's name,
+/// email, subject or message, the form token, the binding cookie's value, the
+/// challenge token, the visitor's IP, or the form-token secret.
 ///
 /// The capture is checked first: each outcome's own event must be present,
 /// so the test cannot pass by capturing nothing.
@@ -42,6 +44,7 @@ async fn no_personal_data_or_secret_is_logged() {
         SUBJECT.to_owned(),
         "MESSAGE-MARKER".to_owned(),
         CHALLENGE_TOKEN.to_owned(),
+        CLIENT_IP.to_owned(),
         TEST_SECRET.to_owned(),
     ];
 
@@ -71,12 +74,13 @@ async fn no_personal_data_or_secret_is_logged() {
         .submit_fetch(&personal(Fields::valid(&bound_token)))
         .await;
 
-    // A failed challenge.
+    // A failed challenge, with the visitor's IP (RFC 011 D5).
     let challenged = Harness::new(Setup {
         challenge: Some(ChallengeContext {
             verifier: Arc::new(ScriptedVerifier::failing(&["invalid-input-response"])),
             policy: ChallengePolicy::default(),
         }),
+        client_ip: Some(CLIENT_IP.parse().unwrap()),
         ..Setup::default()
     });
     challenged

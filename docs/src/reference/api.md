@@ -8,14 +8,15 @@ examples.
 
 `ContactForm`, `ContactFormClasses`, `ContactFormLabels`,
 `ContactFormOptions`, `ContactServerPolicy`, `ContactDelivery`,
-`ContactDeliveryContext`, `ContactDeliveryError`, `ContactFieldErrors`,
+`ContactDeliveryContext`, `DeliveryFuture`, `ContactDeliveryError`, `ContactFieldErrors`,
 `ContactValidationError`, `ContactInput`, `MESSAGE_MAX_LEN`,
 `ContactSuccessRedirect`, `InvalidRedirectPath`, `ContactErrorCode`,
 `ContactErrorLabels`, `ContactField`, `FieldError`, `FieldErrorCode`,
 `submit_contact`, `ChallengeProvider`, `ChallengeTheme`, `ChallengeWidget`,
-`InvalidChallengeConfig`, `NoJsPolicy`; with `ssr` `ChallengeContext`,
-`ChallengeError`, `ChallengeOutcome`, `ChallengePolicy`, `ChallengeVerifier`,
-`ContactFilter`, `ContactFilterContext`, `FilterChain`, `FilterDecision`; with
+`InvalidChallengeConfig`, `NoJsPolicy`; with `ssr` `ChallengeClientIp`,
+`ChallengeContext`, `ChallengeError`, `ChallengeOutcome`, `ChallengePolicy`,
+`ChallengeRequest`, `ChallengeVerifier`, `VerifyFuture`, `ContactFilter`,
+`ContactFilterContext`, `FilterChain`, `FilterDecision`, `FilterFuture`; with
 `challenge-http` `HttpChallengeVerifier`; and with the
 `form-token` feature `Binding`, `FormToken`, `FormTokenConfig`,
 `FormTokenBinding`, `FormTokenContext`, `FormTokenError`,
@@ -294,8 +295,7 @@ contact_error:rejected
 
 ```rust,ignore
 pub trait ContactDelivery: Send + Sync + 'static {
-    fn deliver(&self, input: ContactInput)
-        -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>>;
+    fn deliver(&self, input: ContactInput) -> DeliveryFuture<'_>;
 }
 pub type ContactDeliveryContext = Arc<dyn ContactDelivery>;
 ```
@@ -433,10 +433,24 @@ verifiers are separate.
 pub struct ChallengeOutcome { pub passed: bool, pub score: Option<f32>, pub action: Option<String>, pub error_codes: Vec<String> }
 pub enum ChallengeError { Timeout, Unavailable(String), Misconfigured(String) }   // thiserror
 
+// `+ Send` on every target except a wasm32 server build (Cloudflare Workers)
+pub type VerifyFuture<'a> = Pin<Box<dyn Future<Output = Result<ChallengeOutcome, ChallengeError>> + Send + 'a>>;
+
 pub trait ChallengeVerifier: Send + Sync + 'static {
-    fn verify(&self, token: &str)
-        -> Pin<Box<dyn Future<Output = Result<ChallengeOutcome, ChallengeError>> + Send + '_>>;
+    fn verify(&self, token: &str) -> VerifyFuture<'_>;
+    // Default: `self.verify(request.token)`.  `submit_contact` calls this one.
+    fn verify_request(&self, request: &ChallengeRequest<'_>) -> VerifyFuture<'_>;
 }
+
+#[non_exhaustive]
+pub struct ChallengeRequest<'a> { pub token: &'a str, pub remote_ip: Option<IpAddr> }
+impl<'a> ChallengeRequest<'a> {
+    pub fn new(token: &'a str) -> Self;
+    pub fn with_remote_ip(self, ip: IpAddr) -> Self;
+}
+
+// Context: the visitor's IP, provided by the site.  Never read from a header by the crate, never logged.
+pub struct ChallengeClientIp(pub IpAddr);
 
 pub struct ChallengePolicy {
     pub no_js: NoJsPolicy,               // default Reject
@@ -470,8 +484,7 @@ Feature `ssr`; no feature flag of its own, and no built-in filters.
 pub enum FilterDecision { Accept, Reject, SilentDrop }
 
 pub trait ContactFilter: Send + Sync + 'static {
-    fn filter(&self, input: &ContactInput)
-        -> Pin<Box<dyn Future<Output = FilterDecision> + Send + '_>>;
+    fn filter(&self, input: &ContactInput) -> FilterFuture<'_>;
     fn name(&self) -> &'static str { std::any::type_name::<Self>() }
 }
 pub type ContactFilterContext = Arc<dyn ContactFilter>;

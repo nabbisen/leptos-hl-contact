@@ -163,6 +163,37 @@ Sources: [Turnstile](https://developers.cloudflare.com/turnstile/reference/conte
 [hCaptcha](https://docs.hcaptcha.com/),
 [reCAPTCHA](https://developers.google.com/recaptcha/docs/faq).
 
+## The visitor's IP
+
+All three vendors accept the visitor's IP as `remoteip` with the token, and
+hCaptcha recommends sending it.  Provide it per request as
+`ChallengeClientIp` in the context closure: `HttpChallengeVerifier` then
+sends it, and a verifier of your own receives it in `verify_request`.
+
+**The crate never reads a header for it.**  Which header can be trusted
+depends on the proxy in front of your site, and a guess would accept a
+spoofed `X-Forwarded-For`.  Behind Cloudflare, use `CF-Connecting-IP`; with no
+proxy, the peer address.
+
+```rust,ignore
+use axum::http::request::Parts;
+use leptos::prelude::*;
+use leptos_hl_contact::ChallengeClientIp;
+
+let context = move || {
+    // … the other context values …
+    let ip = use_context::<Parts>().and_then(|parts| {
+        parts.headers.get("CF-Connecting-IP")?.to_str().ok()?.parse().ok()
+    });
+    if let Some(ip) = ip {
+        provide_context(ChallengeClientIp(ip));
+    }
+};
+```
+
+The IP is personal data: say so in your privacy notice.  The crate never
+logs it.
+
 ## Privacy
 
 A challenge sends data about the visitor to a third party.  Say so in your
@@ -171,19 +202,26 @@ privacy notice, and name the vendor.
 - **Cloudflare Turnstile.**  The widget runs in the visitor's browser and
   sends signals about the browser and its environment, and the visitor's IP
   address, to Cloudflare.  See Cloudflare's
-  [privacy policy](https://www.cloudflare.com/privacypolicy/).
+  [privacy policy](https://www.cloudflare.com/privacypolicy/).  The server
+  also sends the visitor's IP to Cloudflare when the site provides
+  `ChallengeClientIp`.
 - **hCaptcha.**  The widget sends browser and interaction data, and the
   visitor's IP address, to hCaptcha.  See hCaptcha's
-  [privacy policy](https://www.hcaptcha.com/privacy).
+  [privacy policy](https://www.hcaptcha.com/privacy).  The server also
+  sends the visitor's IP to hCaptcha when the site provides
+  `ChallengeClientIp`.
 - **Google reCAPTCHA.**  The script sends hardware, software and interaction
   data, and the visitor's IP address, to Google.  See Google's
   [privacy policy](https://policies.google.com/privacy) and
   [terms](https://policies.google.com/terms).  Google's
   [FAQ](https://developers.google.com/recaptcha/docs/faq) explains the
-  branding it requires if you hide the badge.
+  branding it requires if you hide the badge.  The server also sends the
+  visitor's IP to Google when the site provides `ChallengeClientIp`.
 
 The server additionally sends the token and your secret to the vendor's
-verification endpoint.  It sends no form content.
+verification endpoint, and the visitor's IP when you provide
+`ChallengeClientIp` (see [The visitor's IP](#the-visitors-ip)).  It sends no
+form content.
 
 ## Test keys
 
