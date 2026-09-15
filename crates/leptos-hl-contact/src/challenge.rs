@@ -94,8 +94,9 @@ pub trait ChallengeVerifier: Send + Sync + 'static {
 /// Build it with [`ChallengeRequest::new`]: the struct is `#[non_exhaustive]`,
 /// so fields can be added without breaking verifiers.
 ///
-/// Its `Debug` output shows the token and the IP; never log it.
-#[derive(Clone, Copy, Debug)]
+/// `Debug` redacts both the token and the IP; it shows only whether an IP is
+/// present.
+#[derive(Clone, Copy)]
 #[non_exhaustive]
 pub struct ChallengeRequest<'a> {
     /// The vendor token from the form.
@@ -122,6 +123,15 @@ impl<'a> ChallengeRequest<'a> {
     }
 }
 
+impl std::fmt::Debug for ChallengeRequest<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ChallengeRequest")
+            .field("token", &"<redacted>")
+            .field("remote_ip", &self.remote_ip.map(|_| "<redacted>"))
+            .finish()
+    }
+}
+
 /// The visitor's IP for this request, provided by the site (RFC 011 D5).
 ///
 /// When it is in context, `submit_contact` passes it to
@@ -134,7 +144,7 @@ impl<'a> ChallengeRequest<'a> {
 /// `CF-Connecting-IP` behind Cloudflare, the peer address with no proxy.
 ///
 /// **The IP is personal data.**  The crate never logs it, and a verifier must
-/// not either.
+/// not either.  `Debug` redacts it.
 ///
 /// # Example
 ///
@@ -156,8 +166,16 @@ impl<'a> ChallengeRequest<'a> {
 ///     }
 /// };
 /// ```
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub struct ChallengeClientIp(pub IpAddr);
+
+impl std::fmt::Debug for ChallengeClientIp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("ChallengeClientIp")
+            .field(&"<redacted>")
+            .finish()
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Policy and context

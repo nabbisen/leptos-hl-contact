@@ -8,7 +8,8 @@
   `ChallengeClientIp` in context, and `submit_contact` passes it in a
   `ChallengeRequest` to the new `ChallengeVerifier::verify_request`;
   `HttpChallengeVerifier` sends it to the vendor as `remoteip`.  The crate
-  never reads a header for it and never logs it.  `verify_request` has a
+  never reads a header for it and never logs it, and the `Debug` output of
+  both new types is redacted.  `verify_request` has a
   default that calls `verify`, so existing verifiers need no change.
 - **`HttpChallengeVerifier` on a wasm32 server** (Cloudflare Workers).  It
   sends the same request through the global `fetch`: redirects refused

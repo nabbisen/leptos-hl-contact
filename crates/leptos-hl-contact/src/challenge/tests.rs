@@ -222,3 +222,33 @@ fn the_policy_defaults_are_the_documented_ones() {
     assert_eq!(p.min_score, 0.5);
     assert_eq!(p.expected_action, None);
 }
+
+// ---- Debug redaction (FR-ABUSE-15, FR-CFG-04) ---------------------------------
+
+/// FR-ABUSE-15, FR-CFG-04: `Debug` on a request shows neither the token nor
+/// the visitor's IP, only whether an IP is present.
+#[test]
+fn a_challenge_request_debug_redacts_the_token_and_ip() {
+    let ip: IpAddr = "203.0.113.7".parse().unwrap();
+
+    let with_ip = format!(
+        "{:?}",
+        ChallengeRequest::new("TOKEN-MARKER").with_remote_ip(ip)
+    );
+    assert!(!with_ip.contains("TOKEN-MARKER"), "{with_ip}");
+    assert!(!with_ip.contains("203.0.113.7"), "{with_ip}");
+    assert!(with_ip.contains("remote_ip: Some("), "{with_ip}");
+
+    let without_ip = format!("{:#?}", ChallengeRequest::new("TOKEN-MARKER"));
+    assert!(!without_ip.contains("TOKEN-MARKER"), "{without_ip}");
+    assert!(without_ip.contains("remote_ip: None"), "{without_ip}");
+}
+
+/// FR-ABUSE-15, FR-CFG-04: `Debug` on the context value hides the address.
+#[test]
+fn a_client_ip_debug_redacts_the_address() {
+    let ip: IpAddr = "2001:db8::7".parse().unwrap();
+    let debug = format!("{:?} {:#?}", ChallengeClientIp(ip), ChallengeClientIp(ip));
+    assert!(!debug.contains("2001:db8::7"), "{debug}");
+    assert!(debug.contains("ChallengeClientIp("), "{debug}");
+}
