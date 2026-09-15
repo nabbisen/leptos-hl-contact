@@ -21,5 +21,19 @@ that explains it.
 | ☐ | Form smoke-tested with JavaScript disabled | [Troubleshooting](../help/troubleshooting.md) |
 | ☐ | Optional: a challenge for high-value forms — widget and `ChallengeContext` both set, and the widget's no-JS policy matching the server's | [Challenge](../security/challenge.md) |
 
+## Cloudflare Workers
+
+In addition to the rows above that apply (TLS and body limits are Cloudflare's):
+
+| Done | Item | Where |
+|------|------|-------|
+| ☐ | Features: `ssr`, `form-token`, `challenge-http`, `axum-helpers`, `delivery-timeout`; not `smtp-lettre` | [Cloudflare Workers](../guides/cloudflare-workers.md#what-works) |
+| ☐ | `--cfg getrandom_backend="wasm_js"` set for the wasm32 target (`.cargo/config.toml` or `RUSTFLAGS`) | [Dependencies](../guides/cloudflare-workers.md#dependencies) |
+| ☐ | `ChallengeClientIp` provided from `CF-Connecting-IP`, if you use a challenge | [The visitor's IP](../guides/cloudflare-workers.md#the-visitors-ip) |
+| ☐ | Rate Limiting binding checked before the router, on `POST` | [Rate limiting](../guides/cloudflare-workers.md#rate-limiting) |
+| ☐ | Content Security Policy per the challenge provider; honeypot class and `honeypot_inline_style: false` without `'unsafe-inline'` | [Challenge: CSP](../security/challenge.md#content-security-policy) |
+| ☐ | Your delivery backend wrapped in `DeliveryTimeout` | [The delivery deadline](../guides/cloudflare-workers.md#the-delivery-deadline) |
+| ☐ | Runtime smoke test on `wrangler dev`: with and without JavaScript, with the challenge, with a failing delivery | [Testing locally](../guides/cloudflare-workers.md#testing-locally) |
+
 The [`axum-with-security`](https://github.com/nabbisen/leptos-hl-contact/tree/main/examples/axum-with-security)
 example implements every non-optional item.

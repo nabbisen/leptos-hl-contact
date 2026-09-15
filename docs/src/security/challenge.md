@@ -131,37 +131,35 @@ All of them are in `ContactErrorLabels`; see
 
 ## Content Security Policy
 
-Every script tag the component writes — the vendor script, reCAPTCHA v3's
-inline submit script, and the vendor script the browser adds after
-client-side navigation — carries the nonce from
-`ChallengeWidget::with_script_nonce`.  With a nonce, Turnstile and
-reCAPTCHA pass it on to what they load, and both work with
-`'strict-dynamic'`.  reCAPTCHA v3's inline script needs the nonce, or
-`'unsafe-inline'`, which is not recommended.
+One row per provider, from each vendor's own documentation (checked
+2026-09-15).  Where a vendor does not state something, the table says so
+rather than guessing.
 
-Without nonces, allow the vendor's hosts.  These are the vendors' own
-published values:
+| Provider | Directives | Nonce and `'strict-dynamic'` | Source |
+|----------|------------|------------------------------|--------|
+| Cloudflare Turnstile | `script-src https://challenges.cloudflare.com`; `frame-src https://challenges.cloudflare.com`; `connect-src 'self'` only in pre-clearance mode | a nonce on the `api.js` script propagates to what it loads; works with `'strict-dynamic'` (supported, not required) | [Turnstile CSP reference](https://developers.cloudflare.com/turnstile/reference/content-security-policy/) |
+| hCaptcha | `script-src`, `frame-src`, `style-src` and `connect-src`, each `https://hcaptcha.com https://*.hcaptcha.com`.  Do not pin specific subdomains: asset hosts vary by time and region | not documented by the vendor | [hCaptcha: Content Security Policy Settings](https://docs.hcaptcha.com/#content-security-policy-settings) |
+| Google reCAPTCHA (v2 and v3) | `script-src https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/`; `frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/`; `connect-src https://www.google.com/recaptcha/` | a nonce on the `api.js` script, and the vendor handles the rest; works with `'strict-dynamic'` in browsers that support it | [reCAPTCHA FAQ](https://developers.google.com/recaptcha/docs/faq) |
 
-```text
-# Cloudflare Turnstile
-script-src  https://challenges.cloudflare.com
-frame-src   https://challenges.cloudflare.com
+hCaptcha also lists `'unsafe-eval'` and `'unsafe-inline'` as optional
+additions for its enterprise features; the widget this crate renders does
+not need them.
 
-# hCaptcha — do not pin specific subdomains
-script-src  https://hcaptcha.com https://*.hcaptcha.com
-frame-src   https://hcaptcha.com https://*.hcaptcha.com
-style-src   https://hcaptcha.com https://*.hcaptcha.com
-connect-src https://hcaptcha.com https://*.hcaptcha.com
+**The nonce.**  Every script tag the component writes carries the nonce from
+`ChallengeWidget::with_script_nonce`:
+- the vendor script;
+- reCAPTCHA v3's inline submit script;
+- the vendor script the browser adds after client-side navigation.
 
-# Google reCAPTCHA (v2 and v3)
-script-src  https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/
-frame-src   https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/
-connect-src https://www.google.com/recaptcha/
-```
+reCAPTCHA v3's inline script needs the nonce, or `'unsafe-inline'`, which is
+not recommended.
 
-Sources: [Turnstile](https://developers.cloudflare.com/turnstile/reference/content-security-policy/),
-[hCaptcha](https://docs.hcaptcha.com/),
-[reCAPTCHA](https://developers.google.com/recaptcha/docs/faq).
+**The honeypot.**  The honeypot is hidden by an inline `style` attribute,
+which a policy without `'unsafe-inline'` blocks.  Under such a policy:
+- set `ContactFormOptions::honeypot_inline_style` to `false`;
+- hide the wrapper through `ContactFormClasses::honeypot` with your own CSS.
+
+See [Styling: Honeypot](../guides/styling.md#honeypot).
 
 ## The visitor's IP
 

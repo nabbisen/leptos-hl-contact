@@ -17,6 +17,7 @@
 - [Accessibility](./guides/accessibility.md)
 - [Delivery Backends](./guides/delivery-backends.md)
 - [Axum Integration](./guides/axum-integration.md)
+- [Cloudflare Workers](./guides/cloudflare-workers.md)
 
 # Security
 

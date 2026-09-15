@@ -98,6 +98,8 @@ Before going public, work through the
 - **Progressive enhancement.**  Plain POST without JavaScript.
 - **Accessible by default.**  Labels, ARIA, live regions, keyboard.
 - **Pluggable delivery.**  Framework-neutral trait; Axum helpers are opt-in.
+- **Runs on Cloudflare Workers.**  The server path builds for wasm32 with no
+  tokio runtime; see the [Cloudflare Workers guide](./docs/src/guides/cloudflare-workers.md).
 - **Honest security model.**  The `form-token` feature's token is an
   anti-automation measure with a minimum age; Origin validation in your
   middleware is the CSRF control.  Both are documented, with examples.

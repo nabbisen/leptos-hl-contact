@@ -1,6 +1,6 @@
 # Requirements Specification
 
-> **Document status.** Draft 20, 2026-09-15, against release `0.6.0`.
+> **Document status.** Draft 21, 2026-09-15, against release `0.6.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
 > M1–M4 are released and M5 is owner-authorized; the document as a whole
 > awaits formal approval.
@@ -281,7 +281,7 @@ input the browser accepted.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | NFR-PORT-01 | The core (`default = []`) MUST compile for `wasm32-unknown-unknown` and native targets | Met |
-| NFR-PORT-02 | Cloudflare Workers: the SMTP backend cannot run there (tokio, native TLS).  Whether a fetch-based delivery adapter and a runtime-neutral server path are required is an owner decision | Planned (P-23, RFC 011, milestone M5 → 0.7.0): owner decision 2026-09-15 — Cloudflare Workers is a supported server target |
+| NFR-PORT-02 | The server path (`ssr`, `form-token`, `challenge-http`, `axum-helpers`, `delivery-timeout`) MUST build for and run on Cloudflare Workers (wasm32, no tokio runtime).  Delivery there is the integrator's own backend | Met (0.7.0): compiles and is linted for wasm32 in CI; the wasm32 server paths tested in headless Chrome; runtime on Workers verified by the reflerd.com team before release (see the 0.7.0 readiness report) |
 
 ### 6.5 Performance (NFR-PERF)
 
@@ -353,7 +353,6 @@ input the browser accepted.
 | Requirement | Status | Roadmap item |
 |-------------|--------|--------------|
 | FR-I18N-03 | Planned | P-20 |
-| NFR-PORT-02 | Planned | P-23 / RFC 011 (M5) |
 | NFR-DEP-02 | Partial | P-24 |
 
 ---
@@ -380,6 +379,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-15 | Draft 21 | RFC 011 handoff 04: NFR-PORT-02 becomes a MUST (the server path builds for and runs on Cloudflare Workers) and is Met for 0.7.0; gap row removed |
 | 2026-09-15 | Draft 20 | RFC 011 handoff 03: FR-ABUSE-15 added — the visitor's IP reaches the verifier and the vendor, never a log or `Debug` output, and is never read from headers by the crate |
 | 2026-09-15 | Draft 19 | Owner decision: Cloudflare Workers is a supported server target — NFR-PORT-02 Planned (RFC 011), open question 2 resolved |
 | 2026-09-13 | Draft 18 | 0.6.0 released: document status against `0.6.0`; M4 released |

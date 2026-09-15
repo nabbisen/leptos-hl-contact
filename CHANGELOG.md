@@ -46,6 +46,21 @@
   features.**  The application chooses them: a native Axum application
   enables the defaults, a Worker enables `leptos_axum`'s `wasm` feature.
 
+### Documentation
+
+- **Cloudflare Workers guide** (`guides/cloudflare-workers.md`):
+  - which features work;
+  - the dependencies and the `getrandom` flag;
+  - the context closure, delivery with non-`Send` futures, the client IP;
+  - rate limiting with the Workers binding;
+  - the delivery deadline;
+  - what is and is not tested.
+- **Content Security Policy directives** per challenge provider, from each
+  vendor's documentation, with the nonce and the honeypot under a strict
+  policy (`security/challenge.md`).
+- **A Cloudflare Workers block** in the Production Checklist, and a Workers
+  column on the Feature Flags page.
+
 ### Migration
 
 - An application using `axum-helpers` must depend on `leptos_axum` itself.

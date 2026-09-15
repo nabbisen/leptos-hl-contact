@@ -163,6 +163,53 @@ Native `cargo test` does not build this suite.  It is compiled only for
 vendor global when the component is built.  Never wait on real time: fire the
 recorded timer instead.  Cite the requirement or threat ID in the doc comment.
 
+## Worker tests
+
+`crates/leptos-hl-contact/tests/worker/` runs the wasm32 server paths — the
+build Cloudflare Workers uses — in headless Chrome.  Chrome is not workerd,
+but it has the same JavaScript APIs these paths use (`Date`, `setTimeout`,
+`fetch`, `AbortController`), so the crate's own code on those paths is
+exercised; workerd itself is verified by the reflerd.com team before a
+release (NFR-PORT-02).
+
+```bash
+RUSTFLAGS='--cfg getrandom_backend="wasm_js"' \
+CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER=wasm-bindgen-test-runner \
+CHROMEDRIVER=$(which chromedriver) \
+cargo test -p leptos-hl-contact --target wasm32-unknown-unknown \
+    --no-default-features --features ssr,form-token,challenge-http,delivery-timeout --test worker
+```
+
+The runner version rule is the browser suite's.  The CI `browser` job runs
+this as its `worker tests` step; the `check` job lints the same binary with
+`axum-helpers` added.  Native `cargo test` compiles the suite to nothing.
+
+**The harness** (`tests/worker/support.rs`): `FetchStub` replaces
+`globalThis.fetch`, found through `js_sys::global()` exactly as the verifier
+finds it, records every `Request`, and answers with a status and body or
+never.  Nothing leaves the page.
+
+**Cases:**
+
+| File | Test | Shows |
+|------|------|-------|
+| `not_send.rs` | `extension_futures_need_not_be_send` | a delivery, verifier and filter holding an `Rc` across `.await` build into their context types |
+| `clock.rs` | `a_token_issued_now_verifies` | a token issued now verifies, and its timestamp is within 2 s of `Date.now()` |
+| `clock.rs` | `a_token_is_too_young_before_its_minimum_age` | the minimum age uses the same clock |
+| `timer.rs` | `a_delivery_that_never_finishes_times_out` | `DeliveryTimeout` returns `Timeout(limit)` after the limit (a real 50 ms wait) |
+| `timer.rs` | `a_delivery_that_finishes_in_time_returns_its_result` | `Ok` and a transport error pass through |
+| `fetch_verifier.rs` | `the_request_refuses_redirects_and_posts_the_form` | `POST`, `redirect: "manual"`, form content type, `secret`, `response`, `remoteip`; a finished request is not aborted |
+| `fetch_verifier.rs` | `a_redirect_is_unavailable` | a 302 is `Unavailable` |
+| `fetch_verifier.rs` | `a_verdict_is_parsed` | success and failure with error codes |
+| `fetch_verifier.rs` | `a_silent_vendor_is_a_timeout` | `Timeout` at the limit, and the request is aborted |
+| `fetch_verifier.rs` | `an_empty_secret_sends_nothing` | `Misconfigured`, no request |
+| `fetch_verifier.rs` | `a_dropped_verification_aborts_its_request` | dropping the verification mid-flight aborts its request |
+
+**Rules for a new case:** install the stub before the call and keep it alive
+for the test.  A real wait is allowed only where a JavaScript timer is the
+thing under test, and only for tens of milliseconds.  Cite the requirement
+ID in the doc comment.
+
 ## Requirement traceability
 
 Every **MUST** row of the [Requirements Specification](./requirements.md)
@@ -171,7 +218,8 @@ appears here once, with the tests that assert it.
 - **L1** is a unit test, `module::test`, in `src/<module>/tests.rs`, or
   `module::file::test` when it lives in `src/<module>/tests/<file>.rs`.
 - **L2** is `file::test` in `tests/server/`.
-- **L3** is `file::test` in `tests/browser/`.
+- **L3** is `file::test` in `tests/browser/`, or `worker::file::test` in
+  `tests/worker/` (a wasm32 server build, also run in headless Chrome).
 - **none** means no automated test asserts the requirement.  The last column
   then says how it is verified instead.
 
@@ -180,17 +228,16 @@ the last column names the part they leave out.
 
 MUST rows are:
 
-- the functional rows whose Level is MUST (75);
-- the non-functional rows whose wording says MUST (27).
+- the functional rows whose Level is MUST (76);
+- the non-functional rows whose wording says MUST (28).
 
 The non-functional tables have no Level column.  Their rows without MUST
-are SHOULDs or a recorded decision, and are not listed: NFR-PORT-02 (a
-decision), NFR-PERF-03, NFR-DEP-02 and NFR-DOC-04 (SHOULD).
+are SHOULDs, and are not listed: NFR-PERF-03, NFR-DEP-02 and NFR-DOC-04.
 
 **Keeping it true.**  A handoff that adds a MUST requirement, or changes the
 behaviour behind one, updates that row in the same commit.  So does a change
 that adds, renames or removes a test named here.  Every test in
-`tests/server/` and `tests/browser/` cites at least one requirement or
+`tests/server/`, `tests/browser/` and `tests/worker/` cites at least one requirement or
 threat ID in its doc comment; `grep -rn "FR-UI-12" crates/` finds a row's
 tests from the code side.
 
@@ -240,6 +287,7 @@ tests from the code side.
 | FR-ABUSE-10 | `challenge::row_5_passed_proceeds`, `challenge::row_6_not_passed_fails`, `challenge::http::each_provider_uses_its_vendor_endpoint_by_default`, `components::turnstile_renders_its_element_and_script`, `components::hcaptcha_renders_its_element_and_script_and_omits_auto_theme`, `components::recaptcha_v2_renders_its_element_and_script_and_omits_auto_theme`, `components::recaptcha_v3_renders_the_hidden_input_render_url_and_submit_script`, `challenge::http::the_form_body_carries_remoteip_when_provided`, `challenge::http::verify_is_verify_request_without_an_ip` | `challenge::challenge_decision_table_rows_1_to_7`, `challenge::the_client_ip_reaches_the_verifier` | `challenge::a_widget_mounted_after_its_vendor_global_renders_once`, `challenge::a_vendor_script_already_in_head_is_not_inserted_again`, `worker::fetch_verifier::the_request_refuses_redirects_and_posts_the_form`, `worker::fetch_verifier::a_verdict_is_parsed` (wasm32 server, headless Chrome) | the live vendor contracts: the `#[ignore]`d `live_` tests, by hand; the client-side script insertion (`append_script`) has no browser test, because a negative control would fetch the real vendor script |
 | FR-ABUSE-11 | `challenge::row_3_context_no_token_under_reject_is_required`, `challenge::row_4_context_no_token_under_accept_proceeds`, `components::reject_renders_noscript_and_accept_does_not`, `config::no_js_policy_defaults_to_reject` | `challenge::challenge_decision_table_rows_1_to_7` | — | — |
 | FR-ABUSE-12 | `challenge::row_7_verifier_error_is_unavailable_for_every_variant`, `challenge::http::a_server_error_is_unavailable`, `challenge::http::a_silent_server_is_a_timeout`, `challenge::http::a_redirect_is_not_followed_and_is_unavailable`, `challenge::http::an_empty_secret_is_misconfigured_and_sends_nothing`, `challenge::http::the_default_timeout_is_five_seconds` | `challenge::challenge_decision_table_rows_1_to_7` | `worker::fetch_verifier::the_request_refuses_redirects_and_posts_the_form`, `worker::fetch_verifier::a_redirect_is_unavailable`, `worker::fetch_verifier::a_silent_vendor_is_a_timeout`, `worker::fetch_verifier::an_empty_secret_sends_nothing`, `worker::fetch_verifier::a_dropped_verification_aborts_its_request` (wasm32 server, headless Chrome) | — |
+| FR-ABUSE-15 | `challenge::http::the_form_body_carries_remoteip_when_provided`, `challenge::a_challenge_request_debug_redacts_the_token_and_ip`, `challenge::a_client_ip_debug_redacts_the_address` | `challenge::the_client_ip_reaches_the_verifier`, `logging::no_personal_data_or_secret_is_logged` | `worker::fetch_verifier::the_request_refuses_redirects_and_posts_the_form` (wasm32 server, headless Chrome) | that the crate never reads a header for the IP: review (`server.rs` reads it only from `ChallengeClientIp`) |
 | FR-DEL-01 | `axum_helpers::delivery_context_fn_is_clone` | `delivery::a_valid_submission_is_delivered_once_in_both_forms` (a test double provided as `Arc<dyn ContactDelivery>`) | — | object safety and `Send`: checked at compile time |
 | FR-DEL-02 | — | `validation::a_blank_subject_is_delivered_as_absent`, `validation::each_rule_rejects_with_its_field_code` | — | — |
 | FR-DEL-03 | `delivery::noop::noop_delivery_succeeds` | — | — | the `debug` log without PII: review |
@@ -292,6 +340,7 @@ tests from the code side.
 | NFR-COMPAT-04 | `config::settings_serialized_by_0_6_still_deserialize` | `form_token::a_0_4_csrf_token_field_is_no_longer_accepted` | — | the rest of the policy: review at release |
 | NFR-COMPAT-05 | **none** | **none** | **none** | review at release; the SSR tests in `components::` pin the ids, field names and the ARIA attributes tested above, so a change to those fails a test |
 | NFR-PORT-01 | **none** | **none** | **none** | CI: the `check` job builds `default = []` for wasm32 (`cargo check -p leptos-hl-contact --target wasm32-unknown-unknown`); the `browser` job and the example's wasm check build it with `hydrate` |
+| NFR-PORT-02 | **none** | **none** | `worker::not_send::extension_futures_need_not_be_send`, `worker::clock::a_token_issued_now_verifies`, `worker::clock::a_token_is_too_young_before_its_minimum_age`, `worker::timer::a_delivery_that_never_finishes_times_out`, `worker::timer::a_delivery_that_finishes_in_time_returns_its_result`, `worker::fetch_verifier::the_request_refuses_redirects_and_posts_the_form`, `worker::fetch_verifier::a_redirect_is_unavailable`, `worker::fetch_verifier::a_verdict_is_parsed`, `worker::fetch_verifier::a_silent_vendor_is_a_timeout`, `worker::fetch_verifier::an_empty_secret_sends_nothing`, `worker::fetch_verifier::a_dropped_verification_aborts_its_request` (wasm32 server, headless Chrome) | CI: the `check` job's Workers step builds and lints `ssr,form-token,challenge-http,axum-helpers,delivery-timeout` for wasm32; runtime on workerd (`wrangler dev`, a live Worker): the reflerd.com team's report before 0.7.0 |
 | NFR-PERF-01 | **none** | **none** | — | review |
 | NFR-PERF-02 | **none** | **none** | — | review; the input limits themselves: FR-VAL-01 to -04 |
 | NFR-DEP-01 | **none** | **none** | — | review of `Cargo.toml`; CI builds with and without the optional features |
