@@ -108,6 +108,13 @@ browser, wasm32 server), with `wasm_timer.rs` in the source layout.
 **`docs/src/development/testing.md`:**
 - the `tests/worker/` suite section, next to the browser suite;
 - the traceability row for NFR-PORT-02 (now MUST);
+- the traceability row for FR-ABUSE-15 (the visitor's IP, added at the
+  handoff 03 review), citing:
+  - L1: `challenge::http::tests::the_form_body_carries_remoteip_when_provided`
+    and the `Debug` redaction tests from handoff 03 r2;
+  - L2: `challenge::the_client_ip_reaches_the_verifier` and
+    `logging::no_personal_data_or_secret_is_logged`;
+  - L3: `fetch_verifier::the_request_refuses_redirects_and_posts_the_form`;
 - the counts reported.
 
 **`README.md`:** one line in Design notes: runs on Cloudflare Workers; link
@@ -130,8 +137,8 @@ the guide.
      `cargo check --target wasm32-unknown-unknown` with the flag.  Report
      it.
    - **The rest** is fenced `rust,ignore` and says why.
-4. **Traceability.**  The table has 103 MUST rows (NFR-PORT-02 added), and
-   every cited test resolves.
+4. **Traceability.**  The table has 104 MUST rows (NFR-PORT-02 and FR-ABUSE-15
+   added, the latter at the handoff 03 review), and every cited test resolves.
 5. **Gates and both suites** pass; the code is unchanged.
 
 ## Review request
