@@ -15,10 +15,13 @@ Review requests go to `.git-exclude/review-request/011-cloudflare-workers/`.
 | 02 | [A JavaScript clock and timer](./02-clock-and-timer.md) | D4, D7 | 01 | medium |
 | 03 | [Challenge verification over `fetch`; the visitor's IP](./03-fetch-verifier-and-client-ip.md) | D3, D5 | 02 | large |
 | 04 | [Workers guide, CSP directives, records](./04-docs-and-records.md) | D8, D9 | 03 | medium |
+| 05 | [Fixes from the runtime report: script nonce grammar, Workers notes](./05-runtime-report-fixes.md) | testing follow-up | 04 r2; the reflerd.com runtime report | small |
 
 **State.** Handoff 01 approved 2026-09-15 (`7bcf450`); step 0 decision recorded (option A).  Handoff 02 approved 2026-09-15 (`749e7e0`).  Handoff 03 approved 2026-09-15 (`3201c3a`, r2 `d348160`).  Handoff 04 approved 2026-09-15 (`91846d8`, r2 `2040522`: no `getrandom` flag,
-behind `getrandom` 0.3.4).  **All handoffs approved.**  RFC 011 moves to `done/`
-at the 0.7.0 release, after the reflerd.com runtime report.
+behind `getrandom` 0.3.4).  Handoffs 01–04 approved.  The reflerd.com runtime report on `152d675`
+(2026-09-16) passed on a deployed Worker and found one bug: script nonces
+with `-` or `_` were refused.  Handoff 05 fixes it and adds four
+documentation points.  RFC 011 moves to `done/` at the 0.7.0 release.
 
 **Strictly in order.**
 - **01 first.**  Its step 0 spike can stop the design.
