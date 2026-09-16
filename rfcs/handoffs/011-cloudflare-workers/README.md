@@ -20,8 +20,9 @@ Review requests go to `.git-exclude/review-request/011-cloudflare-workers/`.
 **State.** Handoff 01 approved 2026-09-15 (`7bcf450`); step 0 decision recorded (option A).  Handoff 02 approved 2026-09-15 (`749e7e0`).  Handoff 03 approved 2026-09-15 (`3201c3a`, r2 `d348160`).  Handoff 04 approved 2026-09-15 (`91846d8`, r2 `2040522`: no `getrandom` flag,
 behind `getrandom` 0.3.4).  Handoffs 01–04 approved.  The reflerd.com runtime report on `152d675`
 (2026-09-16) passed on a deployed Worker and found one bug: script nonces
-with `-` or `_` were refused.  Handoff 05 fixes it and adds four
-documentation points.  RFC 011 moves to `done/` at the 0.7.0 release.
+with `-` or `_` were refused.  Handoff 05 fixes it and adds four documentation points; approved 2026-09-16
+(`531d1be`).  **RFC 011 is complete and runtime-verified.**  It moves to
+`done/` at the 0.7.0 release.
 
 **Strictly in order.**
 - **01 first.**  Its step 0 spike can stop the design.
