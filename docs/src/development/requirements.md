@@ -1,9 +1,8 @@
 # Requirements Specification
 
-> **Document status.** Draft 22, 2026-09-15, against release `0.6.0`.
+> **Document status.** Draft 23, 2026-09-16, against release `0.7.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
-> M1–M4 are released and M5 is owner-authorized; the document as a whole
-> awaits formal approval.
+> M1–M5 are released; the document as a whole awaits formal approval.
 > Once approved, this document is the requirements baseline; later changes
 > go through RFCs listed in [`rfcs/README.md`](https://github.com/nabbisen/leptos-hl-contact/blob/main/rfcs/README.md).
 >
@@ -379,6 +378,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-16 | Draft 23 | 0.7.0 released: document status against `0.7.0`; M5 released |
 | 2026-09-15 | Draft 22 | RFC 011 handoff 03 r2 landed: FR-ABUSE-15 status tidied to Met (0.7.0, RFC 011 D5) |
 | 2026-09-15 | Draft 21 | RFC 011 handoff 04: NFR-PORT-02 becomes a MUST (the server path builds for and runs on Cloudflare Workers) and is Met for 0.7.0; gap row removed |
 | 2026-09-15 | Draft 20 | RFC 011 handoff 03: FR-ABUSE-15 added — the visitor's IP reaches the verifier and the vendor, never a log or `Debug` output, and is never read from headers by the crate |

@@ -1,6 +1,6 @@
 # Handoff 011-05 — Fixes from the runtime report: script nonce grammar, Workers notes
 
-**RFC.** [RFC 011](../../accepted/011-cloudflare-workers.md), testing follow-up
+**RFC.** [RFC 011](../../done/011-cloudflare-workers.md), testing follow-up
 **Origin.** The reflerd.com team's runtime report on pre-release `152d675`,
 2026-09-16.  Every case they ran on a deployed Worker passed.  They found
 one bug and four documentation gaps.

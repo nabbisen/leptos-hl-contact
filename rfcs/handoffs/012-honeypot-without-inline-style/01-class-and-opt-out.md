@@ -1,6 +1,6 @@
 # Handoff 012-01 — Class hook and inline-style opt-out
 
-**RFC.** [RFC 012](../../accepted/012-honeypot-without-inline-style.md) D1–D3
+**RFC.** [RFC 012](../../done/012-honeypot-without-inline-style.md) D1–D3
 **Roadmap.** P-39
 **Requirements.** FR-UI-10, FR-UI-03, FR-A11Y-06, NFR-COMPAT-05
 **Owner decision.** The inline style stays the default.

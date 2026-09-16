@@ -1,6 +1,6 @@
 # Handoff 011-03 — Challenge verification over `fetch`; the visitor's IP
 
-**RFC.** [RFC 011](../../accepted/011-cloudflare-workers.md) D3, D5
+**RFC.** [RFC 011](../../done/011-cloudflare-workers.md) D3, D5
 **Roadmap.** P-23, P-40
 **Requirements.** FR-ABUSE-10, FR-ABUSE-12, NFR-PRIV-02, FR-OBS-02, NFR-PORT-02
 **Depends on.** Handoff 02 merged, for its `wasm_timer`.

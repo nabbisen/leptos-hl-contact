@@ -1,6 +1,6 @@
 # RFC 011 — Cloudflare Workers as a supported server target
 
-**Status.** Accepted — 2026-09-15.  The owner accepted the RFC with the
+**Status.** Implemented (0.7.0) — released 2026-09-16, tag `0.7.0` on commit `c185770`, published to crates.io.  Accepted 2026-09-15.  The owner accepted the RFC with the
 recommended option on each open question (§Owner decisions), having
 decided the same day that Cloudflare Workers is a supported server target
 (P-23), delivered as milestone M5 → 0.7.0, with the reflerd.com team as

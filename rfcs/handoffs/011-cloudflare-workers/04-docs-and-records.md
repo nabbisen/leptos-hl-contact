@@ -1,6 +1,6 @@
 # Handoff 011-04 — Workers guide, CSP directives, records
 
-**RFC.** [RFC 011](../../accepted/011-cloudflare-workers.md) D8, D9
+**RFC.** [RFC 011](../../done/011-cloudflare-workers.md) D8, D9
 **Roadmap.** P-23, P-40
 **Requirements.** NFR-PORT-02, NFR-DOC-01, NFR-DOC-03, NFR-PRIV-02,
 FR-CFG-01

@@ -1,6 +1,6 @@
 # RFC 012 — The honeypot without an inline style
 
-**Status.** Accepted — 2026-09-15, with the recommended default (§Owner
+**Status.** Implemented (0.7.0) — released 2026-09-16, tag `0.7.0` on commit `c185770`, published to crates.io.  Accepted 2026-09-15, with the recommended default (§Owner
 decision).  Part of milestone M5 → 0.7.0, as a small separate item.
 **Handoffs.** [`../handoffs/012-honeypot-without-inline-style/README.md`](../handoffs/012-honeypot-without-inline-style/README.md)
 **Tracks.** Roadmap P-39.  Requirements FR-UI-10, FR-UI-03, FR-SUB-04,

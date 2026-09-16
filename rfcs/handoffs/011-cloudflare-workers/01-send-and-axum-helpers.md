@@ -1,6 +1,6 @@
 # Handoff 011-01 — Spike, `Send` on a wasm32 server, `axum-helpers` without tokio, CI Workers check
 
-**RFC.** [RFC 011](../../accepted/011-cloudflare-workers.md) D1, D2, D6
+**RFC.** [RFC 011](../../done/011-cloudflare-workers.md) D1, D2, D6
 **Roadmap.** P-23
 **Requirements.** NFR-PORT-02, NFR-PORT-01, FR-DEL-01, FR-DEL-07, FR-CFG-02
 **Depends on.** RFC 012 handoff 01 merged, since both touch `testing.md` and

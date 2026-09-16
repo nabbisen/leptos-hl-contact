@@ -78,19 +78,20 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 - [x] Delivery implementers told that their error text is logged and must not contain the submission (P-33)
 - [x] RFC 008, RFC 009, RFC 010 → `rfcs/done/`
 
+### 0.7.0 — Milestone M5, Cloudflare Workers (2026-09-16)
+
+- [x] Cloudflare Workers as a supported server target: extension futures need not be `Send` on a wasm32 server, challenge verification over `fetch` with redirects still refused, a JavaScript clock and timer for the form token and `DeliveryTimeout`, `axum-helpers` without tokio, no build flag; verified on a deployed Worker by the reflerd.com team (P-23)
+- [x] The visitor's IP reaches challenge verification as `remoteip`, redacted in `Debug`, never logged (P-40; FR-ABUSE-15)
+- [x] The honeypot can be hidden without an inline style, for a strict Content Security Policy (P-39)
+- [x] Fix: base64url script nonces, such as Leptos generates, were refused since 0.5.0
+- [x] Security: `rustls` 0.23.45 in the lock files (RUSTSEC-2026-0285, native `challenge-http` only)
+- [x] RFC 011, RFC 012 → `rfcs/done/`
+
 ---
 
 ## Current
 
-### M5 — Cloudflare Workers → 0.7.0 — **authorized 2026-09-15**
-
-Owner decisions 2026-09-15: Cloudflare Workers is a supported server target (P-23); it ships as milestone M5 → 0.7.0, with the reflerd.com team testing on `wrangler dev` and their live Worker before release.  The honeypot request is a separate small item.  Origin: the reflerd.com team's request of 2026-09-13.  **Implementation complete 2026-09-15** (P-23, P-39, P-40).  The reflerd.com runtime report (2026-09-16) passed on a deployed Worker and found one bug, fixed in RFC 011 handoff 05 (`531d1be`).  M5 is ready for the 0.7.0 release process.
-
-| ID | Item | Priority | Kind | Evidence |
-|----|------|----------|------|----------|
-| P-23 | Cloudflare Workers as a supported server target: `Send` relaxed for extension futures on a wasm32 server, the built-in challenge verifier over `fetch` with redirects still refused, a wasm-safe clock for the form token, `DeliveryTimeout` without tokio, `axum-helpers` without tokio, a Workers guide and CSP directives | **High** | [RFC 011](./rfcs/accepted/011-cloudflare-workers.md) (accepted 2026-09-15) — handoffs 01–04 approved (`7bcf450`, `749e7e0`, `3201c3a` + `d348160`, `91846d8` + `2040522`); runtime report 2026-09-16 passed on a deployed Worker; handoff 05 approved (`531d1be`: script nonce grammar, since 0.5.0; Workers notes) — **done**, ships in 0.7.0 | measured 2026-09-15: on wasm32 `challenge-http` fails to compile, `form-token` panics at run time, `axum-helpers` fails on `mio`, `delivery-timeout` cannot run |
-| P-40 | Pass the visitor's IP to challenge verification (`remoteip`), additive: `ChallengeRequest`, a default `verify_request`, `ChallengeClientIp` context | Medium | [RFC 011](./rfcs/accepted/011-cloudflare-workers.md) D5 — **done** (`3201c3a`, `Debug` redaction `d348160`; FR-ABUSE-15), ships in 0.7.0 | Turnstile recommends `remoteip`; `verify` receives only the token |
-| P-39 | The honeypot without an inline style: `ContactFormClasses::honeypot` and `ContactFormOptions::honeypot_inline_style` (default `true`) | Medium | [RFC 012](./rfcs/accepted/012-honeypot-without-inline-style.md) (accepted 2026-09-15) — **done** (`7a45d69`), ships in 0.7.0 | under a CSP without `'unsafe-inline'` the field becomes visible and a visitor who fills it is silently discarded |
+No milestone in progress.  The next milestone is planned jointly with the owner; candidates are listed under Unscheduled below.
 
 ---
 
@@ -104,7 +105,7 @@ Owner decisions 2026-09-15: Cloudflare Workers is a supported server target (P-2
 | P-26 | Scheduled CI job running the `#[ignore]` live vendor tests; deferred by the owner on 2026-09-12 because it carries a cost | TBD (owner) | RFC |
 | P-35 | Opt-in mail-domain check: a DNS lookup for a mail exchanger (falling back to an address record, RFC 5321 §5.1) behind a feature, time-bounded, reported as an error under the email field so a visitor can fix a typo; accepts with a `warn` log when DNS does not answer.  Catches non-existent domains, not non-existent mailboxes | Low — **approved** 2026-09-13, less prioritized | RFC |
 | P-36 | Messages the site cannot translate — **on hold** (owner, 2026-09-13): the app team upgrades after the anti-abuse releases, and the report is re-checked on the upgraded version; no questions sent, no schedule, no RFC.  Since 0.4.0 `labels.errors` covers every server message under a field.  Candidate gaps: the browser's own validation pop-ups from `required`, `type="email"` and `maxlength`, which no label reaches; one text per rule, not per field; the Customization page mentions `errors` only as a link | TBD | pending facts |
-| P-38 | Mutation-run follow-up from 0.6.0: pin the form token's TTL and future-skew boundaries with tests; assert the `challenge unavailable` and missing-context log events; test `provide_contact_delivery`; browser tests for `remove_widget`, the reCAPTCHA v2 `ready` arm, hCaptcha and reCAPTCHA global names, and the hydrating path.  No defect found; each would catch a silent regression | Low — **proposed** | handoff (tests only) |
+| P-38 | Mutation-run follow-up from 0.6.0: pin the form token's TTL and future-skew boundaries with tests; assert the `challenge unavailable` and missing-context log events; test `provide_contact_delivery`; browser tests for `remove_widget`, the reCAPTCHA v2 `ready` arm, hCaptcha and reCAPTCHA global names, and the hydrating path.  From 0.7.0's run: a worker test that finishes a delivery before its deadline and waits past it, so `wasm_timer`'s `Sleep::drop` must clear the timer.  No defect found; each would catch a silent regression | Low — **proposed** | handoff (tests only) |
 
 ### Future
 
@@ -192,11 +193,21 @@ Owner decisions of 2026-09-13: test strategy first (RFC 008: browser tests on ev
 | P-34 | Stricter email syntax: reject address literals (`a@[127.0.0.1]`) and single-label domains (`abc@bar`), which `validator` 0.20 accepts; enforce the 254-character limit on the server (FR-VAL-02) | Medium — **approved** 2026-09-13 | [RFC 010](./rfcs/done/010-release-0.6.0.md) D2 — **done** (`ebc37bb`), released in 0.6.0 | owner question 2026-09-13; limit found in the RFC 008 handoff 04 review |
 | P-37 | Remove the deprecated 0.4 names: feature `csrf`, module `csrf`, the `csrf_token` field (FR-CFG-01) | **High** — promised in the 0.5.0 CHANGELOG | [RFC 010](./rfcs/done/010-release-0.6.0.md) D1 — **done** (`291e06c`), released in 0.6.0 | 0.5.0 migration notes |
 
+### M5 — Cloudflare Workers → 0.7.0
+
+Owner decisions of 2026-09-15: Cloudflare Workers is a supported server target (P-23), milestone M5 → 0.7.0, with the reflerd.com team as runtime testers; RFC 011 and RFC 012 accepted with the recommended options.  2026-09-16: the script-nonce fix ships in 0.7.0 with no 0.6.1, and no second runtime test round.  Released 2026-09-16, tag `0.7.0` on `c185770`.
+
+| ID | Item | Priority | Kind | Evidence |
+|----|------|----------|------|----------|
+| P-23 | Cloudflare Workers as a supported server target: `Send` relaxed for extension futures on a wasm32 server, the built-in challenge verifier over `fetch` with redirects still refused, a wasm-safe clock for the form token, `DeliveryTimeout` without tokio, `axum-helpers` without tokio, a Workers guide and CSP directives | **High** | [RFC 011](./rfcs/done/011-cloudflare-workers.md) — handoffs 01–04 approved (`7bcf450`, `749e7e0`, `3201c3a` + `d348160`, `91846d8` + `2040522`); runtime report 2026-09-16 passed on a deployed Worker; handoff 05 approved (`531d1be`: script nonce grammar, since 0.5.0; Workers notes) — **done**, released in 0.7.0 | measured 2026-09-15: on wasm32 `challenge-http` fails to compile, `form-token` panics at run time, `axum-helpers` fails on `mio`, `delivery-timeout` cannot run |
+| P-40 | Pass the visitor's IP to challenge verification (`remoteip`), additive: `ChallengeRequest`, a default `verify_request`, `ChallengeClientIp` context | Medium | [RFC 011](./rfcs/done/011-cloudflare-workers.md) D5 — **done** (`3201c3a`, `Debug` redaction `d348160`; FR-ABUSE-15), released in 0.7.0 | Turnstile recommends `remoteip`; `verify` receives only the token |
+| P-39 | The honeypot without an inline style: `ContactFormClasses::honeypot` and `ContactFormOptions::honeypot_inline_style` (default `true`) | Medium | [RFC 012](./rfcs/done/012-honeypot-without-inline-style.md) — **done** (`7a45d69`), released in 0.7.0 | under a CSP without `'unsafe-inline'` the field becomes visible and a visitor who fills it is silently discarded |
+
 ### Past decisions
 
 - 2026-09-12: milestones M1–M3 and their priorities approved.
 - 2026-09-12: anti-forgery token direction set in RFC 004; bundled challenge providers in scope.
-- 2026-09-12, 2026-09-13: versions 0.3.4, 0.4.0, 0.5.0 and 0.6.0 approved and released.
+- 2026-09-12, 2026-09-13, 2026-09-16: versions 0.3.4, 0.4.0, 0.5.0, 0.6.0 and 0.7.0 approved and released.
 - 2026-09-13: M4 theme approved, test strategy first.
 - 2026-09-13: RFC 008 — browser tests in CI on every push; mutation testing once per milestone before the release candidate, informational.
 - 2026-09-13: email — stricter syntax approved (P-34); opt-in mail-domain check approved at lower priority (P-35); confirm-before-forward recorded only.  Untranslatable messages (P-36) wait for the app team's confirmation.
@@ -206,3 +217,4 @@ Owner decisions of 2026-09-13: test strategy first (RFC 008: browser tests on ev
 - 2026-09-15: P-23 decided — Cloudflare Workers is a supported server target; milestone M5 → 0.7.0 with the reflerd.com team as runtime testers; the reply to their request is written after the 0.7.0 release.  RFC 011 and RFC 012 proposed.
 - 2026-09-15: RFC 011 and RFC 012 accepted with the recommended options: delivery on Workers stays the integrator's backend; the reflerd.com team tests from a git revision; no workerd job in CI for 0.7.0; the honeypot's inline style stays the default with an opt-out.
 - 2026-09-16: the reflerd.com runtime report accepted.  The script-nonce fix (since 0.5.0) ships in 0.7.0 with no 0.6.1: a patch would need a first release branch and a cherry-pick across files RFC 012 changed, for no known affected site, and the owner chose 0.7.0 when a patch carries project risk.  No second runtime test round.  The 0.7.0 release process starts.
+- 2026-09-16: 0.7.0 released — tag `0.7.0` on `c185770`, published by the architect under the owner's authorisation; M5 complete.  The `rustls` advisory (RUSTSEC-2026-0285) handled by lock updates and a CHANGELOG *Security* note, with no manifest minimum.

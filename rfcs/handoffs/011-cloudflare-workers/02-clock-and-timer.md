@@ -1,6 +1,6 @@
 # Handoff 011-02 — A JavaScript clock and timer
 
-**RFC.** [RFC 011](../../accepted/011-cloudflare-workers.md) D4, D7
+**RFC.** [RFC 011](../../done/011-cloudflare-workers.md) D4, D7
 **Roadmap.** P-23
 **Requirements.** FR-VAL-06, FR-ABUSE-03, FR-ABUSE-13, FR-DEL-08, NFR-PORT-02
 **Depends on.** Handoff 01 merged.

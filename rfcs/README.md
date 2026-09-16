@@ -21,8 +21,7 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Handoff |
 |----|-------|---------|
-| 011 | [Cloudflare Workers as a supported server target](./accepted/011-cloudflare-workers.md) | [handoffs/011-cloudflare-workers/](./handoffs/011-cloudflare-workers/README.md) |
-| 012 | [The honeypot without an inline style](./accepted/012-honeypot-without-inline-style.md) | [handoffs/012-honeypot-without-inline-style/](./handoffs/012-honeypot-without-inline-style/README.md) |
+| — | *(none)* | |
 
 ## Implemented
 
@@ -39,6 +38,8 @@ Planned topics that do not yet have a file are listed in
 | 008 | [Test strategy](./done/008-test-strategy.md) | 0.6.0 (2026-09-13) — [handoffs](./handoffs/008-test-strategy/README.md) |
 | 009 | [A bound on delivery time](./done/009-delivery-time-bound.md) | 0.6.0 (2026-09-13) — [handoffs](./handoffs/009-delivery-time-bound/README.md) |
 | 010 | [Release 0.6.0: removals, email syntax, delivery-error rule](./done/010-release-0.6.0.md) | 0.6.0 (2026-09-13) — [handoffs](./handoffs/010-release-0.6.0/README.md) |
+| 011 | [Cloudflare Workers as a supported server target](./done/011-cloudflare-workers.md) | 0.7.0 (2026-09-16) — [handoffs](./handoffs/011-cloudflare-workers/README.md) |
+| 012 | [The honeypot without an inline style](./done/012-honeypot-without-inline-style.md) | 0.7.0 (2026-09-16) — [handoffs](./handoffs/012-honeypot-without-inline-style/README.md) |
 
 ## Archive
 
