@@ -425,12 +425,25 @@ fn widget_language_must_look_like_bcp47() {
 }
 
 #[test]
-fn widget_script_nonce_must_be_base64() {
+/// FR-ABUSE-10, runtime report 2026-09-16 §4.1: a script nonce follows CSP
+/// Level 3's `base64-value`, so base64url nonces (with `-` or `_`), such as
+/// the ones Leptos generates, are accepted, and padding is only trailing.
+fn widget_script_nonce_follows_the_csp3_grammar() {
     let w = || ChallengeWidget::new(ChallengeProvider::Turnstile, "SITE").unwrap();
-    for good in ["abc123", "rAnd0m+/nonce==", "ZXhhbXBsZQ"] {
+    let url_safe_22 = "aB3-dE6_gH9-jK2_mN5-pQ";
+    assert_eq!(url_safe_22.len(), 22);
+    for good in [
+        "abc123",
+        "rAnd0m+/nonce==",
+        "ZXhhbXBsZQ",
+        "abc-DEF_123",
+        url_safe_22,
+        "ab_=",
+        "ab-==",
+    ] {
         assert!(w().with_script_nonce(good).is_ok(), "{good:?}");
     }
-    for bad in ["", "abc\"", "a b", "abc-def", "<x>"] {
+    for bad in ["", "a b", "a\"b", "a'b", "a<b", "abc===", "a=b", "=abc"] {
         assert!(w().with_script_nonce(bad).is_err(), "{bad:?}");
     }
 }

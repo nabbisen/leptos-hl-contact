@@ -46,6 +46,17 @@ turn them on, so the `wasm` feature above is the whole choice.
 **No build flag is needed.**  This crate enables `getrandom`'s `wasm_js`
 feature for server builds on wasm32, which selects its JavaScript backend.
 
+**Bundle size.**
+- **A measured build.**  A Worker with all five features and a challenge
+  widget measured about 3 MiB gzipped in the reflerd.com team's test build.
+- **Cloudflare's limit** is 64 MiB uncompressed on both the Free and Paid
+  plans, with no compressed limit, though a larger bundle can slow startup
+  ([Workers limits, "Worker size"](https://developers.cloudflare.com/workers/platform/limits/),
+  checked 2026-09-16).
+- **Build for size.**  Build with `--release` and the usual size settings in
+  your release profile: `opt-level = "z"` or `"s"`, `lto = true`,
+  `codegen-units = 1`.
+
 ## Delivery on a Worker
 
 On a Worker, a delivery's future need not be `Send`, so it may hold
@@ -262,6 +273,8 @@ Worker keeps running while the client stays connected
 So the practical bound is how long a visitor will wait.
 
 - **The context closure above uses 10 seconds.**
+- **A timeout is logged** as `contact form delivery timed out`, with the
+  limit only; see [Logs](#logs).
 - **If the visitor disconnects,** Cloudflare may cancel the request's
   remaining work, so a slow delivery can be cut off without an answer.
 - **When the deadline passes,** the visitor is told the message may have
@@ -270,13 +283,48 @@ So the practical bound is how long a visitor will wait.
 `HttpChallengeVerifier` has its own five-second limit (`with_timeout`) on
 Workers as well.
 
+## Logs
+
+**Why nothing prints.**  The crate logs through `tracing`.  A Worker usually
+installs a `log` logger, such as `console_log`, and no `tracing` subscriber,
+so the crate's lines print nothing.
+
+**The fix.**  Enable `tracing`'s `log` feature in your Worker's crate:
+
+```toml
+tracing = { version = "0.1", features = ["log"] }
+```
+
+With that feature and no `tracing` subscriber active, each `tracing` event
+is emitted as a `log` record, which your logger prints
+([tracing: "Emitting `log` Records"](https://docs.rs/tracing/0.1.44/tracing/#emitting-log-records),
+0.1.44, checked 2026-09-16).
+
+**What that shows.**  Without it you do not see the operator's side of a
+failure:
+- `contact form delivery timed out` from the delivery deadline;
+- `challenge verifier unavailable`;
+- the delivery error's transport detail;
+- a missing context value.
+
+The sections above and below rely on these lines.
+
 ## Testing locally
 
 Run the Worker with
 [`wrangler dev`](https://developers.cloudflare.com/workers/wrangler/commands/workers/);
 [workers-rs](https://github.com/cloudflare/workers-rs) describes the Rust
-build.  Submit the form with and without JavaScript, with a challenge, and
-with a delivery that fails.
+build.
+
+**What to try.**  Enable the `log` feature first (see [Logs](#logs)), then
+submit the form:
+- with and without JavaScript;
+- with a challenge;
+- with a delivery that fails.
+
+Without JavaScript, a refused submission comes back through a redirect with
+an `__err` query parameter; see
+[The error redirect without JavaScript](./axum-integration.md#the-error-redirect-without-javascript).
 
 **What this project tests.**
 - **CI** builds and lints the Workers feature set for wasm32 on every push.

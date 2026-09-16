@@ -134,6 +134,39 @@ Each layer is explained in [Hardening](../security/hardening.md).  The
 complete file is
 [`examples/axum-with-security/src/main.rs`](https://github.com/nabbisen/leptos-hl-contact/blob/main/examples/axum-with-security/src/main.rs).
 
+## The error redirect without JavaScript
+
+Without JavaScript the form posts natively, and a server function answers
+with a redirect instead of data.
+
+**A refused submission.**
+- **The redirect.**  It is answered with `302 Found` back to the page it came
+  from (the `Referer`).
+- **Two query parameters** are added by Leptos's server functions:
+  - `__err`: the error, URL-safe base64;
+  - `__path`: the server function's path.
+- **The page reads `__err` on load** to show the banner or the field
+  errors.
+
+**A successful submission** comes back to that page without them, unless a
+success page is set.
+
+**Let the parameters through.**  Middleware, caching and analytics that match
+on URLs must let these parameters through:
+- a cache keyed without the query string, or a rule that strips unknown
+  parameters, loses the message;
+- a rule that rejects unknown parameters turns a validation error into a
+  broken page.
+
+**Sources.**
+- `server_fn` 0.8.12 `src/error.rs` appends `__path` and `__err`.
+- `leptos_router` 0.8.13 `src/location/mod.rs` reads `__err`.
+- The server suite's `validation::field_errors_round_trip_without_javascript`
+  asserts that the `302` carries `__err` and that the page it lands on shows
+  the error.
+- `delivery::a_valid_submission_is_delivered_once_in_both_forms` asserts
+  that a delivered submission's redirect has none.
+
 ## Other frameworks
 
 The core crate does not depend on Axum.  With Actix Web or another backend,

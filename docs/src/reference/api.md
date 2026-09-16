@@ -125,7 +125,9 @@ impl ChallengeWidget {
 
 `ChallengeWidget` validation: `site_key` and the v3 `action` match
 `[A-Za-z0-9_-]+`; `language` matches `[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*`;
-`script_nonce` is base64 (`[A-Za-z0-9+/=]+`).  Defaults from `new`: theme
+`script_nonce` is a CSP Level 3 nonce: base64 or base64url
+(`[A-Za-z0-9+/_-]+`) with at most two trailing `=`, so Leptos's own nonces
+are accepted.  Defaults from `new`: theme
 `Auto`, vendor script loaded by the component, no language, no nonce,
 `NoJsPolicy::Reject`.
 

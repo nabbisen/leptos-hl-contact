@@ -154,6 +154,27 @@ not need them.
 reCAPTCHA v3's inline script needs the nonce, or `'unsafe-inline'`, which is
 not recommended.
 
+**Leptos's own nonce.**  With a nonce-based policy, pass the nonce Leptos
+puts on its own scripts:
+
+```rust,ignore
+let widget = ChallengeWidget::new(ChallengeProvider::Turnstile, site_key)?;
+#[cfg(feature = "ssr")]
+let widget = match leptos::nonce::use_nonce() {
+    Some(nonce) => widget
+        .with_script_nonce(nonce.to_string())
+        .expect("a Leptos nonce is a valid CSP nonce"),
+    None => widget,
+};
+```
+
+- **Server builds only.**  `leptos::nonce::use_nonce()` exists only with
+  Leptos's `nonce` feature.  Server builds have it, because `leptos_axum`
+  enables it; `hydrate` builds do not.  Gate the call with
+  `#[cfg(feature = "ssr")]`, as above.
+- **Where the nonce matters.**  Only on the server render, which writes the
+  script tags into the HTML the policy's nonce applies to.
+
 **The honeypot.**  The honeypot is hidden by an inline `style` attribute,
 which a policy without `'unsafe-inline'` blocks.  Under such a policy:
 - set `ContactFormOptions::honeypot_inline_style` to `false`;

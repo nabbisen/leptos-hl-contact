@@ -44,6 +44,15 @@
   features.**  The application chooses them: a native Axum application
   enables the defaults, a Worker enables `leptos_axum`'s `wasm` feature.
 
+### Fixed
+
+- **`ChallengeWidget::with_script_nonce` refused base64url nonces** (with `-`
+  or `_`), such as about half of those Leptos generates, so the widget
+  rendered without a nonce and a nonce-only Content Security Policy blocked
+  it.  Since 0.5.0.  It now accepts exactly the CSP Level 3 nonce grammar; a
+  `=` other than trailing padding is now refused, which browsers ignored
+  anyway.
+
 ### Documentation
 
 - **Cloudflare Workers guide** (`guides/cloudflare-workers.md`):

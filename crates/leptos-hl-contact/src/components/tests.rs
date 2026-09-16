@@ -341,6 +341,23 @@ fn the_nonce_is_on_every_script_tag_when_set() {
     assert!(!html.contains("nonce="), "no nonce unless set:\n{html}");
 }
 
+/// FR-ABUSE-10, runtime report 2026-09-16 §4.1: a base64url nonce, as
+/// Leptos generates, reaches every script tag.
+#[test]
+fn a_url_safe_nonce_is_on_every_script_tag() {
+    let w = ChallengeWidget::new(
+        ChallengeProvider::RecaptchaV3 {
+            action: "contact".into(),
+        },
+        "SITE",
+    )
+    .unwrap()
+    .with_script_nonce("abc-DEF_123")
+    .unwrap();
+    let html = render_with(w);
+    assert_eq!(count(&html, "nonce=\"abc-DEF_123\""), 2, "{html}");
+}
+
 #[test]
 fn escape_html_escapes_the_four_characters() {
     use crate::components::escape_html;

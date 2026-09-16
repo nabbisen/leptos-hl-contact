@@ -420,14 +420,25 @@ impl ChallengeWidget {
     }
 
     /// Put a Content-Security-Policy nonce on the script tags.
+    ///
+    /// The nonce follows CSP Level 3's grammar: base64 or base64url
+    /// characters (`A–Z a–z 0–9 + / - _`), then at most two `=` of padding.
+    /// The values `leptos::nonce::use_nonce()` returns, which are base64url,
+    /// are accepted.
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidChallengeConfig`] for any other value: an empty string, one
+    /// with a quote, a space or another character outside that set, or one
+    /// with `=` anywhere but the end.
     pub fn with_script_nonce(
         mut self,
         nonce: impl Into<String>,
     ) -> Result<Self, InvalidChallengeConfig> {
         let nonce = nonce.into();
-        if !is_base64(&nonce) {
+        if !is_csp_nonce(&nonce) {
             return Err(InvalidChallengeConfig(
-                "script_nonce must be non-empty base64 ([A-Za-z0-9+/=])",
+                "script_nonce must be a CSP nonce (base64 or base64url: [A-Za-z0-9+/_-], up to two trailing '=')",
             ));
         }
         self.script_nonce = Some(nonce);
@@ -484,11 +495,17 @@ fn is_language_tag(s: &str) -> bool {
         && parts.all(|p| (2..=8).contains(&p.len()) && p.bytes().all(|b| b.is_ascii_alphanumeric()))
 }
 
-/// `[A-Za-z0-9+/=]+`
-fn is_base64(s: &str) -> bool {
-    !s.is_empty()
-        && s.bytes()
-            .all(|b| b.is_ascii_alphanumeric() || b == b'+' || b == b'/' || b == b'=')
+/// A CSP Level 3 nonce, `base64-value` in the `nonce-source` grammar:
+/// `[A-Za-z0-9+/_-]+` followed by at most two `=`.  Base64url nonces, such as
+/// the ones Leptos generates, use `-` and `_`.
+fn is_csp_nonce(s: &str) -> bool {
+    let value = s.trim_end_matches('=');
+    let padding = s.len() - value.len();
+    !value.is_empty()
+        && padding <= 2
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'+' | b'/' | b'-' | b'_'))
 }
 
 // ---------------------------------------------------------------------------
