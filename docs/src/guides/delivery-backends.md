@@ -74,24 +74,21 @@ intact and prevents sender spoofing.
 
 ## Writing your own backend
 
-Implement the trait.  It returns a boxed future so it can be used as
-`Arc<dyn ContactDelivery>`.
+Implement the trait.  It returns a boxed future, `DeliveryFuture`, so it can
+be used as `Arc<dyn ContactDelivery>`.  The alias is `Send` natively and
+drops `Send` on a wasm32 server build (Cloudflare Workers), so the same code
+compiles for both.
 
 ```rust
-use std::{future::Future, pin::Pin};
 use leptos_hl_contact::{
-    delivery::ContactDelivery,
-    error::ContactDeliveryError,
+    delivery::{ContactDelivery, DeliveryFuture},
     model::ContactInput,
 };
 
 pub struct MyCustomDelivery;
 
 impl ContactDelivery for MyCustomDelivery {
-    fn deliver(
-        &self,
-        input: ContactInput,
-    ) -> Pin<Box<dyn Future<Output = Result<(), ContactDeliveryError>> + Send + '_>> {
+    fn deliver(&self, input: ContactInput) -> DeliveryFuture<'_> {
         Box::pin(async move {
             // Call SendGrid, write to a database, post to Slack …
             let _ = input;

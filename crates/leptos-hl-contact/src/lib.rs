@@ -22,8 +22,8 @@
 //! | `ssr`              | —                         | Server-side rendering and the `submit_contact` body. |
 //! | `islands`          | —                         | Leptos Islands architecture. |
 //! | `smtp-lettre`      | `ssr`, `delivery-timeout` | The SMTP delivery backend (`lettre`, `tokio`). |
-//! | `delivery-timeout` | `ssr`                     | `DeliveryTimeout`, a deadline for any delivery backend (`tokio` with `time`). |
-//! | `axum-helpers`     | `ssr`                     | Axum integration helpers (`axum`, `leptos_axum`). |
+//! | `delivery-timeout` | `ssr`                     | `DeliveryTimeout`, a deadline for any delivery backend (`tokio` with `time` natively; a JavaScript timer on a wasm32 server). |
+//! | `axum-helpers`     | `ssr`                     | Axum integration helpers (`axum`, `leptos_axum`, without their default features: the application chooses them). |
 //! | `form-token`       | `ssr`                     | Stateless HMAC-SHA256 form token; `submit_contact` requires `FormTokenContext` (fail-closed). |
 //! | `challenge-http`   | `ssr`                     | `HttpChallengeVerifier`, which calls the vendors' siteverify endpoints (`reqwest` with rustls natively, `fetch` on a wasm32 server). |
 //!

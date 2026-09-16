@@ -26,7 +26,7 @@ on the server.
 **1. Enable the built-in verifier** on the server binary:
 
 ```toml
-leptos-hl-contact = { version = "0.6", features = ["ssr", "axum-helpers", "form-token", "challenge-http"] }
+leptos-hl-contact = { version = "0.7", features = ["ssr", "axum-helpers", "form-token", "challenge-http"] }
 ```
 
 **2. Render the widget.**  The site key is public:
@@ -172,8 +172,15 @@ let widget = match leptos::nonce::use_nonce() {
   Leptos's `nonce` feature.  Server builds have it, because `leptos_axum`
   enables it; `hydrate` builds do not.  Gate the call with
   `#[cfg(feature = "ssr")]`, as above.
-- **Where the nonce matters.**  Only on the server render, which writes the
+- **Where the nonce matters.**  On the server render, which writes the
   script tags into the HTML the policy's nonce applies to.
+- **After client-side navigation,** the hydrated form inserts the vendor
+  script itself, with the widget's own nonce (`components.rs`, the
+  `append_script` call).  A browser (`hydrate`) build has no Leptos nonce to
+  give it, so that script carries none.  It still loads when the policy
+  allows the vendor host by name, or uses `'strict-dynamic'`, which trusts
+  scripts that trusted scripts insert.  The reflerd.com team confirmed the
+  host allow-list case after navigation.
 
 **The honeypot.**  The honeypot is hidden by an inline `style` attribute,
 which a policy without `'unsafe-inline'` blocks.  Under such a policy:

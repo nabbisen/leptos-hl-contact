@@ -43,10 +43,10 @@ ContactForm  →  submit_contact (server fn)  →  ContactDelivery (trait)
 
 ```toml
 # server binary
-leptos-hl-contact = { version = "0.6", features = ["ssr", "smtp-lettre", "axum-helpers"] }
+leptos-hl-contact = { version = "0.7", features = ["ssr", "smtp-lettre", "axum-helpers"] }
 
 # WASM binary
-leptos-hl-contact = { version = "0.6", features = ["hydrate"] }
+leptos-hl-contact = { version = "0.7", features = ["hydrate"] }
 ```
 
 **2. Delivery backend and Axum wiring**

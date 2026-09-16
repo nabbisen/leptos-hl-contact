@@ -14,9 +14,13 @@ rules of its own: the hook is yours to fill.
 ```rust,ignore
 pub enum FilterDecision { Accept, Reject, SilentDrop }
 
+/// `Pin<Box<dyn Future<Output = FilterDecision> + Send + 'a>>`; without
+/// `+ Send` on a wasm32 server build (Cloudflare Workers).
+pub type FilterFuture<'a> = /* … */;
+
 pub trait ContactFilter: Send + Sync + 'static {
     /// Called after validation, policy, and challenge; before delivery.
-    fn filter(&self, input: &ContactInput) -> Pin<Box<dyn Future<Output = FilterDecision> + Send + '_>>;
+    fn filter(&self, input: &ContactInput) -> FilterFuture<'_>;
     /// Short name for logs; default = type name.
     fn name(&self) -> &'static str { std::any::type_name::<Self>() }
 }
@@ -52,8 +56,7 @@ This is compiled and run as a doctest on `ContactFilter`, so it stays
 correct:
 
 ```rust,ignore
-use std::{future::Future, pin::Pin};
-use leptos_hl_contact::{ContactInput, filter::{ContactFilter, FilterDecision}};
+use leptos_hl_contact::{ContactInput, filter::{ContactFilter, FilterDecision, FilterFuture}};
 
 /// Reject messages with more than `max` links.
 struct MaxLinks {
@@ -61,7 +64,7 @@ struct MaxLinks {
 }
 
 impl ContactFilter for MaxLinks {
-    fn filter(&self, input: &ContactInput) -> Pin<Box<dyn Future<Output = FilterDecision> + Send + '_>> {
+    fn filter(&self, input: &ContactInput) -> FilterFuture<'_> {
         let links = input.message.matches("http://").count()
             + input.message.matches("https://").count();
         Box::pin(async move {
@@ -90,7 +93,7 @@ struct BlockedDomains {
 }
 
 impl ContactFilter for BlockedDomains {
-    fn filter(&self, input: &ContactInput) -> Pin<Box<dyn Future<Output = FilterDecision> + Send + '_>> {
+    fn filter(&self, input: &ContactInput) -> FilterFuture<'_> {
         let blocked = input
             .email
             .rsplit_once('@')
@@ -122,7 +125,7 @@ struct Classifier {
 }
 
 impl ContactFilter for Classifier {
-    fn filter(&self, input: &ContactInput) -> Pin<Box<dyn Future<Output = FilterDecision> + Send + '_>> {
+    fn filter(&self, input: &ContactInput) -> FilterFuture<'_> {
         let message = input.message.clone();
         Box::pin(async move {
             let call = self.client.post(&self.url).body(message).send();

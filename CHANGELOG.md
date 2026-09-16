@@ -1,6 +1,21 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.0] — 2026-09-16
+
+This is the minor release in which the server path runs on Cloudflare
+Workers.  It also passes the visitor's IP to challenge verification, lets a
+strict Content Security Policy hide the honeypot, and accepts the script
+nonces Leptos generates.
+
+### Security
+
+- **`rustls` advisory in the TLS client used by `challenge-http`**
+  (RUSTSEC-2026-0285, medium): rustls before 0.23.45 accepted TLS 1.3
+  handshake messages across encryption-level boundaries; an attacker
+  cannot alter or complete a handshake.  This release's lock files use
+  0.23.45.  Applications that enable `challenge-http` resolve `rustls`
+  themselves: run `cargo update -p rustls`.  Cloudflare Workers builds
+  do not use rustls.
 
 ### Added
 
@@ -57,7 +72,7 @@
 
 - **Cloudflare Workers guide** (`guides/cloudflare-workers.md`):
   - which features work;
-  - the dependencies and the `getrandom` flag;
+  - the dependencies (no build flag needed);
   - the context closure, delivery with non-`Send` futures, the client IP;
   - rate limiting with the Workers binding;
   - the delivery deadline;
@@ -67,6 +82,13 @@
   policy (`security/challenge.md`).
 - **A Cloudflare Workers block** in the Production Checklist, and a Workers
   column on the Feature Flags page.
+- **Workers notes from the runtime report:** logs on a Worker through
+  `tracing`'s `log` feature, the no-JavaScript error redirect (`__err`,
+  Axum Integration), gating `leptos::nonce::use_nonce` to server builds and
+  the script nonce after client-side navigation (Challenge), and
+  Cloudflare's Worker size limit.
+- **Custom delivery backend and filter examples** return the
+  `DeliveryFuture` and `FilterFuture` aliases.
 
 ### Migration
 
@@ -76,6 +98,12 @@
 - A `ContactFormClasses { … }` or `ContactFormOptions { … }` literal without
   `..Default::default()` must add the new field.  The rendered form is
   unchanged unless you set `honeypot_inline_style: false`.
+- On a wasm32 server build (Cloudflare Workers), an implementation of
+  `ContactDelivery`, `ChallengeVerifier` or `ContactFilter` that spells out
+  `+ Send` in its return type must switch to `DeliveryFuture`,
+  `VerifyFuture` or `FilterFuture`.  Native builds are unaffected.
+- The crate requires `getrandom` 0.3.4.  An application whose lock pins an
+  older 0.3 runs `cargo update -p getrandom`.
 
 ## [0.6.0] — 2026-09-13
 
