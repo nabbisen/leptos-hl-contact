@@ -14,7 +14,8 @@
 // Optional challenge (off unless set; see app.rs):
 //   CHALLENGE_PROVIDER=turnstile|hcaptcha|recaptcha-v2|recaptcha-v3
 //   CHALLENGE_SITE_KEY=...   # public: with the provider, renders the widget
-//   CHALLENGE_SECRET=...     # server only: with the other two, verifies it
+//   CHALLENGE_SECRET=...     # server only: with the other two, verifies it;
+//                            # missing, the widget renders and every submission is refused
 //
 //   Cloudflare Turnstile test keys (https://developers.cloudflare.com/turnstile/troubleshooting/testing/):
 //     site key 1x00000000000000000000AA            always passes
@@ -207,40 +208,43 @@ async fn main() {
     // Challenge (optional)
     // ------------------------------------------------------------------
     // The widget needs CHALLENGE_PROVIDER and CHALLENGE_SITE_KEY; verification
-    // needs CHALLENGE_SECRET as well.  A widget without a secret is left
-    // running on purpose: every submission with a token is then rejected as
-    // `not_configured`, loudly, which is what that misconfiguration must do.
-    let challenge_context: Option<ChallengeContext> = match (
-        app::challenge_widget(),
-        std::env::var("CHALLENGE_SECRET")
+    // needs CHALLENGE_SECRET as well.  Whenever the widget renders, the context
+    // is provided — with an empty secret if CHALLENGE_SECRET is missing.
+    // Leaving the context out would refuse only submissions that carry a
+    // token and let a bot that posts without one through.  With an empty
+    // secret every submission is refused: `challenge_unavailable` with a
+    // token, `challenge_required` without one (RFC 013 D4).
+    let challenge_context: Option<ChallengeContext> = app::challenge_widget().map(|_| {
+        let provider = std::env::var("CHALLENGE_PROVIDER")
             .ok()
-            .filter(|s| !s.is_empty()),
-    ) {
-        (Some(_), Some(secret)) => {
-            let provider = std::env::var("CHALLENGE_PROVIDER")
-                .ok()
-                .and_then(|p| app::parse_provider(&p))
-                .expect("challenge_widget() parsed it");
-            let expected_action = matches!(provider, ChallengeProvider::RecaptchaV3 { .. })
-                .then(|| app::RECAPTCHA_V3_ACTION.to_owned());
-            tracing::info!(?provider, "challenge enabled");
-            Some(ChallengeContext {
-                verifier: Arc::new(HttpChallengeVerifier::new(provider, secret)),
-                policy: ChallengePolicy {
-                    expected_action,
-                    ..Default::default()
-                },
-            })
+            .and_then(|p| app::parse_provider(&p))
+            .expect("challenge_widget() parsed it");
+        let expected_action = matches!(provider, ChallengeProvider::RecaptchaV3 { .. })
+            .then(|| app::RECAPTCHA_V3_ACTION.to_owned());
+        let secret = match std::env::var("CHALLENGE_SECRET")
+            .ok()
+            .filter(|s| !s.is_empty())
+        {
+            Some(secret) => {
+                tracing::info!(?provider, "challenge enabled");
+                secret
+            }
+            None => {
+                tracing::warn!(
+                    "CHALLENGE_SITE_KEY is set without CHALLENGE_SECRET: the widget renders, \
+                     and every submission is refused until CHALLENGE_SECRET is set"
+                );
+                String::new()
+            }
+        };
+        ChallengeContext {
+            verifier: Arc::new(HttpChallengeVerifier::new(provider, secret)),
+            policy: ChallengePolicy {
+                expected_action,
+                ..Default::default()
+            },
         }
-        (Some(_), None) => {
-            tracing::warn!(
-                "CHALLENGE_SITE_KEY is set without CHALLENGE_SECRET: the widget renders, \
-                 and every submission carrying its token is rejected as not_configured"
-            );
-            None
-        }
-        (None, _) => None,
-    };
+    });
 
     // Built once, before the router, so an invalid path panics at boot rather
     // than on the first submission.

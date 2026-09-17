@@ -99,6 +99,31 @@ the server policy, so invalid input never costs a vendor call.
 An empty or whitespace-only token counts as absent.  Tokens and secrets are
 never logged.
 
+**A missing secret.**  Whether a challenge is on is decided by whether the
+widget renders, not by whether you have its secret.  Leaving out
+`ChallengeContext` when the secret is missing looks safe but is not: it
+refuses only submissions that carry a token, and a bot that posts without one
+meets no challenge.  If the widget renders, provide the context, and pass a
+missing secret to `HttpChallengeVerifier::new` as an empty string.  Then,
+under `NoJsPolicy::Reject` (the default):
+
+- **with a token:** refused as `challenge_unavailable`, with an `error` log;
+- **without a token:** refused as `challenge_required`;
+- **either way,** nothing is delivered.
+
+```rust,ignore
+// An absent secret becomes "", so every submission is refused.
+let secret = std::env::var("CHALLENGE_SECRET").unwrap_or_default();
+let context = ChallengeContext {
+    verifier: Arc::new(HttpChallengeVerifier::new(ChallengeProvider::Turnstile, secret)),
+    policy: ChallengePolicy::default(),
+};
+```
+
+Where you can, refusing to start when a secret is missing is better still, as
+[Hardening](./hardening.md#secrets) advises.  A Worker has no start-up to
+refuse, so there the empty secret is the pattern.
+
 ## Without JavaScript
 
 Every vendor needs JavaScript to produce a token.  `NoJsPolicy` decides what

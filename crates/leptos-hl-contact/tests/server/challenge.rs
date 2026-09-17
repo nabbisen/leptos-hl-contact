@@ -144,6 +144,47 @@ async fn challenge_decision_table_rows_1_to_7() {
     assert_eq!(h.deliveries(), 0, "row 7");
 }
 
+/// FR-ABUSE-12, RFC 013 D4: a site whose widget renders without a secret must
+/// still provide `ChallengeContext`, with an empty secret.  Leaving the context
+/// out refuses only submissions that carry a token; with it, a submission is
+/// refused with or without one, and nothing is delivered.  No network: an
+/// empty secret sends nothing.
+#[cfg(feature = "challenge-http")]
+#[tokio::test]
+async fn a_widget_with_an_empty_secret_refuses_with_and_without_a_token() {
+    use leptos_hl_contact::{ChallengeProvider, HttpChallengeVerifier};
+
+    let policy = ChallengePolicy::default();
+    assert_eq!(policy.no_js, NoJsPolicy::Reject);
+    let h = Harness::new(Setup {
+        challenge: Some(ChallengeContext {
+            verifier: Arc::new(HttpChallengeVerifier::new(ChallengeProvider::Turnstile, "")),
+            policy,
+        }),
+        ..Setup::default()
+    });
+
+    expect_both(
+        &h,
+        &h.fields(),
+        Some(("challenge_required", "Please complete the security check.")),
+        "without a token",
+    )
+    .await;
+    expect_both(
+        &h,
+        &h.fields()
+            .set("cf-turnstile-response", "empty-secret-token"),
+        Some((
+            "challenge_unavailable",
+            "The security check is unavailable right now. Please try again later.",
+        )),
+        "with a token",
+    )
+    .await;
+    assert_eq!(h.deliveries(), 0);
+}
+
 /// FR-ABUSE-10, NFR-PRIV-02, RFC 011 D5 (P-40): the IP a site provides as
 /// `ChallengeClientIp` reaches `verify_request`, in both request forms;
 /// without it the verifier sees `None`.

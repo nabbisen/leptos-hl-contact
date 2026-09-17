@@ -19,7 +19,7 @@ that explains it.
 | ☐ | Logs reviewed: no message bodies, addresses, or secrets | [Security](../security/README.md) |
 | ☐ | Success page configured (`success_redirect`) if visitors without JavaScript must see a confirmation | [Customization](../guides/customization.md#success-page) |
 | ☐ | Form smoke-tested with JavaScript disabled | [Troubleshooting](../help/troubleshooting.md) |
-| ☐ | Optional: a challenge for high-value forms — widget and `ChallengeContext` both set, and the widget's no-JS policy matching the server's | [Challenge](../security/challenge.md) |
+| ☐ | Optional: a challenge for high-value forms — widget and `ChallengeContext` both set, and the widget's no-JS policy matching the server's; `ChallengeContext` provided whenever the widget renders, with an empty secret if the secret is missing | [Challenge](../security/challenge.md), [A missing secret](../security/challenge.md#what-the-server-decides) |
 
 ## Cloudflare Workers
 
@@ -29,7 +29,7 @@ In addition to the rows above that apply (TLS and body limits are Cloudflare's):
 |------|------|-------|
 | ☐ | Features: `ssr`, `form-token`, `challenge-http`, `axum-helpers`, `delivery-timeout`; not `smtp-lettre` | [Cloudflare Workers](../guides/cloudflare-workers.md#what-works) |
 | ☐ | `ChallengeClientIp` provided from `CF-Connecting-IP`, if you use a challenge | [The visitor's IP](../guides/cloudflare-workers.md#the-visitors-ip) |
-| ☐ | Rate Limiting binding checked before the router, on `POST` | [Rate limiting](../guides/cloudflare-workers.md#rate-limiting) |
+| ☐ | Rate limit on `POST` verified on the deployed Worker: the Rate Limiting binding before the router, or a rate-limiting rule | [Rate limiting](../guides/cloudflare-workers.md#rate-limiting) |
 | ☐ | Content Security Policy per the challenge provider; honeypot class and `honeypot_inline_style: false` without `'unsafe-inline'` | [Challenge: CSP](../security/challenge.md#content-security-policy) |
 | ☐ | Your delivery backend wrapped in `DeliveryTimeout` | [The delivery deadline](../guides/cloudflare-workers.md#the-delivery-deadline) |
 | ☐ | Runtime smoke test on `wrangler dev`: with and without JavaScript, with the challenge, with a failing delivery | [Testing locally](../guides/cloudflare-workers.md#testing-locally) |

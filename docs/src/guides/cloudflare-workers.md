@@ -47,14 +47,23 @@ turn them on, so the `wasm` feature above is the whole choice.
 feature for server builds on wasm32, which selects its JavaScript backend.
 
 **Bundle size.**
-- **A measured build.**  A Worker with all five features and a challenge
-  widget measured about 3 MiB gzipped in the reflerd.com team's test build.
+- **Strip the debug names.**  A release build keeps the wasm `name` section,
+  which can dominate the module: in one production Worker it was 55.1 MiB of
+  a 59.1 MiB module, and the stripped module was 3.9 MiB.  Set
+  `strip = "symbols"` in your release profile, or per build with
+  `CARGO_PROFILE_RELEASE_STRIP=symbols`.
+- **A measured build.**  Stripped, a production Worker with all five features
+  and Turnstile measured about 4.3 MiB uncompressed and 1.5 MiB gzipped.  The
+  challenge added about 25 KiB uncompressed, and the form token and the
+  delivery deadline under 2 KiB; most of a Worker is Leptos and the
+  application.  (One integrator's application, measured with
+  `wrangler deploy --dry-run`, 2026-09-17; not a benchmark.)
 - **Cloudflare's limit** is 64 MiB uncompressed on both the Free and Paid
   plans, with no compressed limit, though a larger bundle can slow startup
   ([Workers limits, "Worker size"](https://developers.cloudflare.com/workers/platform/limits/),
   checked 2026-09-16).
-- **Build for size.**  Build with `--release` and the usual size settings in
-  your release profile: `opt-level = "z"` or `"s"`, `lto = true`,
+- **Build for size.**  Also build with `--release` and the usual size settings
+  in your release profile: `opt-level = "z"` or `"s"`, `lto = true`,
   `codegen-units = 1`.
 
 ## Delivery on a Worker
@@ -249,8 +258,10 @@ namespace_id = "1001"
 ```
 
 - **The period** is 10 or 60 seconds.
-- **The counters are per Cloudflare location** and eventually consistent, so
-  treat the limit as approximate.
+- **Not an exact count.**  Cloudflare describes the binding as "permissive,
+  eventually consistent, and intentionally designed to not be used as an
+  accurate accounting system", with "a unique limit per Cloudflare location"
+  for each key (binding documentation, linked above, checked 2026-09-17).
 - **The key.**  The entry point above keys by `CF-Connecting-IP`, because a
   contact form has no account to key by.  Cloudflare's documentation advises
   against IP keys in general, since many people can share one address (an
@@ -258,6 +269,17 @@ namespace_id = "1001"
   - **Keep the limit generous** enough for a shared address.
   - **Count only `POST`**, as above.
   - **Key by something better** if your site has it.
+
+**Verify it after deploying.**  Send more `POST`s than the limit from one
+address to the deployed Worker, and expect a `429`.  `wrangler dev` is not
+enough: in one integrator's production Worker, 27 `POST`s from one address in
+about a minute got no `429` at a limit of 5 per 60 s, while `wrangler dev`
+did refuse.
+
+**A rate-limiting rule** for the zone, set in the Cloudflare dashboard, is
+the alternative, or a second layer
+([rate limiting rules](https://developers.cloudflare.com/waf/rate-limiting-rules/),
+checked 2026-09-17).
 
 The same layers as on a native server still apply: see
 [Hardening](../security/hardening.md).
@@ -332,7 +354,9 @@ an `__err` query parameter; see
   clock, the delivery deadline's timer, and challenge verification over a
   stubbed `fetch` (see [Testing](../development/testing.md#worker-tests)).
 - **Not in CI:** the workerd runtime, which is what `wrangler dev` and a
-  deployed Worker run.  Runtime behaviour there is verified by the
-  reflerd.com team before each release, and otherwise relies on reports from
-  integrators.  If something behaves differently on workerd, please open an
-  issue.
+  deployed Worker run.
+  - **0.7.0** was tested on workerd by an integrator, on a pre-release and in
+    production.
+  - **Later releases** rely on the headless-Chrome suite above and on
+    integrators' reports.
+  - If something behaves differently on workerd, please open an issue.

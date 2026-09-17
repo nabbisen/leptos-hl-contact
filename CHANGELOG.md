@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased]
+
+### Documentation
+
+- **Cloudflare Workers guide, bundle size:** strip the wasm `name` section
+  (`strip = "symbols"`), which was 55.1 MiB of a 59.1 MiB production Worker,
+  with an integrator's stripped production size figures.
+- **Cloudflare Workers guide, rate limiting:** the Rate Limiting binding is
+  permissive and eventually consistent, so verify it on the deployed Worker;
+  a rate-limiting rule for the zone is the alternative.
+- **Challenge and Production Checklist:** a missing challenge secret must
+  fail closed.  Provide `ChallengeContext` with an empty secret whenever the
+  widget renders, never leave it out: without the context, a submission with
+  no token passes.  The `axum-with-security` example left it out, and now does
+  not.
+- **Workers testing:** workerd testing is stated as done for 0.7.0 by an
+  integrator, on a pre-release and in production, not promised for each
+  release.
+
 ## [0.7.0] — 2026-09-16
 
 This is the minor release in which the server path runs on Cloudflare
