@@ -191,6 +191,9 @@ mod challenge_client {
         match &widget.provider {
             ChallengeProvider::Turnstile => {
                 set("theme", widget.theme.turnstile_value());
+                if let Some(size) = widget.size.size_value(&widget.provider) {
+                    set("size", size);
+                }
                 if let Some(language) = &widget.language {
                     set("language", language);
                 }
@@ -198,6 +201,9 @@ mod challenge_client {
             ChallengeProvider::HCaptcha | ChallengeProvider::RecaptchaV2 => {
                 if let Some(theme) = widget.theme.explicit_value() {
                     set("theme", theme);
+                }
+                if let Some(size) = widget.size.size_value(&widget.provider) {
+                    set("size", size);
                 }
             }
             // No element to render: v3 only fetches tokens on submit.
@@ -278,6 +284,7 @@ fn challenge_markup(
                 class="cf-turnstile"
                 data-sitekey=key.clone()
                 data-theme=widget.theme.turnstile_value()
+                data-size=widget.size.size_value(&widget.provider)
                 data-language=widget.language.clone()
             ></div>
         }
@@ -288,6 +295,7 @@ fn challenge_markup(
                 class="h-captcha"
                 data-sitekey=key.clone()
                 data-theme=widget.theme.explicit_value()
+                data-size=widget.size.size_value(&widget.provider)
             ></div>
         }
         .into_any(),
@@ -297,6 +305,7 @@ fn challenge_markup(
                 class="g-recaptcha"
                 data-sitekey=key.clone()
                 data-theme=widget.theme.explicit_value()
+                data-size=widget.size.size_value(&widget.provider)
             ></div>
         }
         .into_any(),

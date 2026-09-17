@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`ChallengeWidget::with_size(ChallengeSize)`.**  `Compact` asks for a
+  smaller widget on Turnstile, hCaptcha and reCAPTCHA v2; `Flexible` is a
+  full-width Turnstile widget with a 300 px minimum.  Both render on the
+  server and after client-side navigation alike.  The default,
+  `ChallengeSize::Normal`, renders no attribute, so existing markup is
+  unchanged.
+
 ### Changed
 
 - **MSRV raised from 1.85 to 1.88.**  1.85 could not build the dependency

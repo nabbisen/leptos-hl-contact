@@ -74,6 +74,28 @@ A complete, environment-driven setup is in
 [`examples/axum-with-security`](https://github.com/nabbisen/leptos-hl-contact/tree/main/examples/axum-with-security):
 `CHALLENGE_PROVIDER`, `CHALLENGE_SITE_KEY`, `CHALLENGE_SECRET`.
 
+## Size
+
+`ChallengeWidget::with_size(ChallengeSize)` asks the vendor for a smaller
+widget, for a narrow layout.  The default, `Normal`, renders no attribute at
+all — every existing page keeps rendering exactly as it did before this
+option existed.
+
+| Provider | `data-size` / `size` values | Dimensions | Source |
+|----------|------------------------------|------------|--------|
+| Turnstile | `normal` (default), `flexible`, `compact` | 300×65 px; 100 % width, minimum 300 px, ×65 px; 150×140 px | Cloudflare, [Widget configurations](https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/widget-configurations/), checked 2026-09-17 |
+| hCaptcha | `normal` (default), `compact` | vendor-controlled | hCaptcha, [Configuration](https://docs.hcaptcha.com/configuration), checked 2026-09-17 |
+| reCAPTCHA v2 | `normal` (default), `compact` | vendor-controlled | Google, [Display](https://developers.google.com/recaptcha/docs/display), checked 2026-09-17 |
+| reCAPTCHA v3 | — (no visible widget) | — | — |
+
+**For narrow layouts,** `Compact` is the choice: it is the only size that
+helps below about 340 px of available width, and every visible provider
+offers it.
+
+**`Flexible` is Turnstile only,** and has a 300 px minimum.  It does not
+help a layout narrower than 300 px plus padding — only `Compact` does.  On
+another provider, `Flexible` renders that provider's default size.
+
 ## What the server decides
 
 The challenge runs after the form token, the honeypot, field validation and

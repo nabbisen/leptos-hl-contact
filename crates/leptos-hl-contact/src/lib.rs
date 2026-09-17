@@ -84,9 +84,9 @@ pub mod axum_helpers;
 pub use components::ContactForm;
 pub use config::ContactErrorLabels;
 pub use config::{
-    ChallengeProvider, ChallengeTheme, ChallengeWidget, ContactFormClasses, ContactFormLabels,
-    ContactFormOptions, ContactServerPolicy, ContactSuccessRedirect, InvalidChallengeConfig,
-    InvalidRedirectPath, NoJsPolicy,
+    ChallengeProvider, ChallengeSize, ChallengeTheme, ChallengeWidget, ContactFormClasses,
+    ContactFormLabels, ContactFormOptions, ContactServerPolicy, ContactSuccessRedirect,
+    InvalidChallengeConfig, InvalidRedirectPath, NoJsPolicy,
 };
 pub use delivery::{ContactDelivery, ContactDeliveryContext, DeliveryFuture};
 

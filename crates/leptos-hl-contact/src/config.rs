@@ -319,6 +319,34 @@ impl ChallengeTheme {
     }
 }
 
+/// The widget's size (RFC 014).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ChallengeSize {
+    /// The vendor's default.  No attribute is rendered.
+    #[default]
+    Normal,
+    /// Turnstile 150×140 px; hCaptcha's and reCAPTCHA v2's compact widget.
+    Compact,
+    /// Turnstile only: full width, at least 300 px.  Other providers render
+    /// their default size.
+    Flexible,
+}
+
+impl ChallengeSize {
+    /// The `data-size` / `size` value for `provider`, or `None` when the
+    /// vendor default applies: `Normal` for every provider, and `Flexible`
+    /// for anything but Turnstile.
+    pub(crate) fn size_value(self, provider: &ChallengeProvider) -> Option<&'static str> {
+        match (self, provider) {
+            (Self::Normal, _) => None,
+            (Self::Compact, ChallengeProvider::RecaptchaV3 { .. }) => None,
+            (Self::Compact, _) => Some("compact"),
+            (Self::Flexible, ChallengeProvider::Turnstile) => Some("flexible"),
+            (Self::Flexible, _) => None,
+        }
+    }
+}
+
 /// A [`ChallengeWidget`] value that would not be safe to put in the page.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[error("invalid challenge configuration: {0}")]
@@ -349,6 +377,7 @@ pub struct ChallengeWidget {
     pub(crate) provider: ChallengeProvider,
     pub(crate) site_key: String,
     pub(crate) theme: ChallengeTheme,
+    pub(crate) size: ChallengeSize,
     pub(crate) language: Option<String>,
     pub(crate) load_script: bool,
     pub(crate) script_nonce: Option<String>,
@@ -382,6 +411,7 @@ impl ChallengeWidget {
             provider,
             site_key,
             theme: ChallengeTheme::Auto,
+            size: ChallengeSize::Normal,
             language: None,
             load_script: true,
             script_nonce: None,
@@ -392,6 +422,25 @@ impl ChallengeWidget {
     /// Set the colour scheme.
     pub fn with_theme(mut self, theme: ChallengeTheme) -> Self {
         self.theme = theme;
+        self
+    }
+
+    /// Set the widget size.
+    ///
+    /// `Flexible` applies to Turnstile only; other providers render their
+    /// default size regardless.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use leptos_hl_contact::config::{ChallengeProvider, ChallengeSize, ChallengeWidget};
+    ///
+    /// let widget = ChallengeWidget::new(ChallengeProvider::Turnstile, "1x00000000000000000000AA")
+    ///     .unwrap()
+    ///     .with_size(ChallengeSize::Compact);
+    /// ```
+    pub fn with_size(mut self, size: ChallengeSize) -> Self {
+        self.size = size;
         self
     }
 

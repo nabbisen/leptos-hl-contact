@@ -385,6 +385,7 @@ fn widget_new_accepts_vendor_test_keys() {
         assert_eq!(w.site_key, key);
         assert!(w.load_script);
         assert_eq!(w.theme, ChallengeTheme::Auto);
+        assert_eq!(w.size, ChallengeSize::Normal);
         assert_eq!(w.no_js, NoJsPolicy::Reject);
     }
 }
@@ -453,6 +454,7 @@ fn widget_builders_set_their_fields() {
     let w = ChallengeWidget::new(ChallengeProvider::Turnstile, "SITE")
         .unwrap()
         .with_theme(ChallengeTheme::Dark)
+        .with_size(ChallengeSize::Compact)
         .with_language("de")
         .unwrap()
         .without_script()
@@ -460,10 +462,61 @@ fn widget_builders_set_their_fields() {
         .unwrap()
         .with_no_js(NoJsPolicy::AcceptWithHoneypotOnly);
     assert_eq!(w.theme, ChallengeTheme::Dark);
+    assert_eq!(w.size, ChallengeSize::Compact);
     assert_eq!(w.language.as_deref(), Some("de"));
     assert!(!w.load_script);
     assert_eq!(w.script_nonce.as_deref(), Some("bm9uY2U="));
     assert_eq!(w.no_js, NoJsPolicy::AcceptWithHoneypotOnly);
+}
+
+/// RFC 014 D2: the full size mapping, 3 sizes × 4 providers.
+#[test]
+fn challenge_size_maps_to_the_vendor_value_per_provider() {
+    let v3 = ChallengeProvider::RecaptchaV3 {
+        action: "contact".into(),
+    };
+    let providers = [
+        ChallengeProvider::Turnstile,
+        ChallengeProvider::HCaptcha,
+        ChallengeProvider::RecaptchaV2,
+        v3.clone(),
+    ];
+
+    for provider in &providers {
+        assert_eq!(
+            ChallengeSize::Normal.size_value(provider),
+            None,
+            "{provider:?}"
+        );
+    }
+
+    assert_eq!(
+        ChallengeSize::Compact.size_value(&ChallengeProvider::Turnstile),
+        Some("compact")
+    );
+    assert_eq!(
+        ChallengeSize::Compact.size_value(&ChallengeProvider::HCaptcha),
+        Some("compact")
+    );
+    assert_eq!(
+        ChallengeSize::Compact.size_value(&ChallengeProvider::RecaptchaV2),
+        Some("compact")
+    );
+    assert_eq!(ChallengeSize::Compact.size_value(&v3), None);
+
+    assert_eq!(
+        ChallengeSize::Flexible.size_value(&ChallengeProvider::Turnstile),
+        Some("flexible")
+    );
+    assert_eq!(
+        ChallengeSize::Flexible.size_value(&ChallengeProvider::HCaptcha),
+        None
+    );
+    assert_eq!(
+        ChallengeSize::Flexible.size_value(&ChallengeProvider::RecaptchaV2),
+        None
+    );
+    assert_eq!(ChallengeSize::Flexible.size_value(&v3), None);
 }
 
 #[test]

@@ -131,7 +131,9 @@ fn the_token_field_is_empty_without_a_token() {
 // Challenge widget (RFC 005 handoff 02)
 // ---------------------------------------------------------------------------
 
-use crate::config::{ChallengeProvider, ChallengeTheme, ChallengeWidget, NoJsPolicy};
+use crate::config::{
+    ChallengeProvider, ChallengeSize, ChallengeTheme, ChallengeWidget, NoJsPolicy,
+};
 
 const TURNSTILE_TEST_KEY: &str = "1x00000000000000000000AA";
 
@@ -187,6 +189,34 @@ fn turnstile_language_is_a_data_attribute() {
     assert!(html.contains("data-language=\"pt-BR\""), "{html}");
 }
 
+/// RFC 014 D2: `Normal` renders no `data-size`; `Compact` and Turnstile's
+/// own `Flexible` each render their vendor value.
+#[test]
+fn turnstile_size_is_a_data_attribute_when_set() {
+    let html = render_with(turnstile());
+    assert!(!html.contains("data-size"), "no size by default:\n{html}");
+
+    let html = render_with(turnstile().with_size(ChallengeSize::Compact));
+    assert!(html.contains("data-size=\"compact\""), "{html}");
+
+    let html = render_with(turnstile().with_size(ChallengeSize::Flexible));
+    assert!(html.contains("data-size=\"flexible\""), "{html}");
+}
+
+/// RFC 014 D2: the default markup is byte-identical to 0.7 — the whole
+/// widget `<div>`, with no `data-size` attribute at all.
+#[test]
+fn default_size_leaves_the_turnstile_element_unchanged_from_0_7() {
+    let html = render_with(turnstile());
+    let start = html.find("<div data-sitekey").expect("the widget div");
+    let end = html[start..].find("></div>").expect("its close tag") + start + "></div>".len();
+    assert_eq!(
+        &html[start..end],
+        "<div data-sitekey=\"1x00000000000000000000AA\" data-theme=\"auto\" class=\"cf-turnstile\"></div>",
+        "{html}"
+    );
+}
+
 #[test]
 fn hcaptcha_renders_its_element_and_script_and_omits_auto_theme() {
     let w = ChallengeWidget::new(
@@ -200,13 +230,15 @@ fn hcaptcha_renders_its_element_and_script_and_omits_auto_theme() {
         !html.contains("data-theme"),
         "Auto is omitted for hCaptcha:\n{html}"
     );
+    assert!(!html.contains("data-size"), "no size by default:\n{html}");
     assert!(
         html.contains("src=\"https://js.hcaptcha.com/1/api.js\""),
         "{html}"
     );
 
     let html = render_with(
-        w.with_theme(ChallengeTheme::Dark)
+        w.clone()
+            .with_theme(ChallengeTheme::Dark)
             .with_language("fr")
             .unwrap(),
     );
@@ -215,6 +247,14 @@ fn hcaptcha_renders_its_element_and_script_and_omits_auto_theme() {
         html.contains("src=\"https://js.hcaptcha.com/1/api.js?hl=fr\""),
         "{html}"
     );
+
+    let html = render_with(w.clone().with_size(ChallengeSize::Compact));
+    assert!(html.contains("data-size=\"compact\""), "{html}");
+
+    // hCaptcha has no flexible size; RFC 014 D2 says other providers render
+    // their default size for it.
+    let html = render_with(w.with_size(ChallengeSize::Flexible));
+    assert!(!html.contains("data-size"), "{html}");
 }
 
 #[test]
@@ -223,13 +263,22 @@ fn recaptcha_v2_renders_its_element_and_script_and_omits_auto_theme() {
     let html = render_with(w.clone());
     assert!(html.contains("class=\"g-recaptcha\""), "{html}");
     assert!(!html.contains("data-theme"), "{html}");
+    assert!(!html.contains("data-size"), "no size by default:\n{html}");
     assert!(
         html.contains("src=\"https://www.google.com/recaptcha/api.js\""),
         "{html}"
     );
 
-    let html = render_with(w.with_theme(ChallengeTheme::Light));
+    let html = render_with(w.clone().with_theme(ChallengeTheme::Light));
     assert!(html.contains("data-theme=\"light\""), "{html}");
+
+    let html = render_with(w.clone().with_size(ChallengeSize::Compact));
+    assert!(html.contains("data-size=\"compact\""), "{html}");
+
+    // reCAPTCHA v2 has no flexible size; RFC 014 D2 says other providers
+    // render their default size for it.
+    let html = render_with(w.with_size(ChallengeSize::Flexible));
+    assert!(!html.contains("data-size"), "{html}");
 }
 
 #[test]

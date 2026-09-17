@@ -12,8 +12,8 @@ examples.
 `ContactValidationError`, `ContactInput`, `MESSAGE_MAX_LEN`,
 `ContactSuccessRedirect`, `InvalidRedirectPath`, `ContactErrorCode`,
 `ContactErrorLabels`, `ContactField`, `FieldError`, `FieldErrorCode`,
-`submit_contact`, `ChallengeProvider`, `ChallengeTheme`, `ChallengeWidget`,
-`InvalidChallengeConfig`, `NoJsPolicy`; with `ssr` `ChallengeClientIp`,
+`submit_contact`, `ChallengeProvider`, `ChallengeTheme`, `ChallengeSize`,
+`ChallengeWidget`, `InvalidChallengeConfig`, `NoJsPolicy`; with `ssr` `ChallengeClientIp`,
 `ChallengeContext`, `ChallengeError`, `ChallengeOutcome`, `ChallengePolicy`,
 `ChallengeRequest`, `ChallengeVerifier`, `VerifyFuture`, `ContactFilter`,
 `ContactFilterContext`, `FilterChain`, `FilterDecision`, `FilterFuture`; with
@@ -110,12 +110,15 @@ pub enum NoJsPolicy { Reject /* default */, AcceptWithHoneypotOnly }
 
 pub enum ChallengeProvider { Turnstile, HCaptcha, RecaptchaV2, RecaptchaV3 { action: String } }
 pub enum ChallengeTheme { Auto /* default */, Light, Dark }
+// `Flexible` applies to Turnstile only; other providers render their default size.
+pub enum ChallengeSize { Normal /* default */, Compact, Flexible }
 pub struct InvalidChallengeConfig(pub &'static str);   // thiserror
 
 pub struct ChallengeWidget { /* private: every value is validated */ }
 impl ChallengeWidget {
     pub fn new(provider: ChallengeProvider, site_key: impl Into<String>) -> Result<Self, InvalidChallengeConfig>;
     pub fn with_theme(self, theme: ChallengeTheme) -> Self;
+    pub fn with_size(self, size: ChallengeSize) -> Self;
     pub fn with_language(self, language: impl Into<String>) -> Result<Self, InvalidChallengeConfig>;
     pub fn without_script(self) -> Self;
     pub fn with_script_nonce(self, nonce: impl Into<String>) -> Result<Self, InvalidChallengeConfig>;
