@@ -1,0 +1,13 @@
+# RFC 016 D2: keep pinned GitHub Actions current.  Cargo dependencies stay
+# out — those updates remain deliberate — so there is no second entry for the
+# `cargo` ecosystem.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      actions:
+        patterns:
+          - "*"

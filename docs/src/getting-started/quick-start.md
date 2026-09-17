@@ -7,7 +7,7 @@ up.  When it works, continue with the
 
 ## Requirements
 
-- Rust 1.85 or later (edition 2024)
+- Rust 1.88 or later (edition 2024)
 - A Leptos v0.8 SSR application with Axum 0.8
 
 ## Step 1 — Add the dependency

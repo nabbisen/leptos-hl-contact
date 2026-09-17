@@ -9,10 +9,11 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Install Rust 1.91
-        uses: dtolnay/rust-toolchain@1.91
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
+          toolchain: 1.91
           components: clippy, rustfmt
           targets: wasm32-unknown-unknown
 
@@ -51,15 +52,42 @@ jobs:
           RUSTDOCFLAGS: -D warnings
         run: cargo doc --all-features --no-deps
 
+  # RFC 016 D1: the crate claims Rust 1.88 as its minimum, so build (never
+  # lint or test — lint sets differ between versions, and this promise is
+  # about building) on 1.88 itself.  A failure here means a dependency raised
+  # the MSRV; that is an owner decision, not something to work around.
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Install Rust 1.88
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        with:
+          toolchain: 1.88
+          targets: wasm32-unknown-unknown
+
+      - name: check (native, all features)
+        run: cargo check -p leptos-hl-contact --all-features --locked
+
+      - name: check (wasm32, hydrate)
+        run: cargo check -p leptos-hl-contact --target wasm32-unknown-unknown --features hydrate --locked
+
+      - name: check (wasm32 server, Workers features)
+        run: >-
+          cargo check -p leptos-hl-contact --target wasm32-unknown-unknown
+          --no-default-features --features ssr,form-token,challenge-http,axum-helpers,delivery-timeout
+          --locked
+
   # Browser tests (RFC 008 L3): `ContactForm` mounted in headless Chrome, with
   # server functions answered by a stubbed `fetch`.  Owner decision: every push.
   browser:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Install Rust 1.91
-        uses: dtolnay/rust-toolchain@1.91
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
+          toolchain: 1.91
           targets: wasm32-unknown-unknown
 
       # The test runner refuses a wasm-bindgen other than its own, so its
@@ -72,7 +100,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Install wasm-bindgen-cli
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2
         with:
           tool: wasm-bindgen@${{ steps.wasm-bindgen.outputs.version }}
 
@@ -116,10 +144,11 @@ jobs:
           - example: axum-with-security
             features: "--features ssr"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Install Rust 1.91
-        uses: dtolnay/rust-toolchain@1.91
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
+          toolchain: 1.91
           components: clippy, rustfmt
           targets: wasm32-unknown-unknown
 

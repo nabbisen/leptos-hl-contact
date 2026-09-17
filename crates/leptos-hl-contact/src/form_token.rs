@@ -30,6 +30,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use hmac::{Hmac, Mac, digest::KeyInit};
 use rand::RngCore;
 use sha2::Sha256;
+use subtle::ConstantTimeEq;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -261,7 +262,9 @@ pub fn issue_form_token_with_nonce(config: &FormTokenConfig, nonce: &str) -> Opt
 ///
 /// # Security
 ///
-/// The signature comparison is constant-time.
+/// The signature is checked with [`hmac`]'s constant-time
+/// [`Mac::verify_slice`], and the binding, when configured, with
+/// [`subtle::ConstantTimeEq`].
 pub fn verify_form_token(
     token: &str,
     bound_value: Option<&str>,
@@ -296,8 +299,13 @@ pub fn verify_form_token(
     }
 
     let payload = format!("{timestamp_str}|{nonce_hex}");
-    let expected = sign(&payload, &config.secret_key);
-    if !constant_time_eq(submitted_sig, &expected) {
+    let Ok(submitted_sig) = hex::decode(submitted_sig) else {
+        return Err(FormTokenError::BadSignature);
+    };
+    let mut mac =
+        HmacSha256::new_from_slice(&config.secret_key).expect("HMAC accepts any key length");
+    mac.update(payload.as_bytes());
+    if mac.verify_slice(&submitted_sig).is_err() {
         return Err(FormTokenError::BadSignature);
     }
 
@@ -305,7 +313,11 @@ pub fn verify_form_token(
         let Some(bound) = bound_value else {
             return Err(FormTokenError::BindingMissing);
         };
-        if !constant_time_eq(bound, nonce_hex) {
+        // The nonce length is public, so checking it before the
+        // constant-time comparison leaks nothing.
+        if bound.len() != nonce_hex.len()
+            || !bool::from(bound.as_bytes().ct_eq(nonce_hex.as_bytes()))
+        {
             return Err(FormTokenError::BindingMismatch);
         }
     }
@@ -445,21 +457,6 @@ fn sign(payload: &str, key: &[u8]) -> String {
     let mut mac = HmacSha256::new_from_slice(key).expect("HMAC accepts any key length");
     mac.update(payload.as_bytes());
     hex::encode(mac.finalize().into_bytes())
-}
-
-/// Constant-time string comparison, to keep signature checking free of a
-/// timing side channel.
-fn constant_time_eq(a: &str, b: &str) -> bool {
-    let a = a.as_bytes();
-    let b = b.as_bytes();
-    if a.len() != b.len() {
-        return false;
-    }
-    let mut diff = 0u8;
-    for (x, y) in a.iter().zip(b.iter()) {
-        diff |= x ^ y;
-    }
-    diff == 0
 }
 
 // ---------------------------------------------------------------------------

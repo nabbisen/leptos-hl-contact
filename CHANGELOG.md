@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **MSRV raised from 1.85 to 1.88.**  1.85 could not build the dependency
+  tree since Leptos 0.8.19.
+- **Form token signatures are verified with `hmac`'s constant-time
+  `verify_slice`.**  Behaviour is unchanged.
+
 ### Documentation
 
 - **Cloudflare Workers guide, bundle size:** strip the wasm `name` section
@@ -18,6 +25,10 @@
 - **Workers testing:** workerd testing is stated as done for 0.7.0 by an
   integrator, on a pre-release and in production, not promised for each
   release.
+
+### Migration
+
+- Rust 1.88 or later is required.
 
 ## [0.7.0] — 2026-09-16
 

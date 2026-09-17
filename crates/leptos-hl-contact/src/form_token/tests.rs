@@ -113,6 +113,51 @@ fn a_tampered_signature_is_a_bad_signature() {
     );
 }
 
+/// RFC 016 D3: a signature one hex digit off `hex::decode`s fine, so this
+/// exercises `verify_slice` itself, not the decode step.
+#[test]
+fn a_signature_one_hex_digit_off_is_a_bad_signature() {
+    let config = test_config();
+    let token = issue_form_token(&config);
+    let mut parts: Vec<&str> = token.0.splitn(3, '|').collect();
+    let (head, last) = parts[2].split_at(parts[2].len() - 1);
+    let flipped = format!("{head}{}", if last == "0" { "1" } else { "0" });
+    parts[2] = &flipped;
+    assert_eq!(
+        verify_form_token(&parts.join("|"), None, &config),
+        Err(FormTokenError::BadSignature)
+    );
+}
+
+/// RFC 016 D3: a signature two hex digits (one byte) short fails
+/// `verify_slice`'s length check.
+#[test]
+fn a_signature_one_byte_short_is_a_bad_signature() {
+    let config = test_config();
+    let token = issue_form_token(&config);
+    let mut parts: Vec<&str> = token.0.splitn(3, '|').collect();
+    let short = &parts[2][..parts[2].len() - 2];
+    parts[2] = short;
+    assert_eq!(
+        verify_form_token(&parts.join("|"), None, &config),
+        Err(FormTokenError::BadSignature)
+    );
+}
+
+/// RFC 016 D3: a non-hex signature fails to decode before `verify_slice` is
+/// ever called.
+#[test]
+fn a_non_hex_signature_is_a_bad_signature() {
+    let config = test_config();
+    let token = issue_form_token(&config);
+    let mut parts: Vec<&str> = token.0.splitn(3, '|').collect();
+    parts[2] = "zz-not-hex-zz";
+    assert_eq!(
+        verify_form_token(&parts.join("|"), None, &config),
+        Err(FormTokenError::BadSignature)
+    );
+}
+
 #[test]
 fn a_token_signed_with_another_key_is_a_bad_signature() {
     let mine = test_config();

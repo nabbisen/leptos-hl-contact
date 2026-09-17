@@ -48,7 +48,7 @@ minimal.
 ## Supported environments
 
 - Leptos v0.8, SSR and Islands
-- Rust 1.85 or later
+- Rust 1.88 or later
 - Axum 0.8 through the optional `axum-helpers` feature; other backends work
   through the delivery trait and plain Leptos context
 

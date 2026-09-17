@@ -72,7 +72,7 @@ Exempt the wrapper or drop the reset rule.
 
 ## `edition 2024` parse error
 
-Rust 1.85 or later is required.  `rustup update`.
+Rust 1.88 or later is required.  `rustup update`.
 
 ## `smtp-lettre` fails to build on musl
 

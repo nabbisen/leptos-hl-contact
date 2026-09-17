@@ -2,9 +2,10 @@
 
 ## Toolchain
 
-Rust 1.85 or later (edition 2024).  CI runs on 1.91; `clippy` lint sets can
+Rust 1.88 or later (edition 2024).  CI runs on 1.91; `clippy` lint sets can
 differ between versions, so run the gates on a recent stable before
-pushing.
+pushing.  A dedicated `msrv` job builds (never lints or tests) on 1.88
+itself, so a dependency that quietly raises the MSRV is caught.
 
 ## The gates
 
@@ -335,7 +336,7 @@ tests from the code side.
 | NFR-PRIV-01 | `server::pii_not_present_in_expected_log_messages` | `logging::no_personal_data_or_secret_is_logged` | — | never persisted: see FR-OBS-04 |
 | NFR-PRIV-02 | **none** | **none** | — | documentation (per-provider notes) |
 | NFR-COMPAT-01 | **none** | **none** | **none** | CI builds: `cargo test --all-features` (the `ssr`, `hydrate` and `islands` features together) and the `browser` job (`hydrate` on wasm32); Islands mode behaviour: review |
-| NFR-COMPAT-02 | **none** | **none** | **none** | review: CI runs Rust 1.91, not the MSRV 1.85, so nothing builds on 1.85 until P-24 |
+| NFR-COMPAT-02 | **none** | **none** | **none** | CI: the `msrv` job builds the crate on Rust 1.88 (native, wasm32 `hydrate`, and the Workers feature set), each `--locked` |
 | NFR-COMPAT-03 | **none** | **none** | — | review of `Cargo.toml` (`axum` is optional, behind `axum-helpers`); the `browser` job builds the crate without it |
 | NFR-COMPAT-04 | `config::settings_serialized_by_0_6_still_deserialize` | `form_token::a_0_4_csrf_token_field_is_no_longer_accepted` | — | the rest of the policy: review at release |
 | NFR-COMPAT-05 | **none** | **none** | **none** | review at release; the SSR tests in `components::` pin the ids, field names and the ARIA attributes tested above, so a change to those fails a test |
