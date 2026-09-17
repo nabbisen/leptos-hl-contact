@@ -1,8 +1,8 @@
 # RFC 014 — A size option for the challenge widget
 
-**Status.** Proposed — 2026-09-17.  Milestone M6 → 0.8.0; the owner approved
-the feature (P-44) the same day.
+**Status.** Accepted — 2026-09-17, as proposed.  Milestone M6 → 0.8.0 (P-44).
 **Tracks.** Roadmap P-44.  Requirements FR-ABUSE-10, FR-UI-03, NFR-COMPAT-05.
+**Handoffs.** [`../handoffs/014-challenge-widget-size/README.md`](../handoffs/014-challenge-widget-size/README.md)
 **Touches.** `config.rs` (`ChallengeSize`, `ChallengeWidget::with_size`),
 `components.rs` (both render paths), tests (unit, render, browser), docs
 (Challenge, API reference), `CHANGELOG.md`.
@@ -109,6 +109,6 @@ Additive.
 - **Existing markup:** unchanged.
 - **Existing callers:** unaffected, because the new field is private.
 
-## Owner questions
+## Owner decision (2026-09-17)
 
-None.  The recommended defaults above follow `with_theme`'s precedent.
+Accepted as proposed; there were no open questions.

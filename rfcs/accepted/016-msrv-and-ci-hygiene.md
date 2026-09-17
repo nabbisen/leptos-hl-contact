@@ -1,9 +1,10 @@
 # RFC 016 — A true MSRV, pinned CI actions, and constant-time comparison from the crypto crates
 
-**Status.** Proposed — 2026-09-17.  Milestone M6 → 0.8.0 (P-24, owner-approved
-for M6 the same day).
+**Status.** Accepted — 2026-09-17, with the owner's decisions below.  Milestone
+M6 → 0.8.0 (P-24).
 **Tracks.** Roadmap P-24.  Requirements NFR-COMPAT-02, NFR-SEC-* (token
 verification), NFR-TEST-*.
+**Handoffs.** [`../handoffs/016-msrv-and-ci-hygiene/README.md`](../handoffs/016-msrv-and-ci-hygiene/README.md)
 **Touches.** `Cargo.toml` (`rust-version`), `.github/workflows/ci.yml`,
 `form_token.rs`, docs stating the MSRV, `testing.md`, `requirements.md`
 (architect), `CHANGELOG.md`.
@@ -57,11 +58,11 @@ A moved tag runs new code with the repository's token.
     or later";
   - `testing.md`: the toolchain note and the NFR-COMPAT-02 traceability
     row.
-- **A new CI job, `msrv`:** `dtolnay/rust-toolchain` pinned to 1.88.
-  - `cargo check -p leptos-hl-contact --all-features --locked`;
-  - `cargo check -p leptos-hl-contact --target wasm32-unknown-unknown
-    --features hydrate --locked`;
-  - `cargo check` of the Workers feature set on wasm32, `--locked`.
+- **A new CI job, `msrv`,** on toolchain 1.88, with three `--locked`
+  checks:
+  - native, `--all-features`;
+  - wasm32 with `--features hydrate`;
+  - wasm32 with the Workers feature set.
 - **Not in the job:** tests, clippy and fmt stay on the main toolchain.
   Lints differ between versions, and the MSRV promise is about building.
 - **The lock.**  The job uses the committed lock, so a dependency update
@@ -83,7 +84,9 @@ A moved tag runs new code with the repository's token.
 - **`dtolnay/rust-toolchain`** is pinned by SHA too.  The toolchain version
   is then given with `with: toolchain: 1.91`, because the action's
   version-named branches cannot be SHA-pinned meaningfully.
-- **Updates.**  See owner question 2.
+- **Updates:** Dependabot, for GitHub Actions only, **monthly**, with all
+  actions grouped into **one** pull request (`.github/dependabot.yml`).  See
+  the owner decisions.
 
 ### D3 — Token verification through `hmac`
 
@@ -115,13 +118,17 @@ A moved tag runs new code with the repository's token.
 One handoff, D1–D3.  It is independent of RFCs 014 and 015, and can land
 first.
 
-## Owner questions (recommendations first)
+## Owner decisions (2026-09-17)
 
-1. **The MSRV: 1.88**, the lowest that builds today.  Alternative: follow
-   Leptos's own `rust-version` on every Leptos update, stated as a policy.
-   I recommend 1.88 now, with the CI job making every future raise a visible
-   decision.
-2. **Keeping pinned SHAs current: Dependabot for `github-actions` only**
-   (`.github/dependabot.yml`), weekly.  Alternative: update by hand at each
-   release, as a release-process step.  Dependabot keeps pins current
-   without touching Cargo dependencies, whose updates stay deliberate.
+Accepted.  The owner asked for the balance of profit and cost to be weighed
+carefully; the architect's weighing follows, and each item was kept or cut on
+it.
+
+| Item | Profit | Cost | Kept as |
+|------|--------|------|---------|
+| **MSRV 1.88** and its docs | The published claim becomes true: today a 1.85 user fails to build | a one-line manifest change and four doc lines; a minor-release note, which 0.8.0 is anyway | kept |
+| **The `msrv` CI job** | Every future raise becomes a visible decision instead of a silent false claim.  Each of the three builds has dependencies the others lack (the browser's `web-sys` features, the server's `reqwest`/`lettre`), so each can break the MSRV on its own | CI time only: `cargo check`, not a build or a test run.  **Measured on the architect's machine, 2026-09-17, with 1.88:** native `--all-features` 16 s, wasm32 `hydrate` 20 s, wasm32 Workers 6 s (dependencies already downloaded).  Public-repository minutes are free, and the job runs in parallel with the others, so it delays none | kept, all three checks: about a minute of CI for the one promise nothing else tests.  Tests, clippy and fmt stay off the MSRV job |
+| **Actions pinned by SHA** | A retagged action cannot run new code with the repository token.  This is not hypothetical: in March 2025 the `tj-actions/changed-files` tags were repointed to malicious code | three lines, less readable; each needs an update path | kept, with the tag in a comment |
+| **Keeping pins current** | Security and runtime fixes in the actions reach CI | Weekly Dependabot would open many pull requests, since `taiki-e/install-action` releases often.  By hand at each release costs attention at the busiest moment, and lapses if releases slow | **Dependabot, GitHub Actions only, monthly, grouped into one pull request**: at most about 12 small pull requests a year, each a SHA diff that CI verifies.  Cargo dependencies stay out: their updates remain deliberate |
+| **`verify_slice` and `subtle`** | Removes our own constant-time code from the token path, in favour of the crypto crates' audited comparison | it touches a security-critical path, so it needs careful review and a break check; `subtle` becomes a direct dependency, but it is already built | kept: small, and the review cost is paid once |
+| **Caching in CI** (not proposed) | faster runs | another third-party action to pin and update | not added |

@@ -1,10 +1,12 @@
 # RFC 015 — Fields defined by the site, bounded
 
-**Status.** Proposed — 2026-09-17.  Milestone M6 → 0.8.0.  The owner accepted
-the feature (P-43) the same day, as a bounded feature with the bounds written
-into the requirements.  "A form builder" stays a non-goal.
+**Status.** Accepted — 2026-09-17, with the owner's decisions below (the
+maximum lowered from the proposed 8 to 4).  Milestone M6 → 0.8.0 (P-43): a
+bounded feature, with the bounds written into the requirements.  "A form
+builder" stays a non-goal.
 **Tracks.** Roadmap P-43.  Requirements FR-UI-01 (amended), new FR-FIELD-01
 to FR-FIELD-08, §1 scope, FR-OBS-01/02, FR-I18N-02, FR-A11Y-*.
+**Handoffs.** [`../handoffs/015-site-defined-fields/README.md`](../handoffs/015-site-defined-fields/README.md)
 **Touches.** `config.rs` (the definition), `model.rs` (`ContactInput`,
 validation), `error.rs` (`ContactFieldErrors`), `server.rs`
 (`submit_contact`), `components.rs` (rendering, errors, focus),
@@ -33,7 +35,7 @@ own RFC.
 | Bound | Value |
 |-------|-------|
 | Kinds | `Line` (one line), `Text` (several lines), `Choice` (one of a fixed list).  No checkbox, radio group, number, date, file, or hidden field |
-| Count | at most **8** fields |
+| Count | at most **4** fields |
 | Placement | one fixed place: after the subject, before the message, in definition order |
 | Logic | none: no conditional fields, no cross-field rules, no custom validators |
 | Keys | `[a-z][a-z0-9_]{0,31}`, unique, and not a name the form already uses: `name`, `email`, `subject`, `message`, `website`, `form_token`, `fields`, or a vendor token name |
@@ -223,7 +225,7 @@ pub struct ContactFieldValue {
 
 - **§1 scope.**  "A form builder" stays out of scope, with a pointer to the
   bounds in FR-FIELD-01.
-- **FR-UI-01, amended:** "…and at most eight site-defined fields within
+- **FR-UI-01, amended:** "…and at most four site-defined fields within
   FR-FIELD-01".
 - **FR-FIELD-01 to FR-FIELD-08:**
   1. the bounds table;
@@ -273,24 +275,42 @@ public field.  Struct literals must add it, or use the new constructors or
 - **Sites that define no fields** render byte-identical markup.
 - **Their wire format** is unchanged.
 
-## Handoffs (planned)
+## Handoffs
 
 | # | Scope |
 |---|-------|
-| 01 | Step 0 spike (stop point); D1 definition and its validation; D2 validation and errors, unit tests |
-| 02 | D3 server; D5 rendering; L2 and L3 tests |
-| 03 | D4 delivery and the SMTP body; D6; docs (Customization, Localization, API, Delivery Backends, Accessibility); traceability; CHANGELOG |
+| 01 | Step 0 spike only: a report, and no code on `main`.  The architect reviews it before 02 is written |
+| 02 | D1 definition and its validation; D2 validation and errors; unit tests |
+| 03 | D3 server; D5 rendering; L2 and L3 tests |
+| 04 | D4 delivery and the SMTP body; D6; docs (Customization, Localization, API, Delivery Backends, Accessibility); traceability; CHANGELOG |
 
-## Owner questions (recommendations first)
+Handoffs 02–04 are written after the spike review, so they build on what it
+found.
 
-1. **The maximum: 8 fields.**  Alternative: 5.  The team uses two or three;
-   8 leaves room without inviting long forms.
-2. **Choices render only as a `<select>`.**  Alternative: a radio group as
+## Owner decisions (2026-09-17)
+
+All recommendations accepted except the maximum:
+
+1. **The maximum.**  Proposed: 8.  **Decided: 4.**
+   - **The owner's challenge.**  The owner judged 8 too many and asked what
+     it was based on.
+   - **The architect's answer:** 8 had no evidence behind it.  It was a
+     guess at "room to grow".
+   - **What the evidence does support:**
+     - the only known need is 3 fields;
+     - the form already has 4 visible fields plus a challenge, so 4 more is
+       already a long form on a phone;
+     - **the deciding point:** raising the bound later is additive and needs
+       no migration, while lowering it would break sites that use more.  So
+       the bound starts at the lowest value that covers the known need with
+       one to spare.
+   - **Raising it** needs its own RFC, with a real need behind it.
+2. **Choices render only as a `<select>`** (accepted).  Alternative: a radio group as
    a second kind.  A select is one control, works at 320 px, and keeps the
    bound small.  Radios can be a later RFC.
-3. **Blank optional fields are left out of delivery.**  Alternative: include
+3. **Blank optional fields are left out of delivery** (accepted).  Alternative: include
    them as empty.  Leaving them out keeps mail short, and the site knows its
    definition.
-4. **The placement: after the subject, before the message.**  Alternative:
+4. **The placement: after the subject, before the message** (accepted).  Alternative:
    after the message.  The message is the free-text summary, so it reads
    best last.

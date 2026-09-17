@@ -15,15 +15,16 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 014 | [A size option for the challenge widget](./proposed/014-challenge-widget-size.md) | Medium (M6) |
-| 015 | [Fields defined by the site, bounded](./proposed/015-site-defined-fields.md) | High (M6) |
-| 016 | [A true MSRV, pinned CI actions, and constant-time comparison from the crypto crates](./proposed/016-msrv-and-ci-hygiene.md) | Medium (M6) |
+| — | *(none)* | |
 
 ## Accepted
 
 | ID | Title | Handoff |
 |----|-------|---------|
-| 013 | [Corrections from the first production report on Cloudflare Workers](./accepted/013-production-report-corrections.md) | [handoffs/013-production-report-corrections/](./handoffs/013-production-report-corrections/README.md) |
+| 013 | [Corrections from the first production report on Cloudflare Workers](./accepted/013-production-report-corrections.md) | [handoffs/013-production-report-corrections/](./handoffs/013-production-report-corrections/README.md) (all approved; moves to `done/` at the next release) |
+| 014 | [A size option for the challenge widget](./accepted/014-challenge-widget-size.md) | [handoffs/014-challenge-widget-size/](./handoffs/014-challenge-widget-size/README.md) |
+| 015 | [Fields defined by the site, bounded](./accepted/015-site-defined-fields.md) | [handoffs/015-site-defined-fields/](./handoffs/015-site-defined-fields/README.md) |
+| 016 | [A true MSRV, pinned CI actions, and constant-time comparison from the crypto crates](./accepted/016-msrv-and-ci-hygiene.md) | [handoffs/016-msrv-and-ci-hygiene/](./handoffs/016-msrv-and-ci-hygiene/README.md) |
 
 ## Implemented
 
