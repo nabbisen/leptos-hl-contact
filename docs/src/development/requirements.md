@@ -1,6 +1,6 @@
 # Requirements Specification
 
-> **Document status.** Draft 23, 2026-09-16, against release `0.7.0`.
+> **Document status.** Draft 24, 2026-09-17, against release `0.7.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
 > M1–M5 are released; the document as a whole awaits formal approval.
 > Once approved, this document is the requirements baseline; later changes
@@ -280,7 +280,7 @@ input the browser accepted.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | NFR-PORT-01 | The core (`default = []`) MUST compile for `wasm32-unknown-unknown` and native targets | Met |
-| NFR-PORT-02 | The server path (`ssr`, `form-token`, `challenge-http`, `axum-helpers`, `delivery-timeout`) MUST build for and run on Cloudflare Workers (wasm32, no tokio runtime).  Delivery there is the integrator's own backend | Met (0.7.0): compiles and is linted for wasm32 in CI; the wasm32 server paths tested in headless Chrome; runtime on Workers verified by the reflerd.com team before release (see the 0.7.0 readiness report) |
+| NFR-PORT-02 | The server path (`ssr`, `form-token`, `challenge-http`, `axum-helpers`, `delivery-timeout`) MUST build for and run on Cloudflare Workers (wasm32, no tokio runtime).  Delivery there is the integrator's own backend | Met (0.7.0): compiles and is linted for wasm32 in CI; the wasm32 server paths tested in headless Chrome; runtime on Workers verified for 0.7.0 by an integrator, on a pre-release and in production; later releases rely on the headless-Chrome suite and integrators' reports |
 
 ### 6.5 Performance (NFR-PERF)
 
@@ -378,6 +378,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-17 | Draft 24 | RFC 013: NFR-PORT-02 evidence stated as 0.7.0 history (tested by an integrator), not a promise for each release |
 | 2026-09-16 | Draft 23 | 0.7.0 released: document status against `0.7.0`; M5 released |
 | 2026-09-15 | Draft 22 | RFC 011 handoff 03 r2 landed: FR-ABUSE-15 status tidied to Met (0.7.0, RFC 011 D5) |
 | 2026-09-15 | Draft 21 | RFC 011 handoff 04: NFR-PORT-02 becomes a MUST (the server path builds for and runs on Cloudflare Workers) and is Met for 0.7.0; gap row removed |

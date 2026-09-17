@@ -11,6 +11,6 @@ Review requests go to `.git-exclude/review-request/013-production-report-correct
 |---|---------|------------|------------|------|
 | 01 | [Documentation, the example's missing-secret arm, one server test](./01-docs-example-and-test.md) | D1–D4 | — | small |
 
-**State.** Handoff 01 written 2026-09-17.
+**State.** Handoff 01 written and approved 2026-09-17 (`ae6bf37`).  RFC 013 is complete; it moves to `done/` with the next release, whose CHANGELOG carries its `[Unreleased]` lines.
 
 **No crate code changes.**  If a change seems to need one, stop and report.
