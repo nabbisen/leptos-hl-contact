@@ -1,6 +1,6 @@
 # Requirements Specification
 
-> **Document status.** Draft 24, 2026-09-17, against release `0.7.0`.
+> **Document status.** Draft 25, 2026-09-17, against release `0.7.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
 > M1–M5 are released; the document as a whole awaits formal approval.
 > Once approved, this document is the requirements baseline; later changes
@@ -270,7 +270,7 @@ input the browser accepted.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | NFR-COMPAT-01 | The crate MUST support Leptos 0.8 in SSR, hydrate and Islands modes; other Leptos versions are not supported | Met |
-| NFR-COMPAT-02 | The crate MUST build on MSRV 1.85 (edition 2024); an MSRV bump MUST be a minor release stated in the CHANGELOG | Met |
+| NFR-COMPAT-02 | The crate MUST build on MSRV 1.88 (edition 2024); an MSRV bump MUST be a minor release stated in the CHANGELOG | Met (0.8.0, RFC 016): checked by the `msrv` CI job.  The 1.85 claim up to 0.7.0 was not met: Leptos 0.8.19 needs 1.88 |
 | NFR-COMPAT-03 | Axum 0.8 only through the optional `axum-helpers` feature; the core MUST stay framework-neutral | Met |
 | NFR-COMPAT-04 | Semantic versioning in the 0.x range: a patch release MUST NOT change public API or observable behaviour except to fix defects; a minor release MAY break with a migration note | Met (policy) |
 | NFR-COMPAT-05 | The DOM contract (element ids, field names, class hooks, ARIA attributes) is part of the public API; a change to it MUST be treated as breaking | Met (policy; see External Design §4.1) |
@@ -378,6 +378,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-17 | Draft 25 | RFC 016: NFR-COMPAT-02 is MSRV 1.88, checked in CI; the earlier 1.85 status corrected |
 | 2026-09-17 | Draft 24 | RFC 013: NFR-PORT-02 evidence stated as 0.7.0 history (tested by an integrator), not a promise for each release |
 | 2026-09-16 | Draft 23 | 0.7.0 released: document status against `0.7.0`; M5 released |
 | 2026-09-15 | Draft 22 | RFC 011 handoff 03 r2 landed: FR-ABUSE-15 status tidied to Met (0.7.0, RFC 011 D5) |

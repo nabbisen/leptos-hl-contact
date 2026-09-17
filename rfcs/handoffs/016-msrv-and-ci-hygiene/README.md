@@ -11,7 +11,7 @@ Review requests go to `.git-exclude/review-request/016-msrv-and-ci-hygiene/`.
 |---|---------|------------|------------|------|
 | 01 | [MSRV 1.88 and its CI job, actions pinned with Dependabot, token comparison through `hmac`](./01-msrv-actions-and-token-compare.md) | D1–D3 | — | small |
 
-**State.** Handoff 01 written 2026-09-17.
+**State.** Handoff 01 conditionally approved 2026-09-17 (`c536e12`): r2 for C1 (a same-length wrong-nonce unit test) and C2 (quoted toolchain versions in `ci.yml`).
 
 **Order in M6.**  This RFC comes first: it is independent, and the MSRV job
 then guards RFCs 014 and 015 as they land.

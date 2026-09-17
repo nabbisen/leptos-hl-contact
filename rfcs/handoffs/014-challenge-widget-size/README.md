@@ -11,4 +11,4 @@ Review requests go to `.git-exclude/review-request/014-challenge-widget-size/`.
 |---|---------|------------|------------|------|
 | 01 | [`ChallengeSize` and `with_size`, on both render paths](./01-size-option.md) | D1–D4 | RFC 016 handoff 01 | small |
 
-**State.** Handoff 01 written 2026-09-17.
+**State.** Handoff 01 approved 2026-09-17 (`57a20b8`).  RFC 014 is complete; it moves to `done/` at the 0.8.0 release.
