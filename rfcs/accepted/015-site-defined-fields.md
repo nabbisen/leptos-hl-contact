@@ -314,3 +314,83 @@ All recommendations accepted except the maximum:
 4. **The placement: after the subject, before the message** (accepted).  Alternative:
    after the message.  The message is the free-text summary, so it reads
    best last.
+
+## Amendment — 2026-09-17, after the step-0 spike
+
+The architect reviewed the spike report
+(`.git-exclude/reviewed/015-site-defined-fields/01-step0-spike.md`).
+- **The map shape stands.**
+- **These changes supersede the text above where they differ.**  None needs
+  an owner decision: the bounds, the behaviour and the owner's answers are
+  unchanged.
+
+**A1 — Names: `SiteField…`, not `ContactField…`.**
+- **The clash.**  The crate already exports `error::ContactField`, the enum
+  `Name | Email | Subject | Message`.  A second `ContactField` type in
+  `config` would confuse integrators.
+- **The definition types:**
+  - `SiteFields`, the validated list: `new`, `empty`, `Default`;
+  - `SiteField`, with `key`, `label`, `kind`, `required` and `max_len`;
+  - `SiteFieldKind`: `Line`, `Text`, `Choice(Vec<SiteFieldChoice>)`;
+  - `SiteFieldChoice`, with `key` and `label`;
+  - `InvalidSiteFields`.
+- **The delivered value:** `SiteFieldValue`, with `key`, `label`, `value`
+  and `value_label`.
+- **Where they appear:**
+  - the component prop `site_fields`;
+  - `ContactServerPolicy::site_fields`;
+  - `ContactInput::site_fields`;
+  - `ContactFieldErrors::site_fields`.
+- **Unchanged:** the wire name `fields[key]`, and the reserved key
+  `fields`.
+
+**A2 — Error codes as they exist.**
+- **The D2 table** used code names loosely.  The JSON codes are
+  `FieldErrorCode`'s:
+  - `required`;
+  - `length` with `min` and `max`;
+  - `format`;
+  - `line_breaks`, rendered from `labels.errors.line_breaks`.
+- **`Length` for site fields** carries `min: 0` for an optional field, and
+  `min: 1` for a required one.
+
+**A3 — The server's refusals, in order,** before any per-field rule:
+1. **Too many keys.**  More keys in the map than `SiteFields::MAX` (4):
+   `rejected`, logged at `warn` with the count only.  The spike showed
+   nothing else bounds the breadth: 1,000 keys parsed.
+2. **An unknown key:** `rejected`, logged at `warn` with the count of
+   unknown keys only.
+   - **What this covers:** control characters in a key (spike case h) and
+     every other crafted key, since only defined keys pass.
+   - **No charset check** on request keys is needed beyond the allow-list.
+3. **Then per-field validation** (D2).
+
+**A4 — Malformed maps** (spike cases d–f: a duplicate key, nesting, a
+sequence, a bare `fields=`).
+- **Where they fail:** at deserialization, before `submit_contact` runs.
+- **What the visitor sees:** `ContactForm` shows `labels.error`, the generic
+  message, because the error is not a `contact_error:` or `field_errors:`
+  payload (`components.rs`, "anything else falls back to `labels.error`").
+- **No change needed.**  The crate cannot log these, since its code never
+  runs.  A test pins that the visitor sees the generic message.
+- **Dot notation (`fields.a`, case g):** silently ignored by `serde_qs`.
+  The component never produces it, so it is documented only in
+  `development/`.
+
+**A5 — Request keys are never logged.**
+- **What the spike did.**  It logged request keys to fill its table.  That
+  was acceptable for a local spike only.
+- **In the implementation,** only counts from the request are logged, and
+  keys only from the site's definition (the handoff README rule).
+
+**A6 — Preservation, stated precisely.**
+- **With JavaScript:** values are preserved.  `ActionForm` keeps the form's
+  inputs across a failed submission, so site fields inherit it (spike §6).
+- **Without JavaScript:** nothing is preserved, for any field.  This is
+  unchanged by this RFC.
+- **FR-FIELD-08** says "as for the built-in fields", not more.
+
+**A7 — Ids.**  Built-in inputs use fixed ids (`contact-name`, …).  Site
+fields use `contact-field-{key}`, and their error paragraphs
+`contact-field-{key}-error`, following the existing `{input_id}-error`
+pattern.

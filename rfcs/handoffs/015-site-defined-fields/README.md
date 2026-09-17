@@ -10,11 +10,11 @@ Review requests go to `.git-exclude/review-request/015-site-defined-fields/`.
 | # | Handoff | RFC design | Depends on | Size |
 |---|---------|------------|------------|------|
 | 01 | [Step 0 spike: a map argument through `server_fn`](./01-step0-spike.md) | Step 0 | RFC 016 handoff 01 | small (report only) |
-| 02 | Definition, validation, errors | D1, D2 | 01 reviewed | written after 01 |
-| 03 | Server, rendering, L2 and L3 tests | D3, D5 | 02 | written after 01 |
-| 04 | Delivery, SMTP body, privacy, docs, records | D4, D6 | 03 | written after 01 |
+| 02 | [Definition, validation, errors](./02-definition-and-validation.md) | D1, D2, A1–A3, A5 | 01 reviewed | medium |
+| 03 | [Server and component](./03-server-and-rendering.md) | D3, D5, A1, A3, A4, A6, A7 | 02 | large |
+| 04 | [SMTP body, documentation, traceability](./04-delivery-docs-records.md) | D4, D6, D7 | 03 | medium |
 
-**State.** Handoff 01 written 2026-09-17.
+**State.** Handoff 01 (spike) reviewed 2026-09-17: the map shape stands; RFC amended (A1–A7).  Handoffs 02–04 written 2026-09-17.
 
 ## Rules for this RFC
 
