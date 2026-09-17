@@ -93,6 +93,14 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 
 No milestone in progress.  The next milestone is planned jointly with the owner; candidates are listed under Unscheduled below.
 
+### Follow-up to 0.7.0 — **approved 2026-09-17**
+
+From the reflerd.com team's production letter of 2026-09-17.  Documentation, the security example and one server test; no crate code and no release required.
+
+| ID | Item | Priority | Kind | Evidence |
+|----|------|----------|------|----------|
+| P-42 | Corrections from the first production report on Cloudflare Workers: the guide no longer promises workerd testing before each release; strip the wasm `name` section (a production Worker went from 59.1 MiB to 3.9 MiB); verify the Rate Limiting binding after deploying, or use a rate-limiting rule; a missing challenge secret must fail closed — provide `ChallengeContext` with an empty secret, never leave it out (the `axum-with-security` example left it out, so submissions without a token passed) | **High** (the example's fail-open arm) | [RFC 013](./rfcs/accepted/013-production-report-corrections.md) (accepted 2026-09-17), handoff 01 | reflerd.com letter 2026-09-17; architect checked the strip, Cloudflare's binding page and the challenge gate |
+
 ---
 
 ## Unscheduled — proposed candidates for later milestones
@@ -104,7 +112,7 @@ No milestone in progress.  The next milestone is planned jointly with the owner;
 | P-24 | Dependency and CI hygiene: consider `subtle` for constant-time comparison; CI on MSRV 1.85 plus stable; pin GitHub Actions by commit SHA rather than tag (the workflow uses `actions/checkout`, `dtolnay/rust-toolchain` and, since RFC 008, `taiki-e/install-action`).  `sha2` 0.10.9 beside our 0.11.0 comes only from a Leptos proc-macro and is not ours to unify; transitive advisories in Leptos's own dependencies (`paste`, `proc-macro-error2`, `anyhow`) remain as of 0.5.0 | Low | task |
 | P-26 | Scheduled CI job running the `#[ignore]` live vendor tests; deferred by the owner on 2026-09-12 because it carries a cost | TBD (owner) | RFC |
 | P-35 | Opt-in mail-domain check: a DNS lookup for a mail exchanger (falling back to an address record, RFC 5321 §5.1) behind a feature, time-bounded, reported as an error under the email field so a visitor can fix a typo; accepts with a `warn` log when DNS does not answer.  Catches non-existent domains, not non-existent mailboxes | Low — **approved** 2026-09-13, less prioritized | RFC |
-| P-36 | Messages the site cannot translate — **waiting for the app team's answer**: on hold from 2026-09-13 until they upgraded; with the 0.7.0 reply of 2026-09-16 the owner approved asking them, on 0.7.0, whether any text remains untranslated, where it appears (under a field, the form message, a browser pop-up), what it says, and whether they need a message per field.  No schedule, no RFC.  Since 0.4.0 `labels.errors` covers every server message under a field.  Candidate gaps: the browser's own validation pop-ups from `required`, `type="email"` and `maxlength`, which no label reaches; one text per rule, not per field; the Customization page mentions `errors` only as a link | TBD | pending facts |
+| P-41 | An opt-in `novalidate` on the form, so a site's translated field errors replace the browser's own validation pop-ups (`required`, `type="email"`), which no label reaches; the server checks are unchanged and the default markup stays as it is.  `novalidate` is current in the HTML Living Standard.  Open for its RFC: whether the hydrated form validates before submitting, focus without the pop-up, keeping `required`/`aria-required`/`maxlength` | Low — **proposed** | RFC |
 | P-38 | Mutation-run follow-up from 0.6.0: pin the form token's TTL and future-skew boundaries with tests; assert the `challenge unavailable` and missing-context log events; test `provide_contact_delivery`; browser tests for `remove_widget`, the reCAPTCHA v2 `ready` arm, hCaptcha and reCAPTCHA global names, and the hydrating path.  From 0.7.0's run: a worker test that finishes a delivery before its deadline and waits past it, so `wasm_timer`'s `Sleep::drop` must clear the timer.  No defect found; each would catch a silent regression | Low — **proposed** | handoff (tests only) |
 
 ### Future
@@ -219,3 +227,4 @@ Owner decisions of 2026-09-15: Cloudflare Workers is a supported server target (
 - 2026-09-16: the reflerd.com runtime report accepted.  The script-nonce fix (since 0.5.0) ships in 0.7.0 with no 0.6.1: a patch would need a first release branch and a cherry-pick across files RFC 012 changed, for no known affected site, and the owner chose 0.7.0 when a patch carries project risk.  No second runtime test round.  The 0.7.0 release process starts.
 - 2026-09-16: 0.7.0 released — tag `0.7.0` on `c185770`, published by the architect under the owner's authorisation; M5 complete.  The `rustls` advisory (RUSTSEC-2026-0285) handled by lock updates and a CHANGELOG *Security* note, with no manifest minimum.
 - 2026-09-16: the reply to the reflerd.com team sent with the 0.7.0 release; it asks for per-feature Worker size figures and the P-36 translation questions.
+- 2026-09-17: the reflerd.com team runs 0.7.0 in production and confirmed the nonce fix on workerd.  P-42 approved (RFC 013).  P-36 closed: with every label translated nothing from the crate is untranslated; only the browser's validation pop-ups are, recorded as P-41 (proposed, low).  A short acknowledgement to the team follows once P-42 lands.

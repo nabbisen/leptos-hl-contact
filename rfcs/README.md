@@ -21,7 +21,7 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Handoff |
 |----|-------|---------|
-| — | *(none)* | |
+| 013 | [Corrections from the first production report on Cloudflare Workers](./accepted/013-production-report-corrections.md) | [handoffs/013-production-report-corrections/](./handoffs/013-production-report-corrections/README.md) |
 
 ## Implemented
 
