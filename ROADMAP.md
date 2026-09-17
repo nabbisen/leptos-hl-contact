@@ -91,7 +91,15 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 
 ## Current
 
-No milestone in progress.  The next milestone is planned jointly with the owner; candidates are listed under Unscheduled below.
+### M6 — Site-defined fields → 0.8.0 — **authorized 2026-09-17**
+
+Owner decisions 2026-09-17: custom fields accepted as a **bounded** feature (the bounds become requirements; "a form builder" stays a non-goal); M6 = P-43, P-44 and P-24, released as 0.8.0; P-22 later.  Origin of P-43 and P-44: the reflerd.com team's requests of 2026-09-17.  The reply to that letter is deferred to the 0.8.0 release.  RFCs 014–016 proposed 2026-09-17, awaiting acceptance.
+
+| ID | Item | Priority | Kind | Evidence |
+|----|------|----------|------|----------|
+| P-43 | Fields defined by the site, bounded: one-line, multi-line and choice fields (at most 8, fixed placement, reserved keys), one definition for the component and the server, unknown keys and unlisted choices refused, values delivered in order with server-side labels | **High** | [RFC 015](./rfcs/proposed/015-site-defined-fields.md) (proposed; step-0 spike on `server_fn` map arguments first) | reflerd.com request 2026-09-17 |
+| P-44 | A size option for the challenge widget: `ChallengeWidget::with_size` (`Normal` default, `Compact`, Turnstile-only `Flexible`), on both render paths | Medium | [RFC 014](./rfcs/proposed/014-challenge-widget-size.md) (proposed) | reflerd.com request 2026-09-17: Turnstile's 300 px widget widened 360 px phones; `flexible` has a 300 px minimum, so `compact` is the fix |
+| P-24 | Dependency and CI hygiene — **finding 2026-09-17: the stated MSRV 1.85 does not build** (`leptos` 0.8.19 needs 1.88); RFC 016 proposes MSRV 1.88 with a CI job: consider `subtle` for constant-time comparison; CI on MSRV 1.85 plus stable; pin GitHub Actions by commit SHA rather than tag (the workflow uses `actions/checkout`, `dtolnay/rust-toolchain` and, since RFC 008, `taiki-e/install-action`).  `sha2` 0.10.9 beside our 0.11.0 comes only from a Leptos proc-macro and is not ours to unify; transitive advisories in Leptos's own dependencies (`paste`, `proc-macro-error2`, `anyhow`) remain as of 0.5.0 | Medium | [RFC 016](./rfcs/proposed/016-msrv-and-ci-hygiene.md) (proposed) | 2026-09-17: `cargo +1.85 check --all-features --locked` refused; 1.88 builds |
 
 ### Follow-up to 0.7.0 — **approved 2026-09-17**
 
@@ -108,8 +116,7 @@ From the reflerd.com team's production letter of 2026-09-17.  Documentation, the
 | ID | Item | Priority | Kind |
 |----|------|----------|------|
 | P-20 | Multi-language label presets (GUI rule requires i18n) | Medium | RFC |
-| P-22 | HTTP-API delivery adapters: Resend, SendGrid, AWS SES | TBD | RFC per adapter |
-| P-24 | Dependency and CI hygiene: consider `subtle` for constant-time comparison; CI on MSRV 1.85 plus stable; pin GitHub Actions by commit SHA rather than tag (the workflow uses `actions/checkout`, `dtolnay/rust-toolchain` and, since RFC 008, `taiki-e/install-action`).  `sha2` 0.10.9 beside our 0.11.0 comes only from a Leptos proc-macro and is not ours to unify; transitive advisories in Leptos's own dependencies (`paste`, `proc-macro-error2`, `anyhow`) remain as of 0.5.0 | Low | task |
+| P-22 | HTTP-API delivery adapters: Resend, SendGrid, AWS SES; one adapter first, working natively and on Workers (`fetch`) | TBD — **after M6** (owner, 2026-09-17) | RFC per adapter |
 | P-26 | Scheduled CI job running the `#[ignore]` live vendor tests; deferred by the owner on 2026-09-12 because it carries a cost | TBD (owner) | RFC |
 | P-35 | Opt-in mail-domain check: a DNS lookup for a mail exchanger (falling back to an address record, RFC 5321 §5.1) behind a feature, time-bounded, reported as an error under the email field so a visitor can fix a typo; accepts with a `warn` log when DNS does not answer.  Catches non-existent domains, not non-existent mailboxes | Low — **approved** 2026-09-13, less prioritized | RFC |
 | P-41 | An opt-in `novalidate` on the form, so a site's translated field errors replace the browser's own validation pop-ups (`required`, `type="email"`), which no label reaches; the server checks are unchanged and the default markup stays as it is.  `novalidate` is current in the HTML Living Standard.  Open for its RFC: whether the hydrated form validates before submitting, focus without the pop-up, keeping `required`/`aria-required`/`maxlength` | Low — **proposed** | RFC |
@@ -133,7 +140,9 @@ From the reflerd.com team's production letter of 2026-09-17.  Documentation, the
 
 ## Decisions required from the owner
 
-*(none open)*
+- **RFC 014** (widget size): accept?  No open questions.
+- **RFC 015** (site-defined fields): accept, with its four questions — at most 8 fields; choices as `<select>` only; blank optional fields left out of delivery; placement after the subject.
+- **RFC 016** (MSRV and CI): accept, with its two questions — MSRV 1.88; Dependabot for GitHub Actions only.
 
 ---
 
@@ -228,3 +237,4 @@ Owner decisions of 2026-09-15: Cloudflare Workers is a supported server target (
 - 2026-09-16: 0.7.0 released — tag `0.7.0` on `c185770`, published by the architect under the owner's authorisation; M5 complete.  The `rustls` advisory (RUSTSEC-2026-0285) handled by lock updates and a CHANGELOG *Security* note, with no manifest minimum.
 - 2026-09-16: the reply to the reflerd.com team sent with the 0.7.0 release; it asks for per-feature Worker size figures and the P-36 translation questions.
 - 2026-09-17: the reflerd.com team runs 0.7.0 in production and confirmed the nonce fix on workerd.  P-42 approved (RFC 013).  P-36 closed: with every label translated nothing from the crate is untranslated; only the browser's validation pop-ups are, recorded as P-41 (proposed, low).  A short acknowledgement to the team follows once P-42 lands.
+- 2026-09-17: reflerd.com requests (custom fields, widget size) assessed.  Custom fields accepted as a bounded feature, "a form builder" still a non-goal; M6 = P-43, P-44, P-24 → 0.8.0; P-22 later; the reply waits for the 0.8.0 release.  RFCs 014, 015, 016 proposed.

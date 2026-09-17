@@ -15,7 +15,9 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Priority |
 |----|-------|----------|
-| — | *(none)* | |
+| 014 | [A size option for the challenge widget](./proposed/014-challenge-widget-size.md) | Medium (M6) |
+| 015 | [Fields defined by the site, bounded](./proposed/015-site-defined-fields.md) | High (M6) |
+| 016 | [A true MSRV, pinned CI actions, and constant-time comparison from the crypto crates](./proposed/016-msrv-and-ci-hygiene.md) | Medium (M6) |
 
 ## Accepted
 
