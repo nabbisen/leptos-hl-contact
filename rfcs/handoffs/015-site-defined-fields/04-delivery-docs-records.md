@@ -34,7 +34,7 @@ Message:
 
 | Page | Change |
 |------|--------|
-| `guides/customization.md` | a "Site-defined fields" section: the bounds (as requirements, not defaults), the example, building one `SiteFields` and passing it to both `ContactForm` and `ContactServerPolicy`, and what a mismatch looks like (unknown keys refused; an error for an unrendered field shows the generic message) |
+| `guides/customization.md` | a "Site-defined fields" section: that a value is trimmed first, so a trailing newline in a `Line` is trimmed rather than refused, as for `name`; the bounds (as requirements, not defaults), the example, building one `SiteFields` and passing it to both `ContactForm` and `ContactServerPolicy`, and what a mismatch looks like (unknown keys refused; an error for an unrendered field shows the generic message) |
 | `guides/localization.md` | labels and choice labels come from the definition, in the page language; errors reuse `ContactErrorLabels` |
 | `guides/delivery-backends.md` | `ContactInput::site_fields`: order, labels from the server, choice key and label, answered fields only; for a custom backend, treat values like the message (personal data, never logged) |
 | `guides/accessibility.md` | site fields get the same label, `required`, `aria-*` and focus behaviour; a choice is a native `<select>` |
