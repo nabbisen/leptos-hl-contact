@@ -42,6 +42,7 @@ Message:
 | `security/README.md` or the "which layer decides what" table | a row: unknown site-field keys and unlisted choices are refused by the crate |
 | `development/external-design.md` | the form's field table: the site-field rows with names, ids and codes |
 | `development/architecture.md` | if the source layout changed, match it exactly |
+| `development/testing.md`, "Running the examples" | one clause: CI checks the examples with `--locked`, so a stale example lock fails at push time (carried from the RFC 016 handoff 02 review) |
 | `introduction.md` | "A form builder" stays in the non-goals; add "(a few bounded site-defined fields are supported; see Customization)" |
 
 **Grep:** after editing, `git grep -n "ContactField\b" -- docs/src`.  Every
