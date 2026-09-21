@@ -4,10 +4,15 @@
 // server-function arguments have been normalised and validated.  It is never
 // serialised to the client.
 
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::error::ContactValidationError;
+use crate::{
+    config::{SiteFieldKind, SiteFields},
+    error::{ContactValidationError, FieldError, FieldErrorCode},
+};
 
 // ---------------------------------------------------------------------------
 // Limits
@@ -279,6 +284,134 @@ fn field_error_code(e: &validator::ValidationError) -> crate::error::FieldErrorC
         "email" => FieldErrorCode::Format,
         "no_newlines" => FieldErrorCode::LineBreaks,
         _ => FieldErrorCode::Format,
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Site-defined fields (RFC 015)
+// ---------------------------------------------------------------------------
+
+/// One answered site-defined field, as delivery receives it.
+///
+/// `label` comes from the site's [`SiteFields`] definition, never from the
+/// request, so a sender cannot choose what the delivered message says a field
+/// is called.
+///
+/// Like `message`, `value` is personal data: never log it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SiteFieldValue {
+    /// The field's key from the definition.
+    pub key: String,
+    /// The field's label from the definition.
+    pub label: String,
+    /// The trimmed value.  For a `Choice`, the choice's key.
+    pub value: String,
+    /// For a `Choice`, the chosen option's label; `None` for other kinds.
+    pub value_label: Option<String>,
+}
+
+/// What [`validate_site_fields`] decided.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SiteFieldsOutcome {
+    /// Every value is valid: the answered fields, in definition order.  A
+    /// blank optional field is left out.
+    Valid(Vec<SiteFieldValue>),
+    /// Errors per field, keyed by the definition's key.
+    Invalid(BTreeMap<String, FieldError>),
+    /// The request carried more keys than the definition allows, or a key the
+    /// definition does not have.  There is no field to attach an error to,
+    /// and saying which key was wrong would teach a crafted request the
+    /// definition, so the submission is refused as a whole.
+    Refused,
+}
+
+/// Validate the raw `fields[…]` map of a submission against the site's
+/// definition.
+///
+/// In order:
+/// 1. **Too many keys** (more than [`SiteFields::MAX`]): [`Refused`](SiteFieldsOutcome::Refused).
+/// 2. **A key the definition lacks**: `Refused`.  Only defined keys pass, so
+///    a crafted key of any shape is refused here, whatever characters it has.
+/// 3. **Each defined field, in definition order**: the value is trimmed and a
+///    blank one is absent.  Absent and required is `Required`; absent and
+///    optional is left out.  Otherwise `Line` fails on a CR or LF
+///    (`LineBreaks`), `Line` and `Text` on more than `max_len` characters
+///    (`Length`, which is checked first), and `Choice` on a value that is not
+///    a listed key (`Format`).
+///
+/// A refusal is logged at `warn` with a **count** only.  A request's keys and
+/// values are attacker text and personal data, so they are never logged.
+pub fn validate_site_fields(
+    def: &SiteFields,
+    raw: Option<&BTreeMap<String, String>>,
+) -> SiteFieldsOutcome {
+    let empty = BTreeMap::new();
+    let raw = raw.unwrap_or(&empty);
+
+    if raw.len() > SiteFields::MAX {
+        tracing::warn!(count = raw.len(), "site fields refused: too many keys");
+        return SiteFieldsOutcome::Refused;
+    }
+    let unknown = raw.keys().filter(|key| def.get(key).is_none()).count();
+    if unknown > 0 {
+        tracing::warn!(unknown_keys = unknown, "site fields refused: unknown keys");
+        return SiteFieldsOutcome::Refused;
+    }
+
+    let mut values = Vec::new();
+    let mut errors = BTreeMap::new();
+    for field in def.iter() {
+        let value = raw
+            .get(&field.key)
+            .map(|value| value.trim())
+            .filter(|value| !value.is_empty());
+        let Some(value) = value else {
+            if field.required {
+                errors.insert(
+                    field.key.clone(),
+                    FieldError::Code(FieldErrorCode::Required),
+                );
+            }
+            continue;
+        };
+
+        let length = FieldErrorCode::Length {
+            min: usize::from(field.required),
+            max: field.max_len,
+        };
+        let mut value_label = None;
+        let error = match &field.kind {
+            SiteFieldKind::Line if value.chars().count() > field.max_len => Some(length),
+            SiteFieldKind::Line if value.contains(['\r', '\n']) => Some(FieldErrorCode::LineBreaks),
+            SiteFieldKind::Text if value.chars().count() > field.max_len => Some(length),
+            SiteFieldKind::Choice(choices) => {
+                match choices.iter().find(|choice| choice.key == value) {
+                    Some(choice) => {
+                        value_label = Some(choice.label.clone());
+                        None
+                    }
+                    None => Some(FieldErrorCode::Format),
+                }
+            }
+            _ => None,
+        };
+        match error {
+            Some(code) => {
+                errors.insert(field.key.clone(), FieldError::Code(code));
+            }
+            None => values.push(SiteFieldValue {
+                key: field.key.clone(),
+                label: field.label.clone(),
+                value: value.to_owned(),
+                value_label,
+            }),
+        }
+    }
+
+    if errors.is_empty() {
+        SiteFieldsOutcome::Valid(values)
+    } else {
+        SiteFieldsOutcome::Invalid(errors)
     }
 }
 

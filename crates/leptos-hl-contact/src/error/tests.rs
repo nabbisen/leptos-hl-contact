@@ -13,6 +13,7 @@ fn field_errors_roundtrip_json() {
         email: Some(FieldError::Code(FieldErrorCode::Format)),
         subject: None,
         message: Some(FieldError::Text("too long".into())),
+        ..Default::default()
     };
     let json = errs.to_json();
     let back: ContactFieldErrors = serde_json::from_str(&json).unwrap();
@@ -269,4 +270,67 @@ fn delivery_timeout_round_trips_through_the_wire_string() {
     let err: TestServerFnError =
         leptos::server_fn::error::ServerFnError::ServerError(code.into_server_fn_message());
     assert_eq!(ContactErrorCode::from_server_fn_error(&err), Some(code));
+}
+
+// ---------------------------------------------------------------------------
+// Site-defined fields (RFC 015 handoff 02)
+// ---------------------------------------------------------------------------
+
+/// What 0.7 sent for a `name`-only error.  A submission with no site-field
+/// error must stay byte-identical to it.
+const JSON_0_7: &str = r#"{"name":{"kind":"required"},"email":null,"subject":null,"message":null}"#;
+
+#[test]
+fn json_without_site_field_errors_is_byte_identical_to_0_7() {
+    let errs = ContactFieldErrors {
+        name: Some(FieldError::Code(FieldErrorCode::Required)),
+        ..Default::default()
+    };
+    assert_eq!(errs.to_json(), JSON_0_7);
+    assert!(!errs.to_json().contains("site_fields"));
+}
+
+#[test]
+fn a_0_7_payload_still_parses() {
+    let back: ContactFieldErrors = serde_json::from_str(JSON_0_7).unwrap();
+    assert_eq!(back.name, Some(FieldError::Code(FieldErrorCode::Required)));
+    assert!(back.site_fields.is_empty());
+    assert!(
+        ContactFieldErrors::from_error_str(&format!("{FIELD_ERROR_PREFIX}{JSON_0_7}")).is_some()
+    );
+}
+
+#[test]
+fn site_field_errors_round_trip_through_json() {
+    let errs = ContactFieldErrors {
+        site_fields: BTreeMap::from([
+            (
+                "organisation".into(),
+                FieldError::Code(FieldErrorCode::Required),
+            ),
+            (
+                "topic".into(),
+                FieldError::Code(FieldErrorCode::Length { min: 0, max: 200 }),
+            ),
+        ]),
+        ..Default::default()
+    };
+    let json = errs.to_json();
+    assert!(json.contains("\"site_fields\""), "{json}");
+    let back: ContactFieldErrors = serde_json::from_str(&json).unwrap();
+    assert_eq!(back, errs);
+
+    let parsed = ContactFieldErrors::from_error_str(&errs.clone().into_server_fn_message());
+    assert_eq!(parsed, Some(errs));
+}
+
+/// A site-field error alone still makes the value non-empty, so the
+/// component's "is this a field-error payload?" test sees it.
+#[test]
+fn a_site_field_error_alone_is_not_empty() {
+    let mut errs = ContactFieldErrors::default();
+    assert!(errs.is_empty());
+    errs.site_fields
+        .insert("topic".into(), FieldError::Code(FieldErrorCode::Format));
+    assert!(!errs.is_empty());
 }

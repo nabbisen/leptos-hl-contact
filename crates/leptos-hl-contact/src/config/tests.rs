@@ -636,3 +636,322 @@ fn settings_serialized_by_0_6_still_deserialize() {
     let options: ContactFormOptions = serde_json::from_value(options).unwrap();
     assert!(options.honeypot_inline_style);
 }
+
+// ---------------------------------------------------------------------------
+// Site-defined fields (RFC 015 handoff 02)
+// ---------------------------------------------------------------------------
+
+fn line(key: &str, max_len: usize) -> SiteField {
+    SiteField {
+        key: key.into(),
+        label: "A label".into(),
+        kind: SiteFieldKind::Line,
+        required: false,
+        max_len,
+    }
+}
+
+fn choice_field(key: &str, choice_keys: &[&str]) -> SiteField {
+    SiteField {
+        key: key.into(),
+        label: "A label".into(),
+        kind: SiteFieldKind::Choice(
+            choice_keys
+                .iter()
+                .map(|k| SiteFieldChoice {
+                    key: (*k).into(),
+                    label: format!("Choice {k}"),
+                })
+                .collect(),
+        ),
+        required: false,
+        max_len: 0,
+    }
+}
+
+/// The error text of a definition that must be refused.
+fn refused(fields: Vec<SiteField>) -> String {
+    SiteFields::new(fields)
+        .expect_err("the definition breaks a bound")
+        .to_string()
+}
+
+/// RFC 015 D1: the example from `SiteFields`' rustdoc, built again.
+#[test]
+fn site_fields_accept_the_documented_example() {
+    let fields = SiteFields::new(vec![
+        SiteField {
+            key: "organisation".into(),
+            label: "Organisation".into(),
+            kind: SiteFieldKind::Line,
+            required: true,
+            max_len: 100,
+        },
+        SiteField {
+            key: "topic".into(),
+            label: "Topic".into(),
+            kind: SiteFieldKind::Choice(vec![
+                SiteFieldChoice {
+                    key: "sales".into(),
+                    label: "Sales".into(),
+                },
+                SiteFieldChoice {
+                    key: "support".into(),
+                    label: "Support".into(),
+                },
+            ]),
+            required: true,
+            max_len: 0,
+        },
+        SiteField {
+            key: "timing".into(),
+            label: "When do you need this?".into(),
+            kind: SiteFieldKind::Text,
+            required: false,
+            max_len: 300,
+        },
+    ])
+    .expect("within the bounds");
+    assert_eq!(
+        fields.iter().map(|f| f.key.as_str()).collect::<Vec<_>>(),
+        ["organisation", "topic", "timing"],
+        "definition order"
+    );
+    assert!(fields.get("topic").is_some());
+    assert!(fields.get("nothing").is_none());
+    assert!(!fields.is_empty());
+}
+
+#[test]
+fn no_site_fields_is_the_default_and_valid() {
+    assert!(SiteFields::empty().is_empty());
+    assert_eq!(SiteFields::default(), SiteFields::empty());
+    assert_eq!(SiteFields::new(Vec::new()), Ok(SiteFields::empty()));
+}
+
+/// The bound is 4: four are accepted, five are refused, and the message
+/// names the count.
+#[test]
+fn site_fields_are_at_most_four() {
+    assert_eq!(SiteFields::MAX, 4);
+    let keys = ["a", "b", "c", "d", "e"];
+    let make = |n: usize| keys[..n].iter().map(|k| line(k, 10)).collect::<Vec<_>>();
+    assert!(SiteFields::new(make(4)).is_ok());
+    let message = refused(make(5));
+    assert!(message.contains('5'), "{message}");
+    assert!(message.contains('4'), "{message}");
+}
+
+/// `[a-z][a-z0-9_]{0,31}`: 32 characters at most, and the message names the
+/// key.
+#[test]
+fn site_field_keys_follow_the_charset_and_length() {
+    let longest = format!("a{}", "b".repeat(31));
+    assert_eq!(longest.len(), 32);
+    assert!(SiteFields::new(vec![line(&longest, 10)]).is_ok());
+    assert!(SiteFields::new(vec![line("a", 10)]).is_ok());
+    assert!(SiteFields::new(vec![line("a_1_b", 10)]).is_ok());
+
+    for bad in [
+        format!("a{}", "b".repeat(32)),
+        String::new(),
+        "1abc".into(),
+        "_abc".into(),
+        "Abc".into(),
+        "aBc".into(),
+        "a-b".into(),
+        "a b".into(),
+        "a.b".into(),
+        "a[b]".into(),
+        "é".into(),
+        "a\nb".into(),
+    ] {
+        let message = refused(vec![line(&bad, 10)]);
+        assert!(message.contains("must match"), "{bad:?}: {message}");
+    }
+    let message = refused(vec![line("Topic", 10)]);
+    assert!(
+        message.contains("Topic"),
+        "the message names the key: {message}"
+    );
+}
+
+/// Every name the form already uses is reserved.
+#[test]
+fn every_reserved_key_is_refused() {
+    for reserved in [
+        "name",
+        "email",
+        "subject",
+        "message",
+        "website",
+        "form_token",
+        "fields",
+        "cf_turnstile_response",
+        "h_captcha_response",
+        "g_recaptcha_response",
+    ] {
+        let message = refused(vec![line(reserved, 10)]);
+        assert!(message.contains("reserved"), "{reserved}: {message}");
+        assert!(message.contains(reserved), "{reserved}: {message}");
+    }
+    // A reserved word inside a longer key is a different key.
+    assert!(SiteFields::new(vec![line("name_of_org", 10)]).is_ok());
+}
+
+#[test]
+fn a_duplicate_key_is_refused() {
+    let message = refused(vec![
+        line("topic", 10),
+        line("other", 10),
+        line("topic", 10),
+    ]);
+    assert!(
+        message.contains("topic") && message.contains("twice"),
+        "{message}"
+    );
+}
+
+#[test]
+fn a_label_is_not_empty_after_trimming() {
+    for bad in ["", "   ", "\t\n"] {
+        let mut field = line("topic", 10);
+        field.label = bad.into();
+        let message = refused(vec![field]);
+        assert!(
+            message.contains("topic") && message.contains("label"),
+            "{message}"
+        );
+    }
+    let mut field = line("topic", 10);
+    field.label = " x ".into();
+    assert!(SiteFields::new(vec![field]).is_ok());
+}
+
+/// `Line`: `1 ..= 200`, accepted at each end and refused one past it.
+#[test]
+fn a_line_max_len_is_one_to_two_hundred() {
+    for ok in [1, 200] {
+        assert!(SiteFields::new(vec![line("a", ok)]).is_ok(), "{ok}");
+    }
+    for bad in [0, 201] {
+        let message = refused(vec![line("a", bad)]);
+        assert!(
+            message.contains("\"a\"") && message.contains("Line"),
+            "{message}"
+        );
+    }
+}
+
+/// `Text`: `1 ..= MESSAGE_MAX_LEN`.
+#[test]
+fn a_text_max_len_is_one_to_the_message_ceiling() {
+    let text = |max_len| SiteField {
+        kind: SiteFieldKind::Text,
+        ..line("a", max_len)
+    };
+    for ok in [1, MESSAGE_MAX_LEN] {
+        assert!(SiteFields::new(vec![text(ok)]).is_ok(), "{ok}");
+    }
+    for bad in [0, MESSAGE_MAX_LEN + 1] {
+        let message = refused(vec![text(bad)]);
+        assert!(
+            message.contains("\"a\"") && message.contains("Text"),
+            "{message}"
+        );
+    }
+}
+
+/// `Choice`: 2 to 20 choices; `max_len` is ignored.
+#[test]
+fn a_choice_lists_two_to_twenty_options() {
+    let keys: Vec<String> = (0..21).map(|n| format!("k{n}")).collect();
+    let make = |n: usize| {
+        let refs: Vec<&str> = keys[..n].iter().map(String::as_str).collect();
+        choice_field("topic", &refs)
+    };
+    for ok in [2, 20] {
+        assert!(SiteFields::new(vec![make(ok)]).is_ok(), "{ok}");
+    }
+    for bad in [0, 1, 21] {
+        let message = refused(vec![make(bad)]);
+        assert!(
+            message.contains("topic") && message.contains("choices"),
+            "{message}"
+        );
+    }
+    for max_len in [0, 1, usize::MAX] {
+        let mut field = choice_field("topic", &["a", "b"]);
+        field.max_len = max_len;
+        assert!(
+            SiteFields::new(vec![field]).is_ok(),
+            "max_len {max_len} is ignored"
+        );
+    }
+}
+
+#[test]
+fn choice_keys_follow_the_charset_and_are_unique() {
+    for bad in ["", "A", "1a", "a-b", "a b"] {
+        let message = refused(vec![choice_field("topic", &["ok", bad])]);
+        assert!(
+            message.contains("topic") && message.contains("choice key"),
+            "{bad:?}: {message}"
+        );
+    }
+    let message = refused(vec![choice_field("topic", &["sales", "support", "sales"])]);
+    assert!(
+        message.contains("topic") && message.contains("sales") && message.contains("twice"),
+        "{message}"
+    );
+}
+
+#[test]
+fn a_choice_label_is_not_empty() {
+    let mut field = choice_field("topic", &["a", "b"]);
+    if let SiteFieldKind::Choice(choices) = &mut field.kind {
+        choices[1].label = "  ".into();
+    }
+    let message = refused(vec![field]);
+    assert!(
+        message.contains("topic") && message.contains("\"b\""),
+        "{message}"
+    );
+}
+
+/// The message names the rule and the key from the definition, never a label
+/// (RFC 015 D1): a distinctive label must not appear in any of them.
+#[test]
+fn an_error_message_never_carries_a_label() {
+    const PROBE: &str = "Zz Label Probe";
+    let labelled = |mut field: SiteField| {
+        field.label = PROBE.into();
+        field
+    };
+    let mut bad_choice = choice_field("topic", &["a", "a"]);
+    bad_choice.label = PROBE.into();
+    if let SiteFieldKind::Choice(choices) = &mut bad_choice.kind {
+        choices[0].label = PROBE.into();
+    }
+    for definition in [
+        vec![labelled(line("Bad", 10))],
+        vec![labelled(line("name", 10))],
+        vec![labelled(line("a", 0))],
+        vec![labelled(line("a", 10)), labelled(line("a", 10))],
+        vec![bad_choice],
+    ] {
+        let message = refused(definition);
+        assert!(!message.contains(PROBE), "{message}");
+    }
+}
+
+#[test]
+fn site_fields_keep_definition_order_and_look_up_by_key() {
+    let fields =
+        SiteFields::new(vec![line("zeta", 10), line("alpha", 10), line("mid", 10)]).unwrap();
+    assert_eq!(
+        fields.iter().map(|f| f.key.as_str()).collect::<Vec<_>>(),
+        ["zeta", "alpha", "mid"]
+    );
+    assert_eq!(fields.get("alpha").map(|f| f.max_len), Some(10));
+}

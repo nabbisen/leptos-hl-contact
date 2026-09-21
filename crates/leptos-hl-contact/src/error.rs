@@ -8,6 +8,8 @@
 //   - ContactValidationError is a server-internal type; do not expose its
 //     InvalidInput message to the client.
 
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -199,15 +201,24 @@ pub struct ContactFieldErrors {
     pub subject: Option<FieldError>,
     /// Error for the `message` field.
     pub message: Option<FieldError>,
+    /// Errors for the site's own fields (RFC 015), keyed by the key from the
+    /// site's [`SiteFields`](crate::config::SiteFields) definition.
+    ///
+    /// Left out of the JSON when empty, so a submission without a site-field
+    /// error is byte-identical to what 0.7 sent, and a 0.7 payload, which has
+    /// no such key, still parses.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub site_fields: BTreeMap<String, FieldError>,
 }
 
 impl ContactFieldErrors {
-    /// Returns `true` when every field is `None`.
+    /// Returns `true` when no field, built-in or site-defined, has an error.
     pub fn is_empty(&self) -> bool {
         self.name.is_none()
             && self.email.is_none()
             && self.subject.is_none()
             && self.message.is_none()
+            && self.site_fields.is_empty()
     }
 
     /// Serialise to a compact JSON string for embedding in a

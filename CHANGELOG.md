@@ -4,6 +4,8 @@
 
 ### Added
 
+- **`SiteFields`: fields defined by the site** (RFC 015).  Not yet rendered
+  by `ContactForm` or accepted by `submit_contact`.
 - **`ChallengeWidget::with_size(ChallengeSize)`.**  `Compact` asks for a
   smaller widget on Turnstile, hCaptcha and reCAPTCHA v2; `Flexible` is a
   full-width Turnstile widget with a 300 px minimum.  Both render on the
@@ -38,6 +40,8 @@
 ### Migration
 
 - Rust 1.88 or later is required.
+- `ContactFieldErrors` has a new field, `site_fields`; struct literals add it
+  or use `..Default::default()`.
 
 ## [0.7.0] — 2026-09-16
 

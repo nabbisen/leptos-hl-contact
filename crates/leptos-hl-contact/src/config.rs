@@ -830,6 +830,261 @@ impl ContactSuccessRedirect {
 }
 
 // ---------------------------------------------------------------------------
+// Site-defined fields (RFC 015)
+// ---------------------------------------------------------------------------
+
+/// The longest a `Line` field's value may be, in characters.
+const SITE_LINE_MAX_LEN: usize = 200;
+
+/// The fewest and the most choices a `Choice` field may list.
+const SITE_CHOICES_MIN: usize = 2;
+const SITE_CHOICES_MAX: usize = 20;
+
+/// Keys the form already uses, as the argument names of
+/// [`submit_contact`](crate::server::submit_contact): a site field named like
+/// one would collide with it.  The hyphenated wire names of the vendor tokens
+/// (`cf-turnstile-response` and the like) are already excluded by the key
+/// charset, so only their argument names are listed.
+const SITE_RESERVED_KEYS: [&str; 10] = [
+    "name",
+    "email",
+    "subject",
+    "message",
+    "website",
+    "form_token",
+    "fields",
+    "cf_turnstile_response",
+    "h_captcha_response",
+    "g_recaptcha_response",
+];
+
+/// `[a-z][a-z0-9_]{0,31}`: a site field's key, and each choice's key.
+fn is_site_key(s: &str) -> bool {
+    let mut bytes = s.bytes();
+    bytes.next().is_some_and(|b| b.is_ascii_lowercase())
+        && s.len() <= 32
+        && bytes.all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
+}
+
+/// A [`SiteFields`] definition that breaks a bound.
+///
+/// The message names the rule and the field's **key**.  It never carries a
+/// label, which is the site's display text and no part of a diagnosis.
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[error("{0}")]
+pub struct InvalidSiteFields(String);
+
+/// What kind of value a [`SiteField`] takes.
+#[derive(Clone, Debug, PartialEq)]
+pub enum SiteFieldKind {
+    /// One line of text: no CR or LF, at most 200 characters.
+    Line,
+    /// Several lines of text, at most [`MESSAGE_MAX_LEN`] characters.
+    Text,
+    /// One of a fixed list, 2 to 20 choices.
+    Choice(Vec<SiteFieldChoice>),
+}
+
+/// One option of a [`SiteFieldKind::Choice`] field.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SiteFieldChoice {
+    /// What the form submits, `[a-z][a-z0-9_]{0,31}`, unique within the field.
+    pub key: String,
+    /// What the visitor sees, and what the delivered message shows.  Not empty.
+    pub label: String,
+}
+
+/// One field the site adds to the form.
+///
+/// Build the list with [`SiteFields::new`], which checks every bound.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SiteField {
+    /// The field's name on the wire, `fields[key]`: `[a-z][a-z0-9_]{0,31}`,
+    /// unique, and not one of the names the form already uses.
+    pub key: String,
+    /// What the visitor sees.  Not empty.  It is the site's own text and is
+    /// never taken from a request.
+    pub label: String,
+    /// The kind of value.
+    pub kind: SiteFieldKind,
+    /// Whether a blank value is an error.
+    pub required: bool,
+    /// The longest value, in characters.  `Line`: `1..=200`.  `Text`:
+    /// `1..=`[`MESSAGE_MAX_LEN`].  Ignored for `Choice`.
+    pub max_len: usize,
+}
+
+/// The extra fields a site adds to the form, checked (RFC 015).
+///
+/// A value of this type is valid: [`new`](Self::new) checks every bound, so
+/// nothing that holds one needs to check again.  Pass the same definition to
+/// [`ContactForm`](crate::components::ContactForm), which renders it, and to
+/// the server, which validates against it.
+///
+/// # Bounds
+///
+/// These are **requirements, not defaults**, and are not configurable.  A
+/// form that needs more is a form builder, which this crate is not.
+///
+/// | Bound | Value |
+/// |-------|-------|
+/// | Count | at most [`MAX`](Self::MAX), **4** |
+/// | Kinds | `Line`, `Text`, `Choice`: no checkbox, radio group, number, date, file or hidden field |
+/// | Keys | `[a-z][a-z0-9_]{0,31}`, unique |
+/// | Reserved keys | `name`, `email`, `subject`, `message`, `website`, `form_token`, `fields`, `cf_turnstile_response`, `h_captcha_response`, `g_recaptcha_response` |
+/// | Labels | not empty after trimming |
+/// | `Line` | `max_len` `1..=200` |
+/// | `Text` | `max_len` `1..=`[`MESSAGE_MAX_LEN`] |
+/// | `Choice` | 2 to 20 choices; choice keys as for field keys, unique within the field; choice labels not empty; `max_len` is ignored |
+///
+/// # Example
+///
+/// ```rust
+/// use leptos_hl_contact::{SiteField, SiteFieldChoice, SiteFieldKind, SiteFields};
+///
+/// let fields = SiteFields::new(vec![
+///     SiteField {
+///         key: "organisation".into(),
+///         label: "Organisation".into(),
+///         kind: SiteFieldKind::Line,
+///         required: true,
+///         max_len: 100,
+///     },
+///     SiteField {
+///         key: "topic".into(),
+///         label: "Topic".into(),
+///         kind: SiteFieldKind::Choice(vec![
+///             SiteFieldChoice { key: "sales".into(), label: "Sales".into() },
+///             SiteFieldChoice { key: "support".into(), label: "Support".into() },
+///         ]),
+///         required: true,
+///         max_len: 0,
+///     },
+///     SiteField {
+///         key: "timing".into(),
+///         label: "When do you need this?".into(),
+///         kind: SiteFieldKind::Text,
+///         required: false,
+///         max_len: 300,
+///     },
+/// ])
+/// .expect("within the bounds");
+///
+/// assert!(fields.get("topic").is_some());
+/// ```
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SiteFields(Vec<SiteField>);
+
+impl SiteFields {
+    /// The most fields a site may define.
+    pub const MAX: usize = 4;
+
+    /// Check `fields` against every bound.
+    ///
+    /// # Errors
+    ///
+    /// [`InvalidSiteFields`], naming the rule and the field's key, for the
+    /// first bound a field breaks.
+    pub fn new(fields: Vec<SiteField>) -> Result<Self, InvalidSiteFields> {
+        let invalid = |message: String| Err(InvalidSiteFields(message));
+
+        if fields.len() > Self::MAX {
+            return invalid(format!(
+                "at most {} site fields are allowed, {} were given",
+                Self::MAX,
+                fields.len()
+            ));
+        }
+        for (at, field) in fields.iter().enumerate() {
+            let key = &field.key;
+            if !is_site_key(key) {
+                return invalid(format!(
+                    "site field key {key:?} must match [a-z][a-z0-9_]{{0,31}}"
+                ));
+            }
+            if SITE_RESERVED_KEYS.contains(&key.as_str()) {
+                return invalid(format!("site field key {key:?} is reserved by the form"));
+            }
+            if fields[..at].iter().any(|earlier| earlier.key == *key) {
+                return invalid(format!("site field key {key:?} is used twice"));
+            }
+            if field.label.trim().is_empty() {
+                return invalid(format!("site field {key:?} needs a label"));
+            }
+            match &field.kind {
+                SiteFieldKind::Line if !(1..=SITE_LINE_MAX_LEN).contains(&field.max_len) => {
+                    return invalid(format!(
+                        "site field {key:?}: max_len of a Line must be 1..={SITE_LINE_MAX_LEN}"
+                    ));
+                }
+                SiteFieldKind::Text if !(1..=MESSAGE_MAX_LEN).contains(&field.max_len) => {
+                    return invalid(format!(
+                        "site field {key:?}: max_len of a Text must be 1..={MESSAGE_MAX_LEN}"
+                    ));
+                }
+                SiteFieldKind::Choice(choices) => Self::check_choices(key, choices)?,
+                _ => {}
+            }
+        }
+        Ok(Self(fields))
+    }
+
+    fn check_choices(key: &str, choices: &[SiteFieldChoice]) -> Result<(), InvalidSiteFields> {
+        let invalid = |message: String| Err(InvalidSiteFields(message));
+
+        if !(SITE_CHOICES_MIN..=SITE_CHOICES_MAX).contains(&choices.len()) {
+            return invalid(format!(
+                "site field {key:?} needs {SITE_CHOICES_MIN} to {SITE_CHOICES_MAX} choices, {} were given",
+                choices.len()
+            ));
+        }
+        for (at, choice) in choices.iter().enumerate() {
+            let choice_key = &choice.key;
+            if !is_site_key(choice_key) {
+                return invalid(format!(
+                    "site field {key:?}: choice key {choice_key:?} must match [a-z][a-z0-9_]{{0,31}}"
+                ));
+            }
+            if choices[..at]
+                .iter()
+                .any(|earlier| earlier.key == *choice_key)
+            {
+                return invalid(format!(
+                    "site field {key:?}: choice key {choice_key:?} is used twice"
+                ));
+            }
+            if choice.label.trim().is_empty() {
+                return invalid(format!(
+                    "site field {key:?}: choice {choice_key:?} needs a label"
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// No site fields: the form is as it was before RFC 015.
+    pub fn empty() -> Self {
+        Self::default()
+    }
+
+    /// The fields, in definition order, which is the order they render and
+    /// are delivered in.
+    pub fn iter(&self) -> impl Iterator<Item = &SiteField> {
+        self.0.iter()
+    }
+
+    /// The field with this key, if the definition has one.
+    pub fn get(&self, key: &str) -> Option<&SiteField> {
+        self.0.iter().find(|field| field.key == key)
+    }
+
+    /// Whether the definition has no fields.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 

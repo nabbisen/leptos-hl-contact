@@ -86,7 +86,8 @@ pub use config::ContactErrorLabels;
 pub use config::{
     ChallengeProvider, ChallengeSize, ChallengeTheme, ChallengeWidget, ContactFormClasses,
     ContactFormLabels, ContactFormOptions, ContactServerPolicy, ContactSuccessRedirect,
-    InvalidChallengeConfig, InvalidRedirectPath, NoJsPolicy,
+    InvalidChallengeConfig, InvalidRedirectPath, InvalidSiteFields, NoJsPolicy, SiteField,
+    SiteFieldChoice, SiteFieldKind, SiteFields,
 };
 pub use delivery::{ContactDelivery, ContactDeliveryContext, DeliveryFuture};
 
@@ -96,7 +97,7 @@ pub use error::{
     ContactDeliveryError, ContactErrorCode, ContactField, ContactFieldErrors,
     ContactValidationError, FieldError, FieldErrorCode,
 };
-pub use model::{ContactInput, MESSAGE_MAX_LEN};
+pub use model::{ContactInput, MESSAGE_MAX_LEN, SiteFieldValue};
 pub use server::submit_contact;
 
 #[cfg(feature = "ssr")]
