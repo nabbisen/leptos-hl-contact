@@ -93,7 +93,7 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 
 ### M6 — Site-defined fields → 0.8.0 — **authorized 2026-09-17**
 
-Owner decisions 2026-09-17: custom fields accepted as a **bounded** feature (the bounds become requirements; "a form builder" stays a non-goal); M6 = P-43, P-44 and P-24, released as 0.8.0; P-22 later.  Origin of P-43 and P-44: the reflerd.com team's requests of 2026-09-17.  The reply to that letter is deferred to the 0.8.0 release.  RFCs 014–016 accepted 2026-09-17 (field maximum lowered to 4 by the owner; RFC 016's items weighed for profit and cost).  Order: RFC 016 handoff 01, then RFC 014 handoff 01 and RFC 015's step-0 spike.
+**Implementation complete 2026-09-22** (P-43, P-44, P-24); the 0.8.0 release-readiness task list is with the dev team.  Owner decisions 2026-09-17: custom fields accepted as a **bounded** feature (the bounds become requirements; "a form builder" stays a non-goal); M6 = P-43, P-44 and P-24, released as 0.8.0; P-22 later.  Origin of P-43 and P-44: the reflerd.com team's requests of 2026-09-17.  The reply to that letter is deferred to the 0.8.0 release.  RFCs 014–016 accepted 2026-09-17 (field maximum lowered to 4 by the owner; RFC 016's items weighed for profit and cost).  Order: RFC 016 handoff 01, then RFC 014 handoff 01 and RFC 015's step-0 spike.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
