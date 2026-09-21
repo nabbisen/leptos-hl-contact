@@ -229,7 +229,7 @@ the last column names the part they leave out.
 
 MUST rows are:
 
-- the functional rows whose Level is MUST (76);
+- the functional rows whose Level is MUST (84);
 - the non-functional rows whose wording says MUST (28).
 
 The non-functional tables have no Level column.  Their rows without MUST

@@ -14,7 +14,7 @@ Review requests go to `.git-exclude/review-request/015-site-defined-fields/`.
 | 03 | [Server and component](./03-server-and-rendering.md) | D3, D5, A1, A3, A4, A6, A7 | 02 | large |
 | 04 | [SMTP body, documentation, traceability](./04-delivery-docs-records.md) | D4, D6, D7 | 03 | medium |
 
-**State.** Handoff 01 (spike) reviewed 2026-09-17: the map shape stands; RFC amended (A1–A7).  Handoffs 02–04 written 2026-09-17.  Handoff 02 approved 2026-09-22 (`d07a69e`).
+**State.** Handoff 01 (spike) reviewed 2026-09-17: the map shape stands; RFC amended (A1–A7).  Handoffs 02–04 written 2026-09-17.  Handoffs 02 (`d07a69e`), 03 (`8d146fd`, `41a59ca`) and 04 (`90849a5`) approved 2026-09-22.  **RFC 015 is complete**; it moves to `done/` at the 0.8.0 release.
 
 ## Rules for this RFC
 

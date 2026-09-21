@@ -1,6 +1,6 @@
 # Requirements Specification
 
-> **Document status.** Draft 25, 2026-09-17, against release `0.7.0`.
+> **Document status.** Draft 26, 2026-09-22, against release `0.7.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
 > M1–M5 are released; the document as a whole awaits formal approval.
 > Once approved, this document is the requirements baseline; later changes
@@ -234,7 +234,25 @@ input the browser accepted.
 | FR-PE-03 | Success MUST be shown after a no-JS submission | MUST | Met when a success page is configured (RFC 002 handoff 03); unconfigured deployments reload, documented |
 | FR-PE-04 | Validation and delivery behaviour MUST be identical in both modes | MUST | Met |
 
-### 5.10 Observability and privacy (FR-OBS)
+### 5.10 Site-defined fields (FR-FIELD)
+
+A site may define a few extra fields beyond `name`, `email`, `subject` and
+`message` (RFC 015).  This is **not** a form builder, which stays a non-goal
+(§3): FR-FIELD-01's bounds are the line between the two, and widening any of
+them needs its own RFC.
+
+| ID | Requirement | Level | Status |
+|----|-------------|-------|--------|
+| FR-FIELD-01 | A definition MUST be bounded: at most **four** fields; only the kinds one-line text, multi-line text and a choice from a fixed list; one fixed placement (after `subject`, before `message`, in definition order); no conditional or cross-field logic; keys matching `[a-z][a-z0-9_]{0,31}`, unique, and not a name the form already uses; a one-line field at most 200 characters and a multi-line field at most `MESSAGE_MAX_LEN`; a choice of 2 to 20 options; no layout surface beyond the existing classes | MUST | Met (0.8.0, RFC 015) |
+| FR-FIELD-02 | One definition MUST drive both the rendering and the server's checks; a definition the server has and the form lacks MUST fail closed | MUST | Met (0.8.0) |
+| FR-FIELD-03 | The server MUST accept only keys the definition has: more keys than the maximum, or any undefined key, MUST refuse the whole submission, before any per-field error and after the honeypot | MUST | Met (0.8.0) |
+| FR-FIELD-04 | A choice value MUST be one of its listed keys; any other value MUST be refused | MUST | Met (0.8.0) |
+| FR-FIELD-05 | Errors MUST use the existing codes and `ContactErrorLabels`; no new visitor-facing string is introduced by this feature | MUST | Met (0.8.0) |
+| FR-FIELD-06 | Delivery MUST receive the answered values in definition order, with the label and, for a choice, the label and key, all taken from the server's definition and never from the request | MUST | Met (0.8.0) |
+| FR-FIELD-07 | A field's value is personal data: it MUST NOT appear in a log, an error or a label, and a request's keys MUST NOT be logged (a count may be) | MUST | Met (0.8.0) |
+| FR-FIELD-08 | A site field MUST behave as a built-in field for accessibility and progressive enhancement: label, `required`, ARIA state, focus order, and the same preservation behaviour with and without JavaScript | MUST | Met (0.8.0) |
+
+### 5.11 Observability and privacy (FR-OBS)
 
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
@@ -378,6 +396,7 @@ input the browser accepted.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-22 | Draft 26 | RFC 015: FR-FIELD-01 to FR-FIELD-08 added (§5.10), the bounds of site-defined fields as requirements; FR-OBS renumbered to §5.11 |
 | 2026-09-17 | Draft 25 | RFC 016: NFR-COMPAT-02 is MSRV 1.88, checked in CI; the earlier 1.85 status corrected |
 | 2026-09-17 | Draft 24 | RFC 013: NFR-PORT-02 evidence stated as 0.7.0 history (tested by an integrator), not a promise for each release |
 | 2026-09-16 | Draft 23 | 0.7.0 released: document status against `0.7.0`; M5 released |
