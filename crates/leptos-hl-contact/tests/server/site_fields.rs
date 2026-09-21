@@ -321,7 +321,7 @@ async fn a_site_without_site_fields_refuses_any_field_key() {
     }
 }
 
-/// Today's behaviour, with no site fields: a submission with no `fields[…]`
+/// FR-FIELD-06, today's behaviour, with no site fields: a submission with no `fields[…]`
 /// at all is delivered, and carries no site values.  (The rest of the suite,
 /// which defines none, is the wider evidence; this names the row.)
 #[tokio::test]
@@ -335,7 +335,7 @@ async fn no_fields_at_all_with_an_empty_definition_is_todays_behaviour() {
     assert!(h.delivery.last().unwrap().site_fields.is_empty());
 }
 
-/// FR-FIELD-05, D2: each rule reports its code under the definition's key, in
+/// FR-FIELD-04, FR-FIELD-05, D2: each rule reports its code under the definition's key, in
 /// both request forms.  Over the wire the fetch response carries it in the
 /// field errors; without JavaScript the page it lands on marks exactly that
 /// field invalid, points it at its error paragraph, and raises no banner.
@@ -435,7 +435,7 @@ async fn the_error_text_is_the_existing_label_text() {
     );
 }
 
-/// D2: site-field errors and the built-in fields' errors arrive in one
+/// FR-FIELD-05, D2: site-field errors and the built-in fields' errors arrive in one
 /// response, so the visitor fixes everything at once.
 #[tokio::test]
 async fn site_field_errors_and_built_in_errors_arrive_together() {
@@ -492,7 +492,7 @@ async fn a_honeypot_hit_is_silent_whatever_the_site_fields_hold() {
     assert_eq!([delivered.deliveries(), honeypot.deliveries()], [2, 0]);
 }
 
-/// RFC 015 A4: a malformed map fails while the request is decoded, before
+/// FR-FIELD-03, RFC 015 A4: a malformed map fails while the request is decoded, before
 /// `submit_contact` runs.  The response is neither a `contact_error:` nor a
 /// `field_errors:` payload, so the form shows its generic message, and
 /// nothing is delivered.  A repeated key, a nested one, a sequence and a bare
@@ -530,7 +530,7 @@ async fn a_malformed_map_shows_the_generic_message() {
     assert_eq!(h.deliveries(), 0);
 }
 
-/// RFC 015 D1, D3: a form and a server that disagree **fail closed**, and
+/// FR-FIELD-02, FR-FIELD-03, RFC 015 D1, D3: a form and a server that disagree **fail closed**, and
 /// loudly.  The server requires `topic`; the page did not render it.  The
 /// server reports `required` under `topic`, and the page, which has no such
 /// row, shows the generic message instead of dropping the error.

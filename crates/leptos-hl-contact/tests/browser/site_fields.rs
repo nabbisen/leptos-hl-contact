@@ -140,7 +140,7 @@ async fn the_rows_render_with_their_names_ids_and_required() {
     );
 }
 
-/// FR-FIELD-02, D5: the submitted body carries `fields[key]=value` for each
+/// FR-FIELD-08, RFC 015 D5, A1: the submitted body carries `fields[key]=value` for each
 /// site field the visitor filled, and the built-in fields as before.
 #[wasm_bindgen_test]
 async fn the_submitted_body_carries_the_site_fields() {
@@ -276,7 +276,7 @@ async fn a_failed_submission_keeps_what_was_typed_and_selected() {
     assert_eq!(form.value("name"), "Ada Lovelace");
 }
 
-/// RFC 015 D3: an error for a key this form did not render has no row to
+/// FR-FIELD-02, RFC 015 D3: an error for a key this form did not render has no row to
 /// show it in, so it shows the generic message: a mismatch between the form
 /// and the server is loud, never a dropped error.
 #[wasm_bindgen_test]
@@ -308,7 +308,7 @@ async fn an_error_for_an_unrendered_key_shows_the_generic_message() {
     );
 }
 
-/// A form with no site fields renders no site control.
+/// FR-UI-01: a form with no site fields renders no site control.
 #[wasm_bindgen_test]
 async fn a_form_without_site_fields_renders_none() {
     let form = Mounted::new(leptos_hl_contact::ContactFormOptions::default());

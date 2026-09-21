@@ -77,7 +77,7 @@ fn select<'a>(html: &'a str, id: &str) -> &'a str {
     &html[open..end]
 }
 
-/// FR-FIELD-01, RFC 015 "Compatibility": a site that defines no fields renders
+/// RFC 015 "Compatibility": a site that defines no fields renders
 /// exactly the markup 0.7 did, hydration markers included.  Both ways of
 /// having none — the default and an explicit empty definition — are pinned.
 #[test]
