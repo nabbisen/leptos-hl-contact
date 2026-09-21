@@ -286,8 +286,8 @@ fn length_is_reported_before_line_breaks() {
     );
 }
 
-/// A `Text` field takes line breaks, and is `Length` over `max_len` with
-/// `min` 0, since it is optional here.
+/// A `Text` field takes line breaks, passes at exactly `max_len` characters,
+/// and is `Length` over `max_len` with `min` 0, since it is optional here.
 #[test]
 fn a_text_field_takes_line_breaks_and_has_a_length() {
     let values = valid(validate_site_fields(
@@ -299,6 +299,18 @@ fn a_text_field_takes_line_breaks_and_has_a_length() {
         ])),
     ));
     assert_eq!(values[2].value, "line one\nline two");
+
+    // Exactly `max_len` (20) characters is accepted: "at most", not "under".
+    let at_limit = "x".repeat(20);
+    let values = valid(validate_site_fields(
+        &definition(),
+        Some(&raw(&[
+            ("topic", "sales"),
+            ("organisation", "Example Co"),
+            ("timing", &at_limit),
+        ])),
+    ));
+    assert_eq!(values[2].value, at_limit);
 
     let over = "x".repeat(21);
     let errors = invalid(validate_site_fields(
