@@ -16,14 +16,14 @@ Server binary:
 
 ```toml
 [dependencies]
-leptos-hl-contact = { version = "0.7", features = ["ssr", "smtp-lettre", "axum-helpers"] }
+leptos-hl-contact = { version = "0.8", features = ["ssr", "smtp-lettre", "axum-helpers"] }
 ```
 
 WASM binary:
 
 ```toml
 [dependencies]
-leptos-hl-contact = { version = "0.7", features = ["hydrate"] }
+leptos-hl-contact = { version = "0.8", features = ["hydrate"] }
 ```
 
 The crate has no default features.  See

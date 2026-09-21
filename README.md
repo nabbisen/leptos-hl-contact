@@ -43,10 +43,10 @@ ContactForm  →  submit_contact (server fn)  →  ContactDelivery (trait)
 
 ```toml
 # server binary
-leptos-hl-contact = { version = "0.7", features = ["ssr", "smtp-lettre", "axum-helpers"] }
+leptos-hl-contact = { version = "0.8", features = ["ssr", "smtp-lettre", "axum-helpers"] }
 
 # WASM binary
-leptos-hl-contact = { version = "0.7", features = ["hydrate"] }
+leptos-hl-contact = { version = "0.8", features = ["hydrate"] }
 ```
 
 **2. Delivery backend and Axum wiring**
@@ -98,6 +98,10 @@ Before going public, work through the
 - **Progressive enhancement.**  Plain POST without JavaScript.
 - **Accessible by default.**  Labels, ARIA, live regions, keyboard.
 - **Pluggable delivery.**  Framework-neutral trait; Axum helpers are opt-in.
+- **A few fields of your own.**  Up to four site-defined fields (one line,
+  several lines, or a choice), validated by the server against the same
+  definition the form renders from; not a form builder.  See
+  [Customization](./docs/src/guides/customization.md#site-defined-fields).
 - **Runs on Cloudflare Workers.**  The server path builds for wasm32 with no
   tokio runtime; see the [Cloudflare Workers guide](./docs/src/guides/cloudflare-workers.md).
 - **Honest security model.**  The `form-token` feature's token is an

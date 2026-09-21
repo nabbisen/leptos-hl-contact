@@ -1,6 +1,9 @@
 # Changelog
 
-## [Unreleased]
+## [0.8.0] — 2026-09-22
+
+This is the minor release in which a site can add a few fields of its own,
+with a size option for the challenge widget and a Rust 1.88 minimum.
 
 ### Added
 
@@ -37,7 +40,7 @@
   the example, building one definition for both the form and the policy, and
   what a mismatch looks like), and pages *Localization*, *Delivery Backends*
   (`ContactInput::site_fields`), *Accessibility*, the *API* reference, the
-  security layer table, and the developer pages (external design,
+  security layer table, the README, and the developer pages (external design,
   architecture, traceability).  The `ContactServerPolicy` examples now use
   `..Default::default()`.
 - **Cloudflare Workers guide, bundle size:** strip the wasm `name` section
@@ -64,6 +67,9 @@
   build the value with `ContactInput::from_raw`.
 - `ContactServerPolicy` has a new field, `site_fields`; struct literals add it
   or use `..Default::default()`.
+
+Nothing else changes for a site that defines no site fields: the form renders
+the same markup, sends the same requests, and the SMTP body is the same.
 
 ## [0.7.0] — 2026-09-16
 

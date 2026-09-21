@@ -230,7 +230,7 @@ expiry, minimum age, signature, binding.
 1. Enable the feature on the server binary:
 
    ```toml
-   leptos-hl-contact = { version = "0.7", features = ["ssr", "smtp-lettre", "axum-helpers", "form-token"] }
+   leptos-hl-contact = { version = "0.8", features = ["ssr", "smtp-lettre", "axum-helpers", "form-token"] }
    ```
 
 2. Generate a secret and keep it server-side:

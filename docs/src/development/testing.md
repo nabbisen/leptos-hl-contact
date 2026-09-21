@@ -337,7 +337,7 @@ tests from the code side.
 |---|---|---|---|---|
 | NFR-SEC-01 | **none** | **none** | **none** | the `browser` CI job builds the crate without `ssr`, where the configuration types do not exist; review |
 | NFR-SEC-02 | `security::header_injection_attempt_is_sanitised`, `model::newline_in_name_fails`, `model::newline_in_subject_fails` | `validation::each_rule_rejects_with_its_field_code` | — | — |
-| NFR-SEC-03 | **none** | **none** | — | review of `constant_time_eq` in `form_token.rs` |
+| NFR-SEC-03 | `form_token::a_signature_one_hex_digit_off_is_a_bad_signature`, `form_token::a_signature_one_byte_short_is_a_bad_signature`, `form_token::a_non_hex_signature_is_a_bad_signature`, `form_token::a_same_length_wrong_binding_is_a_binding_mismatch` (each comparison refuses a near miss) | **none** | — | that the comparisons are constant-time: review of `verify_slice` (`hmac`) and `ConstantTimeEq::ct_eq` (`subtle`) in `verify_form_token`; no test measures timing |
 | NFR-SEC-04 | `challenge::row_7_verifier_error_is_unavailable_for_every_variant`, `challenge::http::a_server_error_is_unavailable` | `form_token::a_missing_token_config_fails_closed`, `routing::a_missing_delivery_context_is_not_configured`, `challenge::challenge_decision_table_rows_1_to_7` | — | — |
 | NFR-SEC-05 | **none** | **none** | — | review, at each RFC that adds a data flow |
 | NFR-SEC-06 | **none** | **none** | — | review of the dependency tree at the release security audit |
