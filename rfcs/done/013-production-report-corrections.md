@@ -1,6 +1,6 @@
 # RFC 013 — Corrections from the first production report on Cloudflare Workers
 
-**Status.** Accepted — 2026-09-17.  The owner approved the scope (P-42) on
+**Status.** Implemented (0.8.0) — released 2026-09-22, tag `0.8.0` on commit `64e05b6`, published to crates.io.  Accepted 2026-09-17.  The owner approved the scope (P-42) on
 the architect's assessment of the reflerd.com team's letter the same day.
 Documentation, the security example and one server test; no crate code, no
 public API change, no release required.

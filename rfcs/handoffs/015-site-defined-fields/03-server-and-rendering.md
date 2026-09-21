@@ -1,6 +1,6 @@
 # Handoff 015-03 — The server and the component
 
-**RFC.** [RFC 015](../../accepted/015-site-defined-fields.md): D3, D5, and the Amendment (A1, A3, A4, A6, A7)
+**RFC.** [RFC 015](../../done/015-site-defined-fields.md): D3, D5, and the Amendment (A1, A3, A4, A6, A7)
 **Roadmap.** P-43
 **Depends on.** 02 (approved)
 

@@ -1,6 +1,6 @@
 # RFC 015 — Fields defined by the site, bounded
 
-**Status.** Accepted — 2026-09-17, with the owner's decisions below (the
+**Status.** Implemented (0.8.0) — released 2026-09-22, tag `0.8.0` on commit `64e05b6`, published to crates.io.  Accepted 2026-09-17, with the owner's decisions below (the
 maximum lowered from the proposed 8 to 4).  Milestone M6 → 0.8.0 (P-43): a
 bounded feature, with the bounds written into the requirements.  "A form
 builder" stays a non-goal.

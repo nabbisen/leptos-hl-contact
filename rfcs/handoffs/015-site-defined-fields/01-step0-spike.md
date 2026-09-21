@@ -1,6 +1,6 @@
 # Handoff 015-01 — Step 0 spike: a map argument through `server_fn`
 
-**RFC.** [RFC 015](../../accepted/015-site-defined-fields.md), Step 0
+**RFC.** [RFC 015](../../done/015-site-defined-fields.md), Step 0
 **Roadmap.** P-43
 **Output.** A report.  **Nothing is committed to `main`.**  Spike code lives
 on a local branch or in the scratchpad; paste the relevant excerpts into

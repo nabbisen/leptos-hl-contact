@@ -1,6 +1,6 @@
 # Handoff 014-01 — `ChallengeSize` and `with_size`, on both render paths
 
-**RFC.** [RFC 014](../../accepted/014-challenge-widget-size.md) D1–D4
+**RFC.** [RFC 014](../../done/014-challenge-widget-size.md) D1–D4
 **Roadmap.** P-44
 **Requirements.** FR-ABUSE-10, FR-UI-03, NFR-COMPAT-05
 

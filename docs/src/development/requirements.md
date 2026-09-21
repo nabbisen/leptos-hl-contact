@@ -1,8 +1,8 @@
 # Requirements Specification
 
-> **Document status.** Draft 26, 2026-09-22, against release `0.7.0`.
+> **Document status.** Draft 27, 2026-09-22, against release `0.8.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
-> M1–M5 are released; the document as a whole awaits formal approval.
+> M1–M6 are released; the document as a whole awaits formal approval.
 > Once approved, this document is the requirements baseline; later changes
 > go through RFCs listed in [`rfcs/README.md`](https://github.com/nabbisen/leptos-hl-contact/blob/main/rfcs/README.md).
 >
@@ -396,6 +396,7 @@ them needs its own RFC.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-22 | Draft 27 | 0.8.0 released: document status against `0.8.0`; M6 released |
 | 2026-09-22 | Draft 26 | RFC 015: FR-FIELD-01 to FR-FIELD-08 added (§5.10), the bounds of site-defined fields as requirements; FR-OBS renumbered to §5.11 |
 | 2026-09-17 | Draft 25 | RFC 016: NFR-COMPAT-02 is MSRV 1.88, checked in CI; the earlier 1.85 status corrected |
 | 2026-09-17 | Draft 24 | RFC 013: NFR-PORT-02 evidence stated as 0.7.0 history (tested by an integrator), not a promise for each release |

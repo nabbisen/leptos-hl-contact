@@ -1,6 +1,6 @@
 # RFC 014 — A size option for the challenge widget
 
-**Status.** Accepted — 2026-09-17, as proposed.  Milestone M6 → 0.8.0 (P-44).
+**Status.** Implemented (0.8.0) — released 2026-09-22, tag `0.8.0` on commit `64e05b6`, published to crates.io.  Accepted 2026-09-17, as proposed.  Milestone M6 → 0.8.0 (P-44).
 **Tracks.** Roadmap P-44.  Requirements FR-ABUSE-10, FR-UI-03, NFR-COMPAT-05.
 **Handoffs.** [`../handoffs/014-challenge-widget-size/README.md`](../handoffs/014-challenge-widget-size/README.md)
 **Touches.** `config.rs` (`ChallengeSize`, `ChallengeWidget::with_size`),

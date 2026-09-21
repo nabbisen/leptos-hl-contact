@@ -1,6 +1,6 @@
 # Handoffs — RFC 014, A size option for the challenge widget
 
-Companion to [RFC 014](../../accepted/014-challenge-widget-size.md).  Shared
+Companion to [RFC 014](../../done/014-challenge-widget-size.md).  Shared
 rules, gates and review-request format:
 [`../001-m1-green-baseline/README.md`](../001-m1-green-baseline/README.md), plus
 the release rules in
@@ -11,4 +11,4 @@ Review requests go to `.git-exclude/review-request/014-challenge-widget-size/`.
 |---|---------|------------|------------|------|
 | 01 | [`ChallengeSize` and `with_size`, on both render paths](./01-size-option.md) | D1–D4 | RFC 016 handoff 01 | small |
 
-**State.** Handoff 01 approved 2026-09-17 (`57a20b8`).  RFC 014 is complete; it moves to `done/` at the 0.8.0 release.
+**State.** Handoff 01 approved 2026-09-17 (`57a20b8`).  RFC 014 shipped in 0.8.0 (tag `0.8.0`).

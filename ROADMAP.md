@@ -87,27 +87,19 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 - [x] Security: `rustls` 0.23.45 in the lock files (RUSTSEC-2026-0285, native `challenge-http` only)
 - [x] RFC 011, RFC 012 → `rfcs/done/`
 
+### 0.8.0 — Milestone M6, site-defined fields (2026-09-22)
+
+- [x] Fields defined by the site, bounded: at most four fields (one line, several lines, or a choice), one definition for the form and the server, unknown keys refused, values delivered in order with server-side labels (P-43)
+- [x] A size option for the challenge widget: `ChallengeWidget::with_size`, on the server render and after client-side navigation (P-44)
+- [x] A true MSRV: 1.88, stated and checked in CI; GitHub Actions pinned by commit SHA with monthly Dependabot; the form token verified through `hmac`'s `verify_slice` and `subtle`; the examples checked with `--locked` in CI (P-24)
+- [x] Corrections from the first production report: the Workers guide's size, rate-limiting and testing notes, and a missing challenge secret failing closed in the security example (P-42)
+- [x] RFC 013, RFC 014, RFC 015, RFC 016 → `rfcs/done/`
+
 ---
 
 ## Current
 
-### M6 — Site-defined fields → 0.8.0 — **authorized 2026-09-17**
-
-**Implementation complete 2026-09-22** (P-43, P-44, P-24); the 0.8.0 release-readiness task list is with the dev team.  Owner decisions 2026-09-17: custom fields accepted as a **bounded** feature (the bounds become requirements; "a form builder" stays a non-goal); M6 = P-43, P-44 and P-24, released as 0.8.0; P-22 later.  Origin of P-43 and P-44: the reflerd.com team's requests of 2026-09-17.  The reply to that letter is deferred to the 0.8.0 release.  RFCs 014–016 accepted 2026-09-17 (field maximum lowered to 4 by the owner; RFC 016's items weighed for profit and cost).  Order: RFC 016 handoff 01, then RFC 014 handoff 01 and RFC 015's step-0 spike.
-
-| ID | Item | Priority | Kind | Evidence |
-|----|------|----------|------|----------|
-| P-43 | Fields defined by the site, bounded: one-line, multi-line and choice fields (at most 4, fixed placement, reserved keys), one definition for the component and the server, unknown keys and unlisted choices refused, values delivered in order with server-side labels | **High** | [RFC 015](./rfcs/accepted/015-site-defined-fields.md) (accepted) — step-0 spike approved 2026-09-17, map shape kept, RFC amended (A1–A7: `SiteField…` names, breadth cap, refusals); **done**: handoffs 02 (`d07a69e`), 03 (`8d146fd`) and 04 (`90849a5`) approved 2026-09-22; requirements FR-FIELD-01 to FR-FIELD-08 | reflerd.com request 2026-09-17 |
-| P-44 | A size option for the challenge widget: `ChallengeWidget::with_size` (`Normal` default, `Compact`, Turnstile-only `Flexible`), on both render paths | Medium | [RFC 014](./rfcs/accepted/014-challenge-widget-size.md) (accepted) — **done** (`57a20b8`, handoff 01 approved 2026-09-17) | reflerd.com request 2026-09-17: Turnstile's 300 px widget widened 360 px phones; `flexible` has a 300 px minimum, so `compact` is the fix |
-| P-24 | Dependency and CI hygiene — **finding 2026-09-17: the stated MSRV 1.85 does not build** (`leptos` 0.8.19 needs 1.88); RFC 016 proposes MSRV 1.88 with a CI job: consider `subtle` for constant-time comparison; CI on MSRV 1.85 plus stable; pin GitHub Actions by commit SHA rather than tag (the workflow uses `actions/checkout`, `dtolnay/rust-toolchain` and, since RFC 008, `taiki-e/install-action`).  `sha2` 0.10.9 beside our 0.11.0 comes only from a Leptos proc-macro and is not ours to unify; transitive advisories in Leptos's own dependencies (`paste`, `proc-macro-error2`, `anyhow`) remain as of 0.5.0 | Medium | [RFC 016](./rfcs/accepted/016-msrv-and-ci-hygiene.md) (accepted) — **done**: handoff 01 approved at r2 (`c536e12`, `1be7cd5`, `cff320e`) and handoff 02 (`87bb1ec`: CI `--locked` examples, exact version comments on pins, a release-process step for the `rust-toolchain` pin), both 2026-09-22 | 2026-09-17: `cargo +1.85 check --all-features --locked` refused; 1.88 builds |
-
-### Follow-up to 0.7.0 — **approved 2026-09-17**
-
-From the reflerd.com team's production letter of 2026-09-17.  Documentation, the security example and one server test; no crate code and no release required.
-
-| ID | Item | Priority | Kind | Evidence |
-|----|------|----------|------|----------|
-| P-42 | Corrections from the first production report on Cloudflare Workers: the guide no longer promises workerd testing before each release; strip the wasm `name` section (a production Worker went from 59.1 MiB to 3.9 MiB); verify the Rate Limiting binding after deploying, or use a rate-limiting rule; a missing challenge secret must fail closed — provide `ChallengeContext` with an empty secret, never leave it out (the `axum-with-security` example left it out, so submissions without a token passed) | **High** (the example's fail-open arm) | [RFC 013](./rfcs/accepted/013-production-report-corrections.md) (accepted 2026-09-17) — **done** (`ae6bf37`, handoff 01 approved 2026-09-17); no release required, the CHANGELOG lines ship with the next one | reflerd.com letter 2026-09-17; architect checked the strip, Cloudflare's binding page and the challenge gate |
+No milestone in progress.  The next milestone is planned jointly with the owner; candidates are listed under Unscheduled below.
 
 ---
 
@@ -218,11 +210,22 @@ Owner decisions of 2026-09-15: Cloudflare Workers is a supported server target (
 | P-40 | Pass the visitor's IP to challenge verification (`remoteip`), additive: `ChallengeRequest`, a default `verify_request`, `ChallengeClientIp` context | Medium | [RFC 011](./rfcs/done/011-cloudflare-workers.md) D5 — **done** (`3201c3a`, `Debug` redaction `d348160`; FR-ABUSE-15), released in 0.7.0 | Turnstile recommends `remoteip`; `verify` receives only the token |
 | P-39 | The honeypot without an inline style: `ContactFormClasses::honeypot` and `ContactFormOptions::honeypot_inline_style` (default `true`) | Medium | [RFC 012](./rfcs/done/012-honeypot-without-inline-style.md) — **done** (`7a45d69`), released in 0.7.0 | under a CSP without `'unsafe-inline'` the field becomes visible and a visitor who fills it is silently discarded |
 
+### M6 — Site-defined fields → 0.8.0
+
+Owner decisions of 2026-09-17: site-defined fields accepted as a **bounded** feature, with the bounds written into the requirements (FR-FIELD-01 to FR-FIELD-08) and "a form builder" still a non-goal; M6 = P-43, P-44 and P-24; P-22 later.  The maximum was lowered from the proposed 8 to 4 on the owner's challenge.  Released 2026-09-22, tag `0.8.0` on `64e05b6`.
+
+| ID | Item | Priority | Kind | Evidence |
+|----|------|----------|------|----------|
+| P-43 | Fields defined by the site, bounded: one-line, multi-line and choice fields (at most 4, fixed placement, reserved keys), one definition for the component and the server, unknown keys and unlisted choices refused, values delivered in order with server-side labels | **High** | [RFC 015](./rfcs/done/015-site-defined-fields.md) (accepted) — step-0 spike approved 2026-09-17, map shape kept, RFC amended (A1–A7: `SiteField…` names, breadth cap, refusals); **done**: handoffs 02 (`d07a69e`), 03 (`8d146fd`) and 04 (`90849a5`) approved 2026-09-22; requirements FR-FIELD-01 to FR-FIELD-08 | reflerd.com request 2026-09-17 |
+| P-44 | A size option for the challenge widget: `ChallengeWidget::with_size` (`Normal` default, `Compact`, Turnstile-only `Flexible`), on both render paths | Medium | [RFC 014](./rfcs/done/014-challenge-widget-size.md) (accepted) — **done** (`57a20b8`, handoff 01 approved 2026-09-17) | reflerd.com request 2026-09-17: Turnstile's 300 px widget widened 360 px phones; `flexible` has a 300 px minimum, so `compact` is the fix |
+| P-24 | Dependency and CI hygiene — **finding 2026-09-17: the stated MSRV 1.85 does not build** (`leptos` 0.8.19 needs 1.88); RFC 016 proposes MSRV 1.88 with a CI job: consider `subtle` for constant-time comparison; CI on MSRV 1.85 plus stable; pin GitHub Actions by commit SHA rather than tag (the workflow uses `actions/checkout`, `dtolnay/rust-toolchain` and, since RFC 008, `taiki-e/install-action`).  `sha2` 0.10.9 beside our 0.11.0 comes only from a Leptos proc-macro and is not ours to unify; transitive advisories in Leptos's own dependencies (`paste`, `proc-macro-error2`, `anyhow`) remain as of 0.5.0 | Medium | [RFC 016](./rfcs/done/016-msrv-and-ci-hygiene.md) (accepted) — **done**: handoff 01 approved at r2 (`c536e12`, `1be7cd5`, `cff320e`) and handoff 02 (`87bb1ec`: CI `--locked` examples, exact version comments on pins, a release-process step for the `rust-toolchain` pin), both 2026-09-22 | 2026-09-17: `cargo +1.85 check --all-features --locked` refused; 1.88 builds |
+| P-42 | Corrections from the first production report on Cloudflare Workers: the guide no longer promises workerd testing before each release; strip the wasm `name` section (a production Worker went from 59.1 MiB to 3.9 MiB); verify the Rate Limiting binding after deploying, or use a rate-limiting rule; a missing challenge secret must fail closed — provide `ChallengeContext` with an empty secret, never leave it out (the `axum-with-security` example left it out, so submissions without a token passed) | **High** (the example's fail-open arm) | [RFC 013](./rfcs/done/013-production-report-corrections.md) (accepted 2026-09-17) — **done** (`ae6bf37`, handoff 01 approved 2026-09-17); no release required, the CHANGELOG lines ship with the next one | reflerd.com letter 2026-09-17; architect checked the strip, Cloudflare's binding page and the challenge gate |
+
 ### Past decisions
 
 - 2026-09-12: milestones M1–M3 and their priorities approved.
 - 2026-09-12: anti-forgery token direction set in RFC 004; bundled challenge providers in scope.
-- 2026-09-12, 2026-09-13, 2026-09-16: versions 0.3.4, 0.4.0, 0.5.0, 0.6.0 and 0.7.0 approved and released.
+- 2026-09-12, 2026-09-13, 2026-09-16, 2026-09-22: versions 0.3.4, 0.4.0, 0.5.0, 0.6.0, 0.7.0 and 0.8.0 approved and released.
 - 2026-09-13: M4 theme approved, test strategy first.
 - 2026-09-13: RFC 008 — browser tests in CI on every push; mutation testing once per milestone before the release candidate, informational.
 - 2026-09-13: email — stricter syntax approved (P-34); opt-in mail-domain check approved at lower priority (P-35); confirm-before-forward recorded only.  Untranslatable messages (P-36) wait for the app team's confirmation.
@@ -237,3 +240,4 @@ Owner decisions of 2026-09-15: Cloudflare Workers is a supported server target (
 - 2026-09-17: the reflerd.com team runs 0.7.0 in production and confirmed the nonce fix on workerd.  P-42 approved (RFC 013).  P-36 closed: with every label translated nothing from the crate is untranslated; only the browser's validation pop-ups are, recorded as P-41 (proposed, low).  A short acknowledgement to the team follows once P-42 lands.
 - 2026-09-17: reflerd.com requests (custom fields, widget size) assessed.  Custom fields accepted as a bounded feature, "a form builder" still a non-goal; M6 = P-43, P-44, P-24 → 0.8.0; P-22 later; the reply waits for the 0.8.0 release.  RFCs 014, 015, 016 proposed.
 - 2026-09-17: RFCs 014, 015 and 016 accepted.  RFC 015's maximum lowered from 8 to 4: 8 had no evidence behind it, the known need is 3, and raising a bound later is additive while lowering breaks sites.  RFC 016 weighed item by item for profit and cost: all kept; Dependabot for GitHub Actions only, monthly, one grouped pull request; no CI cache action.
+- 2026-09-22: 0.8.0 released — tag `0.8.0` on `64e05b6`, published by the architect under the owner's authorisation; M6 complete.  The release candidate was approved on one condition, a test pinning the `Text` length boundary the mutation run found unpinned.

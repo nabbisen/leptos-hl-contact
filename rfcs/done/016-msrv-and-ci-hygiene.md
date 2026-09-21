@@ -1,6 +1,6 @@
 # RFC 016 — A true MSRV, pinned CI actions, and constant-time comparison from the crypto crates
 
-**Status.** Accepted — 2026-09-17, with the owner's decisions below.  Milestone
+**Status.** Implemented (0.8.0) — released 2026-09-22, tag `0.8.0` on commit `64e05b6`, published to crates.io.  Accepted 2026-09-17, with the owner's decisions below.  Milestone
 M6 → 0.8.0 (P-24).
 **Tracks.** Roadmap P-24.  Requirements NFR-COMPAT-02, NFR-SEC-* (token
 verification), NFR-TEST-*.

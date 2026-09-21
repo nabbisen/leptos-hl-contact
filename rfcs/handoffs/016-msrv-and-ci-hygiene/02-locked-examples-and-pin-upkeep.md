@@ -1,6 +1,6 @@
 # Handoff 016-02 — `--locked` examples in CI, and pins Dependabot cannot move
 
-**RFC.** [RFC 016](../../accepted/016-msrv-and-ci-hygiene.md) D2, and the review of handoff 01 r2 (notes 1 and 2)
+**RFC.** [RFC 016](../../done/016-msrv-and-ci-hygiene.md) D2, and the review of handoff 01 r2 (notes 1 and 2)
 **Roadmap.** P-24
 **Depends on.** 01 r2 (approved)
 

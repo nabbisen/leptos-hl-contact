@@ -1,6 +1,6 @@
 # Handoff 015-04 — The SMTP body, documentation, traceability
 
-**RFC.** [RFC 015](../../accepted/015-site-defined-fields.md): D4, D6, D7 (docs only; the architect writes the requirements), Amendment A4–A6
+**RFC.** [RFC 015](../../done/015-site-defined-fields.md): D4, D6, D7 (docs only; the architect writes the requirements), Amendment A4–A6
 **Roadmap.** P-43
 **Depends on.** 03 (approved)
 

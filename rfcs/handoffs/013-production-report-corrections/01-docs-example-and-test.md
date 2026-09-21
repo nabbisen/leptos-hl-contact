@@ -1,6 +1,6 @@
 # Handoff 013-01 — Documentation, the example's missing-secret arm, one server test
 
-**RFC.** [RFC 013](../../accepted/013-production-report-corrections.md) D1–D4
+**RFC.** [RFC 013](../../done/013-production-report-corrections.md) D1–D4
 **Roadmap.** P-42
 **Requirements.** FR-ABUSE-05, FR-ABUSE-12, NFR-PORT-02
 

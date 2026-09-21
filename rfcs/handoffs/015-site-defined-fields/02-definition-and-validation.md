@@ -1,6 +1,6 @@
 # Handoff 015-02 — The definition, its validation, and field validation
 
-**RFC.** [RFC 015](../../accepted/015-site-defined-fields.md): the bounds table, D1, D2, and the **Amendment** (A1, A2, A3, A5), which supersedes D1 and D2 where they differ
+**RFC.** [RFC 015](../../done/015-site-defined-fields.md): the bounds table, D1, D2, and the **Amendment** (A1, A2, A3, A5), which supersedes D1 and D2 where they differ
 **Roadmap.** P-43
 **Depends on.** 01 (spike, reviewed)
 

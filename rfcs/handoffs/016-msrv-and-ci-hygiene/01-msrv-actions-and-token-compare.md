@@ -1,6 +1,6 @@
 # Handoff 016-01 — MSRV 1.88 and its CI job, actions pinned with Dependabot, token comparison through `hmac`
 
-**RFC.** [RFC 016](../../accepted/016-msrv-and-ci-hygiene.md) D1–D3, with the owner decisions
+**RFC.** [RFC 016](../../done/016-msrv-and-ci-hygiene.md) D1–D3, with the owner decisions
 **Roadmap.** P-24
 **Requirements.** NFR-COMPAT-02, FR-SEC token verification (see `form_token.rs` rustdoc), NFR-TEST-*
 
