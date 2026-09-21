@@ -134,6 +134,16 @@ pub struct ContactInput {
     /// detection logic to bots.
     #[serde(default)]
     pub website: String,
+
+    /// The answers to the site's own fields (RFC 015), in the order the site
+    /// defined them.
+    ///
+    /// Only answered fields are present.  Labels come from the server's
+    /// definition, never from the request.  Empty when the site defines no
+    /// fields.  Like `message`, these values are personal data: never log
+    /// them.
+    #[serde(default)]
+    pub site_fields: Vec<SiteFieldValue>,
 }
 
 impl ContactInput {
@@ -157,6 +167,8 @@ impl ContactInput {
                 .filter(|s| !s.is_empty()),
             message: message.trim().to_owned(),
             website,
+            // Filled by `submit_contact` after `validate_site_fields`.
+            site_fields: Vec::new(),
         }
     }
 

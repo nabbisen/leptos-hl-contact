@@ -1,11 +1,12 @@
 // components.rs — Leptos UI components for the contact form.
 
+use leptos::either::Either;
 use leptos::prelude::*;
 
 use crate::{
     config::{
         ChallengeProvider, ChallengeWidget, ContactFormClasses, ContactFormLabels,
-        ContactFormOptions, NoJsPolicy,
+        ContactFormOptions, NoJsPolicy, SiteField, SiteFieldKind, SiteFields,
     },
     error::{ContactErrorCode, ContactField, ContactFieldErrors},
     server::SubmitContact,
@@ -21,7 +22,7 @@ use crate::form_token::FormToken;
 /// Renders an inline field-level error message with the appropriate ARIA
 /// attributes so that screen readers announce it when the field is invalid.
 ///
-/// `input_id` is the `id` of the sibling `<input>` — callers must set
+/// `input_id` is the `id` of the sibling control — callers must set
 /// `aria-describedby="{input_id}-error"` on that element.
 ///
 /// `message` is a signal so the paragraph appears and disappears in place;
@@ -29,7 +30,8 @@ use crate::form_token::FormToken;
 #[component]
 fn FieldError(
     /// The `id` of the associated input; the error element id is `{input_id}-error`.
-    input_id: &'static str,
+    #[prop(into)]
+    input_id: String,
     /// CSS class applied to the error paragraph.
     class: String,
     /// The error message to display.  When `None`, the element is not rendered.
@@ -400,6 +402,122 @@ fn challenge_markup(
 }
 
 // ---------------------------------------------------------------------------
+// Site-defined fields (RFC 015)
+// ---------------------------------------------------------------------------
+
+/// The classes a site field's row is built from: the same ones the built-in
+/// rows use, and nothing new.
+struct RowClasses {
+    field: String,
+    label: String,
+    input: String,
+    textarea: String,
+    error: String,
+}
+
+/// The `id` of a site field's control (RFC 015 A7); its error paragraph is
+/// `{id}-error`, following the pattern of the built-in rows.
+fn site_field_id(key: &str) -> String {
+    format!("contact-field-{key}")
+}
+
+/// One row for a site-defined field: a label, the control for its kind, and an
+/// error paragraph, built like the built-in rows.
+///
+/// The control's `name` is `fields[{key}]`, which `submit_contact` receives as
+/// one map.  A `Choice` starts with an empty option, `—`, so a required choice
+/// is refused by the browser until one is picked.
+fn site_field_row(
+    field: &SiteField,
+    classes: &RowClasses,
+    field_errors: Memo<ContactFieldErrors>,
+    labels: StoredValue<ContactFormLabels>,
+) -> AnyView {
+    let id = site_field_id(&field.key);
+    let name = format!("fields[{}]", field.key);
+    let required = field.required;
+    let max_len = field.max_len.to_string();
+
+    let key = field.key.clone();
+    let invalid = Signal::derive(move || field_errors.with(|f| f.site_fields.contains_key(&key)));
+    let error_id = format!("{id}-error");
+    let described_by = move || invalid.get().then(|| error_id.clone());
+
+    let key = field.key.clone();
+    let message = Signal::derive(move || {
+        field_errors.with(|f| {
+            f.site_fields.get(&key).map(|e| {
+                // Only an email field words `format` differently, and this is
+                // not one.
+                labels.with_value(|l| l.errors.field_text(ContactField::Message, e))
+            })
+        })
+    });
+
+    let control = match &field.kind {
+        SiteFieldKind::Line => view! {
+            <input
+                id=id.clone()
+                name=name
+                type="text"
+                class=classes.input.clone()
+                required=required
+                maxlength=max_len
+                aria-required=required.then_some("true")
+                aria-invalid=move || invalid.get().then_some("true")
+                aria-describedby=described_by
+            />
+        }
+        .into_any(),
+        SiteFieldKind::Text => view! {
+            <textarea
+                id=id.clone()
+                name=name
+                class=classes.textarea.clone()
+                required=required
+                maxlength=max_len
+                aria-required=required.then_some("true")
+                aria-invalid=move || invalid.get().then_some("true")
+                aria-describedby=described_by
+            />
+        }
+        .into_any(),
+        SiteFieldKind::Choice(choices) => {
+            let options: Vec<_> = choices
+                .iter()
+                .map(|choice| {
+                    view! { <option value=choice.key.clone()>{choice.label.clone()}</option> }
+                })
+                .collect();
+            view! {
+                <select
+                    id=id.clone()
+                    name=name
+                    class=classes.input.clone()
+                    required=required
+                    aria-required=required.then_some("true")
+                    aria-invalid=move || invalid.get().then_some("true")
+                    aria-describedby=described_by
+                >
+                    <option value="">"—"</option>
+                    {options}
+                </select>
+            }
+            .into_any()
+        }
+    };
+
+    view! {
+        <div class=classes.field.clone()>
+            <label for=id.clone() class=classes.label.clone()>{field.label.clone()}</label>
+            {control}
+            <FieldError input_id=id class=classes.error.clone() message=message />
+        </div>
+    }
+    .into_any()
+}
+
+// ---------------------------------------------------------------------------
 // ContactForm
 // ---------------------------------------------------------------------------
 
@@ -416,6 +534,7 @@ fn challenge_markup(
 /// | `labels`  | [`ContactFormLabels`]   | No       | English text |
 /// | `options` | [`ContactFormOptions`]  | No       | show subject |
 /// | `challenge` | [`ChallengeWidget`]   | No       | none         |
+/// | `site_fields` | [`SiteFields`]      | No       | none         |
 ///
 /// # State model
 ///
@@ -486,6 +605,17 @@ pub fn ContactForm(
     /// `challenge=Some(widget)` for a fixed one.
     #[prop(optional_no_strip)]
     challenge: Option<ChallengeWidget>,
+    /// The site's own fields (RFC 015), rendered between the subject and the
+    /// message in the order they were defined.
+    ///
+    /// Give this the same [`SiteFields`] as
+    /// [`ContactServerPolicy::site_fields`](crate::config::ContactServerPolicy::site_fields),
+    /// built once in shared code: the server accepts only the keys its
+    /// definition has, so a form and a server that disagree are refused, not
+    /// silently accepted.  An error the server reports for a key this form
+    /// did not render is shown in the generic error message.
+    #[prop(optional, into)]
+    site_fields: SiteFields,
 ) -> impl IntoView {
     let submit_action = ServerAction::<SubmitContact>::new();
     let pending = submit_action.pending();
@@ -507,6 +637,7 @@ pub fn ContactForm(
     let labels = StoredValue::new(labels);
     let options = StoredValue::new(options);
     let challenge = StoredValue::new(challenge);
+    let site_fields = StoredValue::new(site_fields);
 
     // ---- derived state -----------------------------------------------------
 
@@ -522,15 +653,25 @@ pub fn ContactForm(
     // Every error that carries no field errors shows the generic banner: a
     // recognised `contact_error:` code renders its own label, anything else
     // falls back to `labels.error`.
+    //
+    // So does a field error for a site field this form did not render: there is
+    // no row to show it in, and dropping it would hide a mismatch between the
+    // form and the server (RFC 015 D3).
     let generic_error = Memo::new(move |_| {
         value.with(|v| match v {
-            Some(Err(e))
-                if ContactFieldErrors::from_server_fn_error(e).is_none_or(|f| f.is_empty()) =>
-            {
-                Some(match ContactErrorCode::from_server_fn_error(e) {
-                    Some(code) => labels.with_value(|l| l.errors.code_text(code)),
-                    None => labels.with_value(|l| l.error.clone()),
-                })
+            Some(Err(e)) => {
+                let fields = ContactFieldErrors::from_server_fn_error(e);
+                let unrendered = fields.as_ref().is_some_and(|f| {
+                    site_fields.with_value(|d| f.site_fields.keys().any(|k| d.get(k).is_none()))
+                });
+                if unrendered || fields.is_none_or(|f| f.is_empty()) {
+                    Some(match ContactErrorCode::from_server_fn_error(e) {
+                        Some(code) => labels.with_value(|l| l.errors.code_text(code)),
+                        None => labels.with_value(|l| l.error.clone()),
+                    })
+                } else {
+                    None
+                }
             }
             _ => None,
         })
@@ -544,19 +685,32 @@ pub fn ContactForm(
     #[cfg(all(feature = "hydrate", not(feature = "ssr")))]
     if options.with_value(|o| o.focus_first_error) {
         Effect::new(move |_| {
+            // Document order: the site's fields sit between the subject and
+            // the message.  Only fields this form renders are candidates.
             let first = field_errors.with(|f| {
+                let site = site_fields.with_value(|d| {
+                    d.iter()
+                        .map(|field| {
+                            (
+                                site_field_id(&field.key),
+                                f.site_fields.contains_key(&field.key),
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                });
                 [
-                    ("contact-name", f.name.is_some()),
-                    ("contact-email", f.email.is_some()),
-                    ("contact-subject", f.subject.is_some()),
-                    ("contact-message", f.message.is_some()),
+                    ("contact-name".to_owned(), f.name.is_some()),
+                    ("contact-email".to_owned(), f.email.is_some()),
+                    ("contact-subject".to_owned(), f.subject.is_some()),
                 ]
                 .into_iter()
+                .chain(site)
+                .chain([("contact-message".to_owned(), f.message.is_some())])
                 .find(|(_, has)| *has)
                 .map(|(id, _)| id)
             });
             if let Some(id) = first
-                && let Some(el) = document().get_element_by_id(id)
+                && let Some(el) = document().get_element_by_id(&id)
             {
                 use leptos::wasm_bindgen::JsCast;
                 if let Ok(el) = el.dyn_into::<leptos::web_sys::HtmlElement>() {
@@ -689,6 +843,49 @@ pub fn ContactForm(
                 let show_subject = options.with_value(|o| o.show_subject);
                 let require_subject = options.with_value(|o| o.require_subject);
                 let max_msg_len = options.with_value(|o| o.effective_max_message_len());
+                let row_classes = RowClasses {
+                    field: fc.clone(),
+                    label: lc.clone(),
+                    input: ic.clone(),
+                    textarea: tac.clone(),
+                    error: ec.clone(),
+                };
+                let site_rows: Vec<AnyView> = site_fields.with_value(|d| {
+                    d.iter()
+                        .map(|field| site_field_row(field, &row_classes, field_errors, labels))
+                        .collect()
+                });
+                // Message.
+                let message_row = view! {
+                    <div class=fc.clone()>
+                        <label for="contact-message" class=lc.clone()>{l_message}</label>
+                        <textarea
+                            id="contact-message"
+                            name="message"
+                            class=tac
+                            required
+                            maxlength=max_msg_len.to_string()
+                            rows="6"
+                            aria-required="true"
+                            aria-invalid=move || field_errors.with(|f| f.message.is_some()).then_some("true")
+                            aria-describedby=move || field_errors.with(|f| f.message.is_some()).then_some("contact-message-error")
+                        />
+                        <FieldError
+                            input_id="contact-message"
+                            class=ec.clone()
+                            message=Signal::derive(move || field_errors.with(|f| f.message.as_ref().map(|e| labels.with_value(|l| l.errors.field_text(ContactField::Message, e)))))
+                        />
+                    </div>
+                };
+                // With no site fields the message row stands alone.  An empty
+                // list of rows would still leave a hydration marker between
+                // the subject and the message, and a site that defines no
+                // fields must render exactly what 0.7 did.
+                let message_block = if site_rows.is_empty() {
+                    Either::Left(message_row)
+                } else {
+                    Either::Right((site_rows, message_row))
+                };
                 let challenge_view = challenge.with_value(|c| {
                     c.as_ref().map(|w| {
                         challenge_markup(
@@ -770,26 +967,9 @@ pub fn ContactForm(
                             </div>
                         })}
 
-                        // Message
-                        <div class=fc.clone()>
-                            <label for="contact-message" class=lc.clone()>{l_message}</label>
-                            <textarea
-                                id="contact-message"
-                                name="message"
-                                class=tac
-                                required
-                                maxlength=max_msg_len.to_string()
-                                rows="6"
-                                aria-required="true"
-                                aria-invalid=move || field_errors.with(|f| f.message.is_some()).then_some("true")
-                                aria-describedby=move || field_errors.with(|f| f.message.is_some()).then_some("contact-message-error")
-                            />
-                            <FieldError
-                                input_id="contact-message"
-                                class=ec.clone()
-                                message=Signal::derive(move || field_errors.with(|f| f.message.as_ref().map(|e| labels.with_value(|l| l.errors.field_text(ContactField::Message, e)))))
-                            />
-                        </div>
+                        // The site's own fields, in the order it defined them,
+                        // then the message.
+                        {message_block}
 
                         // Challenge widget — only when the prop is set.
                         {challenge_view}

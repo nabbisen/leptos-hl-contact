@@ -11,6 +11,7 @@ use wasm_bindgen::{JsCast, JsValue, closure::Closure};
 /// replacing the property is enough.  The answer must be a real `Response`.
 pub struct FetchStub {
     urls: Rc<RefCell<Vec<String>>>,
+    bodies: Rc<RefCell<Vec<String>>>,
     original: JsValue,
     _closure: Closure<dyn FnMut(JsValue) -> js_sys::Promise>,
 }
@@ -36,6 +37,8 @@ impl FetchStub {
         let original = js_sys::Reflect::get(&window, &JsValue::from_str("fetch")).expect("fetch");
         let urls = Rc::new(RefCell::new(Vec::new()));
         let log = Rc::clone(&urls);
+        let bodies = Rc::new(RefCell::new(Vec::new()));
+        let body_log = Rc::clone(&bodies);
         let closure =
             Closure::<dyn FnMut(JsValue) -> js_sys::Promise>::new(move |request: JsValue| {
                 let url = request
@@ -44,6 +47,23 @@ impl FetchStub {
                     .or_else(|| request.as_string())
                     .unwrap_or_default();
                 log.borrow_mut().push(url.clone());
+                // A body is readable only asynchronously; read a clone, so the
+                // request itself is left as it was.  It is there once the page
+                // has settled.
+                if let Some(text) = request
+                    .dyn_ref::<web_sys::Request>()
+                    .and_then(|r| r.clone().ok())
+                    .and_then(|r| r.text().ok())
+                {
+                    let body_log = Rc::clone(&body_log);
+                    wasm_bindgen_futures::spawn_local(async move {
+                        if let Ok(body) = wasm_bindgen_futures::JsFuture::from(text).await {
+                            body_log
+                                .borrow_mut()
+                                .push(body.as_string().unwrap_or_default());
+                        }
+                    });
+                }
                 let Some((status, body)) = answer(&url) else {
                     return js_sys::Promise::new(&mut |_resolve, _reject| {});
                 };
@@ -57,6 +77,7 @@ impl FetchStub {
             .expect("replace fetch");
         Self {
             urls,
+            bodies,
             original,
             _closure: closure,
         }
@@ -85,6 +106,16 @@ impl FetchStub {
 
     pub fn urls(&self) -> Vec<String> {
         self.urls.borrow().clone()
+    }
+
+    /// The bodies of the requests made so far, once the page has settled, with
+    /// the brackets of a `fields[key]` name un-escaped so a test can read it.
+    pub fn bodies(&self) -> Vec<String> {
+        self.bodies
+            .borrow()
+            .iter()
+            .map(|body| body.replace("%5B", "[").replace("%5D", "]"))
+            .collect()
     }
 }
 

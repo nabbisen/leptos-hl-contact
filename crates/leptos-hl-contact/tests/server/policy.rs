@@ -9,6 +9,7 @@ fn policy(require_subject: bool, max_message_len: usize) -> Setup {
         policy: Some(ContactServerPolicy {
             require_subject,
             max_message_len,
+            ..Default::default()
         }),
         ..Setup::default()
     }

@@ -11,4 +11,5 @@ mod support;
 mod challenge;
 mod focus;
 mod pending;
+mod site_fields;
 mod token;

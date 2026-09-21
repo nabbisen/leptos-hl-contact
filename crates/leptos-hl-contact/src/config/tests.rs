@@ -137,6 +137,7 @@ fn policy_check_reports_both_errors_at_once() {
     let p = ContactServerPolicy {
         require_subject: true,
         max_message_len: 10,
+        ..Default::default()
     };
     let input = ContactInput::from_raw(
         "Alice".into(),

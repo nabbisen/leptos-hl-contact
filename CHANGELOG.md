@@ -4,8 +4,16 @@
 
 ### Added
 
-- **`SiteFields`: fields defined by the site** (RFC 015).  Not yet rendered
-  by `ContactForm` or accepted by `submit_contact`.
+- **Fields defined by the site** (RFC 015).  A site defines up to four
+  fields of its own, each a single line, several lines, or a choice from a
+  fixed list, with `SiteFields`.  Give the one definition to both
+  `ContactForm`'s `site_fields` prop and `ContactServerPolicy::site_fields`:
+  the form renders them between the subject and the message, the server
+  validates them with the same codes and labels as the built-in fields, and
+  `ContactInput::site_fields` carries the answers to delivery.  The server
+  accepts only the keys the definition has, and refuses the whole
+  submission, as `rejected`, when one is unknown.  A site that defines none
+  renders the same markup as 0.7 and sends the same requests.
 - **`ChallengeWidget::with_size(ChallengeSize)`.**  `Compact` asks for a
   smaller widget on Turnstile, hCaptcha and reCAPTCHA v2; `Flexible` is a
   full-width Turnstile widget with a 300 px minimum.  Both render on the
@@ -41,6 +49,10 @@
 
 - Rust 1.88 or later is required.
 - `ContactFieldErrors` has a new field, `site_fields`; struct literals add it
+  or use `..Default::default()`.
+- `ContactInput` has a new field, `site_fields`; struct literals add it or
+  build the value with `ContactInput::from_raw`.
+- `ContactServerPolicy` has a new field, `site_fields`; struct literals add it
   or use `..Default::default()`.
 
 ## [0.7.0] — 2026-09-16

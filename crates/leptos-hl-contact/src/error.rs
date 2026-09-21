@@ -115,7 +115,8 @@ pub enum ContactErrorCode {
     ChallengeFailed,
     /// The challenge vendor could not be asked.  Fail-closed.
     ChallengeUnavailable,
-    /// A `ContactFilter` refused the submission.
+    /// The submission was refused: a `ContactFilter` refused it, or it carried
+    /// a field the site did not define (RFC 015).
     Rejected,
 }
 

@@ -103,8 +103,9 @@ pub struct ContactErrorLabels {
     pub challenge_unavailable: String,
     /// Shown inside `<noscript>` when the challenge needs JavaScript.
     pub challenge_requires_js: String,
-    /// A `ContactFilter` refused the submission.  Deliberately generic, and
-    /// distinct from every token and challenge label.
+    /// A `ContactFilter` refused the submission, or it carried a field the
+    /// site did not define.  Deliberately generic, and distinct from every
+    /// token and challenge label.
     pub rejected: String,
 }
 
@@ -684,6 +685,7 @@ impl ContactFormOptions {
 /// provide_context(ContactServerPolicy {
 ///     require_subject: true,
 ///     max_message_len: 2000,
+///     ..Default::default()
 /// });
 /// ```
 #[derive(Clone, Debug)]
@@ -699,6 +701,14 @@ pub struct ContactServerPolicy {
     /// tighten the validator's limit, never raise it.  Defaults to
     /// [`MESSAGE_MAX_LEN`].
     pub max_message_len: usize,
+
+    /// The fields this site defines beyond the built-in ones (RFC 015).
+    ///
+    /// The server accepts exactly these keys, and validates each value against
+    /// its definition.  Build the definition once and give the same value to
+    /// [`ContactForm`](crate::ContactForm)'s `site_fields` prop, so the form
+    /// and the server cannot disagree.  Defaults to none.
+    pub site_fields: SiteFields,
 }
 
 impl Default for ContactServerPolicy {
@@ -706,6 +716,7 @@ impl Default for ContactServerPolicy {
         Self {
             require_subject: false,
             max_message_len: MESSAGE_MAX_LEN,
+            site_fields: SiteFields::empty(),
         }
     }
 }

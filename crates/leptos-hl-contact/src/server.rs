@@ -8,14 +8,17 @@
     reason = "submit_contact's arguments are its form fields"
 )]
 
+use std::collections::BTreeMap;
+
 use leptos::prelude::*;
 use leptos::server_fn::error::ServerFnError;
 
 #[cfg(feature = "ssr")]
 use crate::{
+    config::{ContactServerPolicy, SiteFields},
     delivery::ContactDeliveryContext,
     error::{ContactErrorCode, ContactValidationError},
-    model::ContactInput,
+    model::{ContactInput, SiteFieldsOutcome, validate_site_fields},
 };
 
 /// Awaits an extension future — a delivery, a challenge verification, a
@@ -56,6 +59,22 @@ fn sendable<F: std::future::Future>(future: F) -> send_wrapper::SendWrapper<F> {
 /// | `cf-turnstile-response` | — | Turnstile's token field |
 /// | `h-captcha-response` | — | hCaptcha's token field |
 /// | `g-recaptcha-response` | — | reCAPTCHA's token field |
+/// | `fields` | — | The site's own fields, as `fields[key]=value` (RFC 015) |
+///
+/// # Site-defined fields
+///
+/// `fields` is a map from a field's key to its value.  It is checked against
+/// [`ContactServerPolicy::site_fields`](crate::config::ContactServerPolicy::site_fields)
+/// with the built-in fields, after the honeypot and the form token and before
+/// the rest of the server policy, the challenge, the filter and delivery.
+///
+/// A map with more keys than [`SiteFields::MAX`](crate::config::SiteFields::MAX),
+/// or with a key the definition lacks, refuses the **whole submission** as
+/// `rejected`; the log carries a count and never a key.  Otherwise each
+/// defined field is validated, and its errors are returned together with the
+/// built-in fields' errors.  A malformed map (a repeated key, nesting) fails
+/// while the request is decoded, before this function runs, and the visitor
+/// sees the generic message.
 ///
 /// # Challenge
 ///
@@ -134,6 +153,12 @@ pub async fn submit_contact(
     #[server(rename = "g-recaptcha-response")]
     #[server(default)]
     g_recaptcha_response: Option<String>,
+    /// The site's own fields (RFC 015), keyed by the site's field keys.  On
+    /// the wire it is `fields[key]=value`.  `Option` and `default`, so a form
+    /// with no site fields sends none and still deserializes.
+    #[server(rename = "fields")]
+    #[server(default)]
+    site_fields: Option<BTreeMap<String, String>>,
 ) -> Result<(), ServerFnError> {
     #[cfg(feature = "ssr")]
     {
@@ -180,7 +205,7 @@ pub async fn submit_contact(
         let _ = &form_token;
 
         // 2. Normalise raw input.
-        let input = ContactInput::from_raw(name, email, subject, message, website);
+        let mut input = ContactInput::from_raw(name, email, subject, message, website);
 
         // Read now: the honeypot below can already end the submission, and
         // every successful ending must apply it (see `succeed`).
@@ -200,27 +225,41 @@ pub async fn submit_contact(
             }
         }
 
-        // 4. Server-side field validation.
-        let field_errors = input.validate_fields();
+        // 4. Server-side field validation, the site's own fields with the
+        // built-in ones.  A key the site did not define refuses the whole
+        // submission, ahead of every field error, so a crafted request learns
+        // nothing about the definition (RFC 015 D3, A3).  The refusal is
+        // logged by `validate_site_fields`, as a count.
+        let policy = use_context::<ContactServerPolicy>();
+        let no_site_fields = SiteFields::empty();
+        let definition = policy.as_ref().map_or(&no_site_fields, |p| &p.site_fields);
+        let mut field_errors = input.validate_fields();
+        match validate_site_fields(definition, site_fields.as_ref()) {
+            SiteFieldsOutcome::Refused => {
+                return Err(ServerFnError::Args(
+                    ContactErrorCode::Rejected.into_server_fn_message(),
+                ));
+            }
+            SiteFieldsOutcome::Invalid(errors) => field_errors.site_fields = errors,
+            SiteFieldsOutcome::Valid(values) => input.site_fields = values,
+        }
         if !field_errors.is_empty() {
             tracing::debug!(
                 name_err = field_errors.name.is_some(),
                 email_err = field_errors.email.is_some(),
                 subject_err = field_errors.subject.is_some(),
                 message_err = field_errors.message.is_some(),
+                site_field_errs = field_errors.site_fields.len(),
                 "contact form validation failed"
             );
             return Err(ServerFnError::Args(field_errors.into_server_fn_message()));
         }
 
         // 5. Server-side policy (require_subject, max_message_len).
-        {
-            use crate::config::ContactServerPolicy;
-            if let Some(policy) = use_context::<ContactServerPolicy>() {
-                let errs = policy.check(&input);
-                if !errs.is_empty() {
-                    return Err(ServerFnError::Args(errs.into_server_fn_message()));
-                }
+        if let Some(policy) = &policy {
+            let errs = policy.check(&input);
+            if !errs.is_empty() {
+                return Err(ServerFnError::Args(errs.into_server_fn_message()));
             }
         }
 

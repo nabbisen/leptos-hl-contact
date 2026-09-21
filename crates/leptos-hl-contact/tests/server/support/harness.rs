@@ -15,7 +15,7 @@ use leptos::prelude::*;
 use leptos_axum::{LeptosRoutes, generate_route_list};
 use leptos_hl_contact::{
     ChallengeContext, ContactDeliveryContext, ContactFilterContext, ContactForm,
-    ContactServerPolicy, ContactSuccessRedirect,
+    ContactServerPolicy, ContactSuccessRedirect, SiteFields,
     axum_helpers::{
         FormTokenCookie, provide_form_token_binding, provide_form_token_issuer,
         provide_form_token_with_cookie,
@@ -66,6 +66,10 @@ pub struct Setup {
     /// Provide `ChallengeClientIp` with this address.
     pub client_ip: Option<std::net::IpAddr>,
     pub filter: Option<ContactFilterContext>,
+    /// The site fields the rendered form has.  `None`: those of the policy,
+    /// as a site that builds one definition and shares it does.  `Some`: these,
+    /// which is how a test makes the form and the server disagree.
+    pub form_site_fields: Option<SiteFields>,
 }
 
 impl Default for Setup {
@@ -81,8 +85,20 @@ impl Default for Setup {
             challenge: None,
             client_ip: None,
             filter: None,
+            form_site_fields: None,
         }
     }
+}
+
+/// The site fields the page's `ContactForm` is given (RFC 015).
+#[derive(Clone)]
+struct FormSiteFields(SiteFields);
+
+fn contact_page() -> impl IntoView {
+    let site_fields = use_context::<FormSiteFields>()
+        .map(|f| f.0)
+        .unwrap_or_default();
+    view! { <ContactForm site_fields=site_fields /> }
 }
 
 #[component]
@@ -90,7 +106,7 @@ fn App() -> impl IntoView {
     view! {
         <LeptosRouter>
             <Routes fallback=|| "not found">
-                <Route path=path!("/contact") view=|| view! { <ContactForm /> } />
+                <Route path=path!("/contact") view=contact_page />
                 <Route path=path!("/thanks") view=|| view! { <h1>"Thank you"</h1> } />
             </Routes>
         </LeptosRouter>
@@ -138,6 +154,14 @@ impl Harness {
             .expect("site-relative path")
         });
 
+        let form_site_fields = FormSiteFields(
+            setup
+                .form_site_fields
+                .clone()
+                .or_else(|| setup.policy.as_ref().map(|p| p.site_fields.clone()))
+                .unwrap_or_default(),
+        );
+
         // The one context closure (RFC 007).
         let context = {
             let delivery = Arc::clone(&delivery);
@@ -153,6 +177,7 @@ impl Harness {
             let client_ip = setup.client_ip;
             let filter = setup.filter;
             move || {
+                provide_context(form_site_fields.clone());
                 if deliver {
                     let delivery: ContactDeliveryContext = if let Some(context) = &delivery_context
                     {

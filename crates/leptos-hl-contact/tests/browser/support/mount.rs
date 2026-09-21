@@ -5,7 +5,9 @@ use leptos::{
     prelude::*,
     tachys::view::any_view::AnyViewState,
 };
-use leptos_hl_contact::{ChallengeWidget, ContactForm, ContactFormLabels, ContactFormOptions};
+use leptos_hl_contact::{
+    ChallengeWidget, ContactForm, ContactFormLabels, ContactFormOptions, SiteFields,
+};
 use wasm_bindgen::{JsCast, JsValue};
 
 pub fn document() -> web_sys::Document {
@@ -31,6 +33,10 @@ impl Mounted {
 
     pub fn with_labels(labels: ContactFormLabels) -> Self {
         Self::mount(move || view! { <ContactForm labels=labels /> }.into_any())
+    }
+
+    pub fn with_site_fields(fields: SiteFields) -> Self {
+        Self::mount(move || view! { <ContactForm site_fields=fields /> }.into_any())
     }
 
     pub fn with_challenge(widget: ChallengeWidget) -> Self {

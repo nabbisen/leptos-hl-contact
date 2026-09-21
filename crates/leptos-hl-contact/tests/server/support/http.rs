@@ -37,6 +37,13 @@ impl Fields {
         self
     }
 
+    /// Adds a pair without replacing one with the same key, so a test can send
+    /// a key twice.
+    pub fn push(mut self, key: &str, value: &str) -> Self {
+        self.pairs.push((key.to_owned(), value.to_owned()));
+        self
+    }
+
     pub fn without(mut self, key: &str) -> Self {
         self.pairs.retain(|(k, _)| k != key);
         self

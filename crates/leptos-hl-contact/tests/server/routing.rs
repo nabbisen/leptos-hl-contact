@@ -15,6 +15,7 @@ async fn context_in_the_one_closure_reaches_submit_contact() {
         policy: Some(ContactServerPolicy {
             require_subject: true,
             max_message_len: 4000,
+            ..Default::default()
         }),
         ..Setup::default()
     });

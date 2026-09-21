@@ -29,6 +29,7 @@ fn count(haystack: &str, needle: &str) -> usize {
 }
 
 mod attributes;
+mod site_fields;
 
 #[test]
 fn form_renders_all_ids_once() {
