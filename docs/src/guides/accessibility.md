@@ -12,8 +12,9 @@ guarantees:
 | Success | `role="status"` + `aria-live="polite"` |
 | Generic error | `role="alert"` + `aria-live="assertive"` |
 | Honeypot | Wrapper is `aria-hidden="true"`; the input has `tabindex="-1"` and sits off-screen |
-| Focus | After a failed submission focus moves to the first invalid input, so a keyboard or screen-reader user lands on the field to correct.  Set `focus_first_error: false` in [`ContactFormOptions`](./customization.md#contactformoptions) to disable it |
-| Keyboard | Native `<input>`, `<textarea>`, `<button>` only; focus outlines untouched |
+| Focus | After a failed submission focus moves to the first invalid input, in document order, so a keyboard or screen-reader user lands on the field to correct.  Set `focus_first_error: false` in [`ContactFormOptions`](./customization.md#contactformoptions) to disable it |
+| [Site-defined fields](./customization.md#site-defined-fields) | The same guarantees as the built-in fields: a `<label for>`, `required` with `aria-required="true"` when required, and `aria-invalid` and `aria-describedby` with an error paragraph on error.  Focus counts them in document order, between the subject and the message.  A choice is a native `<select>`, whose first option is an empty "—" |
+| Keyboard | Native `<input>`, `<textarea>`, `<select>`, `<button>` only; focus outlines untouched |
 | Colour | None shipped; state is always conveyed in text |
 
 Example of the rendered error state:

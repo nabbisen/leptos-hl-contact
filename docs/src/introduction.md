@@ -40,7 +40,8 @@ Three cooperating layers, shipped together:
 
 - Submission storage or an admin panel
 - Attachments or file upload
-- A form builder
+- A form builder (a few bounded site-defined fields are supported; see
+  [Customization](./guides/customization.md#site-defined-fields))
 
 These are out of scope to keep the crate small and its security surface
 minimal.

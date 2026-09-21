@@ -117,6 +117,26 @@ let labels = ContactFormLabels {
 With those labels no English reaches the visitor on any path, including a
 submission without JavaScript.
 
+## Site-defined fields
+
+The labels of a [site-defined field](./customization.md#site-defined-fields)
+and of each choice are written in the definition, in the language of your
+page: the crate translates none of them.  Build the definition per language,
+or from your own translation table, before passing it to `ContactForm` and
+`ContactServerPolicy`.  The empty first option of a choice, "—", is a symbol,
+not a word.
+
+Errors reuse the labels above and add none:
+
+| Case | Label |
+|------|-------|
+| Required and blank | `errors.required` |
+| Over `max_len` | `errors.length`, with `{min}` and `{max}` |
+| A line break in a `Line` | `errors.line_breaks` |
+| A choice that is not listed | `errors.format` |
+| A key the definition lacks, or too many keys | `errors.rejected`, for the whole form |
+| An error for a field the form did not render | `error`, the generic message |
+
 ## Unicode input
 
 Names, subjects, and messages may contain any Unicode text.  Length limits

@@ -12,7 +12,8 @@ examples.
 `ContactValidationError`, `ContactInput`, `MESSAGE_MAX_LEN`,
 `ContactSuccessRedirect`, `InvalidRedirectPath`, `ContactErrorCode`,
 `ContactErrorLabels`, `ContactField`, `FieldError`, `FieldErrorCode`,
-`submit_contact`, `ChallengeProvider`, `ChallengeTheme`, `ChallengeSize`,
+`SiteFields`, `SiteField`, `SiteFieldKind`, `SiteFieldChoice`,
+`InvalidSiteFields`, `SiteFieldValue`, `submit_contact`, `ChallengeProvider`, `ChallengeTheme`, `ChallengeSize`,
 `ChallengeWidget`, `InvalidChallengeConfig`, `NoJsPolicy`; with `ssr` `ChallengeClientIp`,
 `ChallengeContext`, `ChallengeError`, `ChallengeOutcome`, `ChallengePolicy`,
 `ChallengeRequest`, `ChallengeVerifier`, `VerifyFuture`, `ContactFilter`,
@@ -34,6 +35,7 @@ pub fn ContactForm(
     #[prop(optional, into)] labels:  ContactFormLabels,
     #[prop(optional, into)] options: ContactFormOptions,
     #[prop(optional_no_strip)] challenge: Option<ChallengeWidget>,
+    #[prop(optional, into)] site_fields: SiteFields,
 ) -> impl IntoView
 ```
 
@@ -41,7 +43,10 @@ Renders the form as an `<ActionForm/>` bound to `submit_contact`.  Reads
 `FormToken` from context when the `form-token` feature is on.  With
 `challenge`, renders the vendor widget after the message field; without it,
 nothing is loaded from any vendor.  `challenge` takes the `Option` itself:
-`challenge=Some(widget)`, or an `Option` built from configuration.  Element ids and
+`challenge=Some(widget)`, or an `Option` built from configuration.  With
+`site_fields`, renders the site's own fields between the subject and the
+message, and shows an error for a field it did not render as the generic
+message; without them, the markup is unchanged.  Element ids and
 attributes are listed in the
 [DOM contract](../development/external-design.md#412-dom-contract).
 
@@ -64,14 +69,19 @@ pub async fn submit_contact(
     h_captcha_response: Option<String>,
     #[server(rename = "g-recaptcha-response")] #[server(default)]
     g_recaptcha_response: Option<String>,
+    #[server(rename = "fields")] #[server(default)]
+    site_fields: Option<BTreeMap<String, String>>,   // fields[key]=value
 ) -> Result<(), ServerFnError>
 ```
 
 The three challenge arguments use the field names the vendor widgets inject;
-the first non-blank one is the challenge token.
+the first non-blank one is the challenge token.  `fields` is the site's own
+fields as one map, `fields[key]=value` on the wire; a submission with none
+omits it.
 
 `POST /api/submit_contact`, form-encoded.  Order of work: token check
 (`form-token`) → `ContactInput::from_raw` → `check_honeypot` → `validate_fields`
+and `validate_site_fields`, whose field errors are returned together
 → `ContactServerPolicy` → challenge (`ChallengeContext`) → filter
 (`ContactFilterContext`) → `ContactDelivery::deliver` →
 `ContactSuccessRedirect` when one is in context.
@@ -87,6 +97,8 @@ the first non-blank one is the challenge token.
 | Challenge failed (not passed, score, action) | `ServerFnError::Args("contact_error:challenge_failed")` |
 | Challenge verifier error | `ServerFnError::ServerError("contact_error:challenge_unavailable")` |
 | Filter returned `Reject` | `ServerFnError::Args("contact_error:rejected")` |
+| More than four site-field keys, or a key the definition lacks | `ServerFnError::Args("contact_error:rejected")`; the log has a count, never a key |
+| A `fields` map that does not decode (a repeated or nested key) | fails before `submit_contact` runs; not a `contact_error:` or `field_errors:` payload, so the form shows `labels.error` |
 | Filter returned `SilentDrop` | `Ok(())` without delivery; the success page applied exactly as for a delivered message |
 | Delivery failed | `ServerFnError::ServerError("contact_error:delivery_failed")` |
 | Delivery timed out (`ContactDeliveryError::Timeout`) | `ServerFnError::ServerError("contact_error:delivery_timeout")` |
@@ -161,7 +173,7 @@ pub struct ContactFormOptions {
     pub token_refresh_secs: Option<u64>,
     pub honeypot_inline_style: bool,   // default true; false renders no style attribute on the honeypot wrapper
 }
-pub struct ContactServerPolicy { pub require_subject: bool, pub max_message_len: usize }
+pub struct ContactServerPolicy { pub require_subject: bool, pub max_message_len: usize, pub site_fields: SiteFields }
 
 impl ContactFormOptions {
     pub fn effective_max_message_len(&self) -> usize;   // clamped to MESSAGE_MAX_LEN
@@ -184,7 +196,7 @@ impl ContactSuccessRedirect {
 ```
 
 Defaults: classes empty; labels English; options
-`true / false / MESSAGE_MAX_LEN / true`; policy `false / MESSAGE_MAX_LEN`.  Meaning
+`true / false / MESSAGE_MAX_LEN / true`; policy `false / MESSAGE_MAX_LEN /` no site fields.  Meaning
 of each field: [Customization](../guides/customization.md).
 
 `ContactSuccessRedirect` is server-side configuration and is not
@@ -217,6 +229,7 @@ the limit has exactly one definition.
 pub struct ContactInput {
     pub name: String, pub email: String, pub subject: Option<String>,
     pub message: String, pub website: String,
+    pub site_fields: Vec<SiteFieldValue>,   // #[serde(default)]; empty from `from_raw`
 }
 
 impl ContactInput {
@@ -235,6 +248,37 @@ impl ContactInput {
 | `subject` | absent, or 1–120 characters, no `\r` `\n` |
 | `message` | 1 to `MESSAGE_MAX_LEN` characters |
 | `website` | empty |
+| `site_fields` | filled by `submit_contact` after validation: the answered fields, in definition order, with labels from the server's definition |
+
+### Site-defined fields (RFC 015)
+
+```rust,ignore
+// config — the definition; every bound is checked at construction
+pub struct SiteFields(/* private */);                     // Clone, Debug, Default, PartialEq
+impl SiteFields {
+    pub const MAX: usize = 4;
+    pub fn new(fields: Vec<SiteField>) -> Result<Self, InvalidSiteFields>;
+    pub fn empty() -> Self;                               // also Default
+    pub fn iter(&self) -> impl Iterator<Item = &SiteField>;
+    pub fn get(&self, key: &str) -> Option<&SiteField>;
+    pub fn is_empty(&self) -> bool;
+}
+pub struct SiteField { pub key: String, pub label: String, pub kind: SiteFieldKind, pub required: bool, pub max_len: usize }
+pub enum SiteFieldKind { Line, Text, Choice(Vec<SiteFieldChoice>) }
+pub struct SiteFieldChoice { pub key: String, pub label: String }
+pub struct InvalidSiteFields(/* private */);              // Error; names the rule and the key, never a label
+
+// model — what delivery receives, and the validation `submit_contact` runs
+pub struct SiteFieldValue { pub key: String, pub label: String, pub value: String, pub value_label: Option<String> }
+pub enum SiteFieldsOutcome { Valid(Vec<SiteFieldValue>), Invalid(BTreeMap<String, FieldError>), Refused }
+pub fn validate_site_fields(def: &SiteFields, raw: Option<&BTreeMap<String, String>>) -> SiteFieldsOutcome;
+```
+
+The bounds, and how a site uses them:
+[Customization](../guides/customization.md#site-defined-fields).  For a
+`Choice`, `value` is the choice's key and `value_label` its label; `Refused` is
+more than `SiteFields::MAX` keys or a key the definition lacks, logged as a
+count.
 
 ## `error`
 
@@ -250,9 +294,12 @@ pub enum FieldErrorCode { Required, Length { min: usize, max: usize }, Format, L
 #[serde(untagged)]
 pub enum FieldError { Code(FieldErrorCode), Text(String) }
 
-pub struct ContactFieldErrors { pub name, email, subject, message: Option<FieldError> }
+pub struct ContactFieldErrors {
+    pub name, email, subject, message: Option<FieldError>,
+    pub site_fields: BTreeMap<String, FieldError>,   // keyed by the definition's key
+}
 impl ContactFieldErrors {
-    pub fn is_empty(&self) -> bool;
+    pub fn is_empty(&self) -> bool;                    // includes site_fields
     pub fn to_json(&self) -> String;
     pub fn get(&self, field: ContactField) -> Option<&FieldError>;
     pub fn from_error_str(s: &str) -> Option<Self>;    // finds the sentinel anywhere
@@ -276,8 +323,10 @@ pub enum ContactDeliveryError { Configuration(String), Transport(String), Messag
 pub enum ContactValidationError { InvalidInput(String), HoneypotTriggered }
 ```
 
-The server sends codes, never visitor-facing text; the component renders
-them through `ContactErrorLabels`.  `FieldError` is `serde(untagged)`, so a
+`site_fields` is omitted from the JSON when empty and defaults when absent, so a
+submission with no site-field error is serialised exactly as in 0.7, and a 0.7
+payload still parses.  The server sends codes, never visitor-facing text; the
+component renders them through `ContactErrorLabels`.  `FieldError` is `serde(untagged)`, so a
 `0.3` server's pre-rendered sentences still parse as `Text` and are shown
 unchanged.
 
@@ -290,6 +339,7 @@ Wire examples:
 
 ```text
 field_errors:{"email":{"kind":"format"},"name":{"kind":"length","min":1,"max":80}}
+field_errors:{"site_fields":{"topic":{"kind":"required"}}}
 contact_error:token_invalid
 contact_error:delivery_failed
 contact_error:delivery_timeout

@@ -1,13 +1,14 @@
 # Customization
 
-`ContactForm` takes three optional props.  A fourth type,
-`ContactServerPolicy`, is provided through Leptos context on the server.
+`ContactForm` takes optional props, and `ContactServerPolicy` is provided
+through Leptos context on the server.  The types this page covers:
 
 | Type | Controls | Where |
 |------|----------|-------|
 | `ContactFormClasses` | CSS classes on each element | component prop |
 | `ContactFormLabels` | Every visible string | component prop |
 | `ContactFormOptions` | Which fields show, UI limits | component prop |
+| `SiteFields` | Up to four fields of your own | component prop **and** `ContactServerPolicy` |
 | `ContactServerPolicy` | Server-enforced limits | Leptos context |
 
 ## ContactFormClasses
@@ -144,6 +145,7 @@ use leptos_hl_contact::ContactServerPolicy;
 leptos::context::provide_context(ContactServerPolicy {
     require_subject: true,   // reject a missing or blank subject
     max_message_len: 2000,   // reject longer messages; clamped to 4 000
+    ..Default::default()     // site_fields: none
 });
 ```
 
@@ -151,6 +153,7 @@ leptos::context::provide_context(ContactServerPolicy {
 |-------|---------|--------|
 | `require_subject` | `false` | Reject submissions without a subject |
 | `max_message_len` | `4000` | Reject messages longer than this, in characters; clamped to 4 000 |
+| `site_fields` | none | The [site-defined fields](#site-defined-fields) the server accepts |
 
 Rule of thumb: options for experience, policy for enforcement.  Setting
 `require_subject` in options alone lets a direct POST skip the subject; set
@@ -166,3 +169,109 @@ is the hard ceiling: a larger `max_message_len` is clamped to it rather than
 raising it.  `ContactServerPolicy::effective_max_message_len()` returns the
 limit in force, and `ContactServerPolicy::check()` applies the whole policy to
 a normalised input.
+
+## Site-defined fields
+
+A site can add a few short fields of its own — an organisation, a topic, a
+preferred time — between the subject and the message.  This is **not a form
+builder**: the bounds below are fixed, and the server accepts exactly what you
+define and nothing else.
+
+```rust,ignore
+use leptos_hl_contact::{
+    ContactForm, ContactServerPolicy, SiteField, SiteFieldChoice, SiteFieldKind, SiteFields,
+};
+
+// Build the definition once, in code both sides can reach.
+pub fn site_fields() -> SiteFields {
+    SiteFields::new(vec![
+        SiteField {
+            key: "organisation".into(),
+            label: "Organisation".into(),
+            kind: SiteFieldKind::Line,          // one line
+            required: true,
+            max_len: 120,
+        },
+        SiteField {
+            key: "topic".into(),
+            label: "Topic".into(),
+            kind: SiteFieldKind::Choice(vec![   // one of a fixed list
+                SiteFieldChoice { key: "sales".into(), label: "Sales".into() },
+                SiteFieldChoice { key: "support".into(), label: "Support".into() },
+            ]),
+            required: true,
+            max_len: 0,                         // ignored for a choice
+        },
+        SiteField {
+            key: "timing".into(),
+            label: "Preferred timing".into(),
+            kind: SiteFieldKind::Text,          // several lines
+            required: false,
+            max_len: 500,
+        },
+    ])
+    .expect("the site's own definition is valid")
+}
+
+// The page:
+view! { <ContactForm site_fields=site_fields() /> }
+
+// The server, in the context closure:
+leptos::context::provide_context(ContactServerPolicy {
+    site_fields: site_fields(),
+    ..Default::default()
+});
+```
+
+**Pass the one definition to both.**  The form renders from it and the server
+validates against it.  If they differ the server fails closed, and loudly:
+
+- **A key the definition lacks** — or more than four keys — refuses the whole
+  submission, as the `rejected` message.  Nothing is delivered, and the log
+  carries only how many keys were refused, never which.
+- **A field the server requires that the form did not render** is reported as
+  `required`, and the form, which has no row to show it in, shows its generic
+  error message (`labels.error`) instead of dropping it.
+- **A malformed request** — a key sent twice, or nested (`fields[a][b]`) —
+  fails while the request is decoded, before this crate's code runs.  The
+  visitor sees the generic message, and the crate cannot log it.
+
+### The bounds
+
+These are **requirements, not defaults**.  `SiteFields::new` refuses a
+definition outside them, naming the rule and the field's key (never its
+label), and widening any of them needs a change to the crate.
+
+| Bound | Value |
+|-------|-------|
+| Kinds | `Line` (one line), `Text` (several lines), `Choice` (one of a fixed list).  No checkbox, radio group, number, date, file or hidden field |
+| Count | at most **4** fields |
+| Placement | one fixed place: after the subject, before the message, in the order you define them |
+| Logic | none: no conditional fields, no cross-field rules, no custom validators |
+| Keys | `[a-z][a-z0-9_]{0,31}`, unique, and not a name the form already uses: `name`, `email`, `subject`, `message`, `website`, `form_token`, `fields`, `cf_turnstile_response`, `h_captcha_response`, `g_recaptcha_response` |
+| Lengths | a `Line` at most 200 characters; a `Text` at most `MESSAGE_MAX_LEN` (4 000); a `Choice` has 2 to 20 options, whose keys follow the key rule and whose labels are not empty |
+| Layout | none beyond [`ContactFormClasses`](#contactformclasses): each field is one row with the existing field, label, input, textarea and error classes |
+
+### What the visitor and the server see
+
+- **Controls.**  A `Line` is `<input type="text">`, a `Text` a `<textarea>`, a
+  `Choice` a native `<select>` whose first option is an empty "—".  A
+  required choice cannot be submitted on that option.
+- **Names and ids.**  The control is named `fields[key]` and has the id
+  `contact-field-{key}`; its error paragraph is `contact-field-{key}-error`.
+- **Trimmed first.**  A value is trimmed before it is checked, so a blank
+  optional field counts as not answered, and a trailing newline in a `Line` is
+  trimmed rather than refused — as `name` behaves.  Only a line break inside
+  a `Line` is an error.
+- **Errors** use the codes and labels the built-in fields use: `required`,
+  `length` (naming the limit), `line_breaks` for a line break in a `Line`, and
+  `format` for a choice that is not one of the listed keys.  See
+  [Localization](./localization.md#site-defined-fields).
+- **With JavaScript** what the visitor typed or chose stays after a failed
+  submission, as for the built-in fields.  Without JavaScript nothing is kept,
+  for any field.
+- **Delivery** receives the answered fields, in your order, in
+  `ContactInput::site_fields`; see
+  [Delivery Backends](./delivery-backends.md#site-defined-fields-in-contactinput).
+- **A site that defines none** renders exactly the markup, and sends exactly
+  the requests, it did before this feature existed.

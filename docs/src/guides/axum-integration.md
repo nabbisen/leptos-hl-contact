@@ -82,7 +82,11 @@ let token_config: FormTokenContext = Arc::new(
     .with_binding(Binding::Cookie),
 );
 let token_cookie = FormTokenCookie::default();
-let policy = ContactServerPolicy { require_subject: true, max_message_len: 2000 };
+let policy = ContactServerPolicy {
+    require_subject: true,
+    max_message_len: 2000,
+    ..Default::default()
+};
 // Built before the router so an invalid path panics at boot.
 let redirect = success_redirect("/thanks");
 

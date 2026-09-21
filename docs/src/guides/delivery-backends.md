@@ -67,10 +67,27 @@ let delivery = LettreSmtpDelivery {
 | `To` | `to_address` |
 | `Reply-To` | Visitor's name and address, RFC 5322-encoded |
 | `Subject` | `subject_prefix` + subject (or "(no subject)"), line breaks removed |
-| Body | Plain text UTF-8: name, email, subject, message |
+| Body | Plain text UTF-8: name, email, subject, then one block per [site-defined field](./customization.md#site-defined-fields), then message |
 
 Visitor input is never used for `From`, which keeps SPF and DKIM alignment
-intact and prevents sender spoofing.
+intact and prevents sender spoofing.  A site field's value appears in the body
+only, never in a header.
+
+A site field's block sits after `Subject:` and before `Message:`, in the style
+of the others; a choice reads `choice label (choice key)`:
+
+```text
+Organisation:
+Example Ltd
+
+Topic:
+Sales (sales)
+
+Message:
+…
+```
+
+A site that defines no fields sends the same body as before.
 
 ## Writing your own backend
 
@@ -107,6 +124,8 @@ let delivery: ContactDeliveryContext = Arc::new(MyCustomDelivery);
 Contract for implementations:
 
 - `input` is already trimmed, validated, and honeypot-checked.
+- `input.site_fields` holds the answers to the site's own fields; see
+  [below](#site-defined-fields-in-contactinput).
 - Return one of `ContactDeliveryError::{Configuration, Transport,
   MessageBuild, Internal}`; the crate logs the detail and shows the visitor
   a generic message.
@@ -132,6 +151,28 @@ let delivery: ContactDeliveryContext =
 
 When the deadline passes, the delivery is dropped and the visitor is told the
 message may have been sent (`delivery_timeout`), not that it failed.
+
+### Site-defined fields in `ContactInput`
+
+`ContactInput::site_fields` is a `Vec<SiteFieldValue>`:
+
+| Member | Holds |
+|--------|-------|
+| `key` | the field's key in the site's definition |
+| `label` | the field's label, **from the server's definition**, never from the request |
+| `value` | the trimmed value; for a choice, the choice's key |
+| `value_label` | for a choice, the choice's label; `None` otherwise |
+
+- **Order:** the order the site defined the fields in, not the order of the
+  request.
+- **Answered fields only:** a blank optional field is left out, so the list
+  may be empty, and is empty for a site that defines none.
+- **A filter** receives the same `ContactInput`, so it can read the values.
+
+**Treat the values like `message`:** they are personal data.  Never log
+them, and never put one in a `ContactDeliveryError`'s text.  A value that goes
+into a header, a URL or a query needs the escaping that header, URL or query
+needs; the SMTP backend puts them in the body only.
 
 ## Testing delivery locally
 

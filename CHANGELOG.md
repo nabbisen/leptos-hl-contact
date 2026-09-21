@@ -10,10 +10,13 @@
   `ContactForm`'s `site_fields` prop and `ContactServerPolicy::site_fields`:
   the form renders them between the subject and the message, the server
   validates them with the same codes and labels as the built-in fields, and
-  `ContactInput::site_fields` carries the answers to delivery.  The server
-  accepts only the keys the definition has, and refuses the whole
-  submission, as `rejected`, when one is unknown.  A site that defines none
-  renders the same markup as 0.7 and sends the same requests.
+  `ContactInput::site_fields` carries the answers to delivery.  The SMTP
+  backend adds one block per answered field to the message body, after
+  `Subject:` and before `Message:`; a choice reads `label (key)`, and no
+  header ever carries a value.  The server accepts only the keys the
+  definition has, and refuses the whole submission, as `rejected`, when one is
+  unknown.  A site that defines none renders the same markup as 0.7, sends the
+  same requests, and gets the same message body.
 - **`ChallengeWidget::with_size(ChallengeSize)`.**  `Compact` asks for a
   smaller widget on Turnstile, hCaptcha and reCAPTCHA v2; `Flexible` is a
   full-width Turnstile widget with a 300 px minimum.  Both render on the
@@ -30,6 +33,13 @@
 
 ### Documentation
 
+- **Site-defined fields** (RFC 015): a section in *Customization* (the bounds,
+  the example, building one definition for both the form and the policy, and
+  what a mismatch looks like), and pages *Localization*, *Delivery Backends*
+  (`ContactInput::site_fields`), *Accessibility*, the *API* reference, the
+  security layer table, and the developer pages (external design,
+  architecture, traceability).  The `ContactServerPolicy` examples now use
+  `..Default::default()`.
 - **Cloudflare Workers guide, bundle size:** strip the wasm `name` section
   (`strip = "symbols"`), which was 55.1 MiB of a 59.1 MiB production Worker,
   with an integrator's stripped production size figures.

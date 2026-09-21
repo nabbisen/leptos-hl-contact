@@ -25,13 +25,14 @@ full threat model is in [External Design](../development/external-design.md#5-se
 
 ## Which layer decides what
 
-Five mechanisms inside the crate can stop a submission.  Each answers one
+Six mechanisms inside the crate can stop a submission.  Each answers one
 question; pick the one whose question is yours.
 
 | Mechanism | The question it answers | Configured by | Runs | Visitor sees on failure |
 |-----------|-------------------------|---------------|------|-------------------------|
 | [Honeypot](../reference/api.md#contactinput) | Did a bot fill the hidden field? | nothing | always | success (silent) |
 | [Form token](./form-token.md) | Did the sender fetch our page recently and wait before submitting — and, with binding, from this browser? | `FormTokenContext` | when configured | "reload" / "wait a moment" |
+| [Site-field allow-list](../guides/customization.md#site-defined-fields) | Is every field key, and every choice, one this site defined? | `ContactServerPolicy::site_fields` | always | generic rejection for an unknown key or too many keys; field error for a bad value or an unlisted choice |
 | [Server policy](../guides/customization.md#contactserverpolicy) | Does the input meet this site's structural limits? | `ContactServerPolicy` | when configured | field error |
 | [Challenge](./challenge.md) | Did a vendor judge the sender human? | `ChallengeContext` + `challenge` prop | when configured | "complete the check" |
 | [Filter](./filter.md) | Does this site want this content? | `ContactFilterContext` | when configured | generic rejection or silent |

@@ -140,6 +140,7 @@ branch on the method or path rather than splitting the closure.
 | `classes` | `ContactFormClasses` | all empty | CSS hook per structural element [FR-UI-03] |
 | `labels` | `ContactFormLabels` | English | Every rendered string [FR-UI-02] |
 | `options` | `ContactFormOptions` | subject shown, optional, 4 000 | UI behaviour [FR-UI-11] |
+| `site_fields` | `SiteFields` | none | The site's own fields, at most four, between the subject and the message (RFC 015) |
 
 #### 4.1.2 DOM contract
 
@@ -151,11 +152,14 @@ The following identifiers and attributes are **public API** [NFR-COMPAT-05].
 | success `<div>` | — | — | `role="status" aria-live="polite"` | `success` |
 | generic error `<div>` | — | — | `role="alert" aria-live="assertive"` | `error` |
 | `<form>` (`ActionForm`) | — | — | `method="post" action="/api/submit_contact"` | — |
-| field wrapper `<div>` ×4 | — | — | — | `field` |
-| `<label>` ×4 | — | — | `for` = input id | `label` |
+| field wrapper `<div>` ×4, plus one per site field | — | — | — | `field` |
+| `<label>` ×4, plus one per site field | — | — | `for` = input id | `label` |
 | name `<input>` | `contact-name` | `name` | `type=text required maxlength=80 autocomplete=name aria-required=true` | `input` |
 | email `<input>` | `contact-email` | `email` | `type=email required maxlength=254 autocomplete=email aria-required=true` | `input` |
 | subject `<input>` (if shown) | `contact-subject` | `subject` | `type=text maxlength=120`; `required`/`aria-required` follow `require_subject` | `input` |
+| site `Line` `<input>` (per field, after the subject, in definition order) | `contact-field-{key}` | `fields[{key}]` | `type=text maxlength=<max_len>`; `required` and `aria-required=true` when required | `input` |
+| site `Choice` `<select>` | `contact-field-{key}` | `fields[{key}]` | `required` and `aria-required=true` when required; first `<option value="">` reads "—", then one `<option value=<choice key>>` per choice, in order | `input` |
+| site `Text` `<textarea>` | `contact-field-{key}` | `fields[{key}]` | `maxlength=<max_len>`; `required` and `aria-required=true` when required | `textarea` |
 | message `<textarea>` | `contact-message` | `message` | `required maxlength=<options> rows=6 aria-required=true` | `textarea` |
 | field error `<p>` | `<input-id>-error` | — | `role="alert" aria-live="polite"` | `error` |
 | token `<input>` | — | `form_token` | `type=hidden` | — |
@@ -165,6 +169,9 @@ The following identifiers and attributes are **public API** [NFR-COMPAT-05].
 
 When a field has an error its input additionally carries
 `aria-invalid="true"` and `aria-describedby="<input-id>-error"` [FR-A11Y-03].
+This holds for a site field too, whose error paragraph is
+`contact-field-{key}-error`.  A form whose site defines no fields renders
+exactly the markup 0.7 did.
 
 Because ids are fixed, at most one `ContactForm` per page is supported.
 Supporting several instances would require an id-prefix prop; not planned.
@@ -232,8 +239,12 @@ through individual attribute closures.
 | `message` | yes | trim; 1–4 000 chars; policy may lower the ceiling |
 | `website` | must be empty | non-empty → honeypot: success response, no delivery |
 | `form_token` | when `form-token` enabled | verified before anything else; absent = invalid |
+| `fields[{key}]` | per the site's definition | one map argument, `fields`.  At most 4 keys, and only keys the definition has, or the whole submission is `rejected` (the log carries a count, never a key).  Each value is trimmed; blank optional = absent; `Line` ≤ 200 chars and no CR/LF; `Text` ≤ 4 000; a `Choice` value must be a listed key.  A key sent twice, or nested, fails while the request is decoded |
 
-Unknown fields are ignored by the deserialiser.  Field order is irrelevant.
+Unknown top-level fields are ignored by the deserialiser, but a key **inside**
+`fields` is not: the server accepts only the keys the site defined.  Dot
+notation (`fields.a`) is ignored by the decoder like any other unknown
+top-level field; the component never produces it.  Field order is irrelevant.
 
 #### 4.2.2 Error classes
 
@@ -243,6 +254,8 @@ rendered on the client from `ContactFormLabels::errors` [FR-I18N-02].
 | Situation | Variant | String on the wire | Client rendering |
 |-----------|---------|--------------------|------------------|
 | Field validation or policy failure | `ServerFnError::Args` | `field_errors:{…}`, see §4.2.3 | per field, from `errors.required` / `length` / `format_email` / `format` / `line_breaks` |
+| Unknown or too many site-field keys | `ServerFnError::Args` | `contact_error:rejected` | banner, `errors.rejected` |
+| Malformed `fields` map (repeated or nested key) | decoding error, before `submit_contact` | none of the above | banner, `labels.error` |
 | Token invalid, expired or missing | `ServerFnError::Args` | `contact_error:token_invalid` | banner, `errors.token_invalid` |
 | Token config missing | `ServerFnError::ServerError` | `contact_error:not_configured` | banner, `errors.not_configured` |
 | Delivery context missing | `ServerFnError::ServerError` | `contact_error:not_configured` | banner, `errors.not_configured` |
@@ -256,11 +269,16 @@ falls back to `labels.error`.
 #### 4.2.3 Field-error payload protocol
 
 The `Args` message is the sentinel `field_errors:` followed by compact JSON
-with four optional members, each a `FieldError`:
+with four optional members, each a `FieldError`, and a fifth, `site_fields`, an
+object from a site field's key to a `FieldError`:
 
 ```json
 field_errors:{"name":{"kind":"length","min":1,"max":80},"email":{"kind":"format"}}
+field_errors:{"site_fields":{"topic":{"kind":"required"}}}
 ```
+
+`site_fields` is **omitted when empty** and defaults when absent, so a payload
+with no site-field error is byte-identical to 0.7's, and a 0.7 payload parses.
 
 `FieldErrorCode` is internally tagged on `kind`, snake_case:
 `required`, `length` (with `min` and `max`, in characters), `format`,

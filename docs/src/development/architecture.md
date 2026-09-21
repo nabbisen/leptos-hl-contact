@@ -48,8 +48,8 @@ conditions and security notes; behaviour is specified in
 
 | Module | Role | Compiled for |
 |--------|------|--------------|
-| `model` | `ContactInput`: normalisation, validation | client + server |
-| `config` | `ContactFormClasses`, `ContactFormLabels`, `ContactFormOptions`, `ContactServerPolicy` | client + server; no secrets |
+| `model` | `ContactInput`: normalisation, validation; `SiteFieldValue`, `validate_site_fields` | client + server |
+| `config` | `ContactFormClasses`, `ContactFormLabels`, `ContactFormOptions`, `ContactServerPolicy`, `SiteFields` | client + server; no secrets |
 | `error` | `ContactFieldErrors` (crosses the wire), `ContactDeliveryError`, `ContactValidationError` (server) | client + server |
 | `security` | `sanitize_header_value` | client + server |
 | `components` | `ContactForm`, `FieldError` | client + server |
@@ -68,6 +68,7 @@ browser ── POST /api/submit_contact (form-encoded) ──▶ submit_contact
    ContactInput::from_raw       trim; blank subject → None
    check_honeypot               non-empty website → Ok(()) without delivery
    validate_fields              ContactFieldErrors → ServerFnError::Args("field_errors:…")
+   validate_site_fields         unknown or too many keys → rejected; else site errors join the above
    ContactServerPolicy          require_subject / max_message_len
    use_context::<ContactDeliveryContext>
    ContactDelivery::deliver     build_message → SMTP relay
@@ -137,11 +138,12 @@ Axum is optional so the crate stays usable with other HTTP frameworks.
 ```text
 crates/leptos-hl-contact/src/
   lib.rs                 re-exports, feature gates
-  model.rs               model/tests.rs  model/tests/email.rs
+  model.rs               model/tests.rs  model/tests/email.rs  model/tests/site_fields.rs
   config.rs              config/tests.rs
   error.rs               error/tests.rs
   security.rs            security/tests.rs
   components.rs          components/tests.rs  components/tests/attributes.rs
+                         components/tests/site_fields.rs
   server.rs              server/tests.rs
   form_token.rs          form_token/tests.rs
   challenge.rs           challenge/tests.rs
