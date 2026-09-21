@@ -13,7 +13,7 @@ jobs:
       - name: Install Rust 1.91
         uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
-          toolchain: 1.91
+          toolchain: "1.91"
           components: clippy, rustfmt
           targets: wasm32-unknown-unknown
 
@@ -63,7 +63,7 @@ jobs:
       - name: Install Rust 1.88
         uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
-          toolchain: 1.88
+          toolchain: "1.88"
           targets: wasm32-unknown-unknown
 
       - name: check (native, all features)
@@ -87,7 +87,7 @@ jobs:
       - name: Install Rust 1.91
         uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
-          toolchain: 1.91
+          toolchain: "1.91"
           targets: wasm32-unknown-unknown
 
       # The test runner refuses a wasm-bindgen other than its own, so its
@@ -148,7 +148,7 @@ jobs:
       - name: Install Rust 1.91
         uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
         with:
-          toolchain: 1.91
+          toolchain: "1.91"
           components: clippy, rustfmt
           targets: wasm32-unknown-unknown
 

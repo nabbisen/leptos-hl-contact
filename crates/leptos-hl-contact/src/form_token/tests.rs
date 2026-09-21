@@ -257,6 +257,25 @@ fn binding_none_ignores_the_bound_value() {
     );
 }
 
+/// RFC 016 D3, review C1: a cookie value **the same length** as the nonce but
+/// one hex digit off.  The length check alone does not refuse it, so only the
+/// constant-time comparison itself can.
+#[test]
+fn a_same_length_wrong_binding_is_a_binding_mismatch() {
+    let config = test_config().with_binding(Binding::Cookie);
+    let token = issue_form_token(&config);
+    let nonce = token.0.split('|').nth(1).unwrap().to_owned();
+    let (head, last) = nonce.split_at(nonce.len() - 1);
+    let wrong = format!("{head}{}", if last == "0" { "1" } else { "0" });
+    assert_eq!(wrong.len(), nonce.len());
+    assert_ne!(wrong, nonce);
+
+    assert_eq!(
+        verify_form_token(&token.0, Some(&wrong), &config),
+        Err(FormTokenError::BindingMismatch)
+    );
+}
+
 #[test]
 fn binding_cookie_requires_a_matching_nonce() {
     let config = test_config().with_binding(Binding::Cookie);
