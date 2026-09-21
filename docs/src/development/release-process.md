@@ -31,6 +31,14 @@ Tags are `X.Y.Z` with **no** `v` prefix.
    including the feature-combination clippy step and the examples job.
    `cargo package` must not report a yanked crate in the lock file; if it
    does, `cargo update -p <crate>` and re-run the gates.
+   **Check the toolchain action's pin.**  `dtolnay/rust-toolchain` has no
+   version tags for the action itself, so the pin in `ci.yml` is a `master`
+   commit that Dependabot never moves.  Compare it with
+   `gh api repos/dtolnay/rust-toolchain/git/refs/heads/master`.
+   - **If `master` moved:** read the diff, and update the pin in a commit of
+     its own, with the date in the comment (`# master, checked YYYY-MM-DD`).
+   - **If it did not:** say so in the release evidence, and update the date in
+     the comment.
 5. **Package.**  `cargo package -p leptos-hl-contact` succeeds without
    warnings.
 6. **Security audit.**  If the release adds a data flow, an external

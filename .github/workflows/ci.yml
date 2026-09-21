@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Install Rust 1.91
-        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master, checked 2026-09-22
         with:
           toolchain: "1.91"
           components: clippy, rustfmt
@@ -61,7 +61,7 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Install Rust 1.88
-        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master, checked 2026-09-22
         with:
           toolchain: "1.88"
           targets: wasm32-unknown-unknown
@@ -85,7 +85,7 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Install Rust 1.91
-        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master, checked 2026-09-22
         with:
           toolchain: "1.91"
           targets: wasm32-unknown-unknown
@@ -100,7 +100,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Install wasm-bindgen-cli
-        uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2
+        uses: taiki-e/install-action@26e9283f268b880168bdbd2c545dfcd60ec2c6ab # v2.87.13
         with:
           tool: wasm-bindgen@${{ steps.wasm-bindgen.outputs.version }}
 
@@ -146,19 +146,22 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Install Rust 1.91
-        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master, checked 2026-09-22
         with:
           toolchain: "1.91"
           components: clippy, rustfmt
           targets: wasm32-unknown-unknown
 
+      # `--locked`: a change to the crate's dependencies changes the examples'
+      # lock files, and only `--locked` notices.  Handoff 016-01 made `subtle`
+      # a direct dependency and the stale lock survived CI (fixed in cff320e).
       - name: check
-        run: cargo check ${{ matrix.features }}
+        run: cargo check --locked ${{ matrix.features }}
         working-directory: examples/${{ matrix.example }}
 
       # The WASM client is what makes hydration testable; cargo-leptos itself
       # is not run in CI.
       - name: check (wasm client)
         if: matrix.example == 'axum-with-security'
-        run: cargo check --features hydrate --target wasm32-unknown-unknown --lib
+        run: cargo check --locked --features hydrate --target wasm32-unknown-unknown --lib
         working-directory: examples/${{ matrix.example }}
