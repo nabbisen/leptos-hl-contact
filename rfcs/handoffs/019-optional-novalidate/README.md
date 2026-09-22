@@ -11,7 +11,7 @@ Review requests go to `.git-exclude/review-request/019-optional-novalidate/`.
 |---|---------|------------|------------|------|
 | 01 | [The option, the attribute, the tests, the documentation](./01-native-validation-option.md) | D1–D4 | — | small |
 
-**State.** Handoff 01 written 2026-09-22.
+**State.** Handoff 01 approved 2026-09-22 (`eb84632`).  **RFC 019 is complete**; it moves to `done/` at the release.
 
 **The default must not change.**  With `native_validation` at its default,
 the rendered markup is byte-identical to 0.9.0's, and a test pins it.

@@ -1,6 +1,6 @@
 # Requirements Specification
 
-> **Document status.** Draft 29, 2026-09-22, against release `0.9.0`.
+> **Document status.** Draft 30, 2026-09-22, against release `0.9.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
 > M1–M7 are released; the document as a whole awaits formal approval.
 > Once approved, this document is the requirements baseline; later changes
@@ -274,7 +274,8 @@ them needs its own RFC.
 | NFR-SEC-03 | Cryptographic comparisons MUST be constant-time | Met |
 | NFR-SEC-04 | Security features MUST fail closed | Met |
 | NFR-SEC-05 | The threat model in [External Design §5](./external-design.md) MUST be updated whenever a change adds a data flow, an external integration, or authentication logic (project release rule) | Met (this document establishes it) |
-| NFR-SEC-06 | The crate MUST NOT introduce a dependency that performs network I/O outside the delivery layer | Met |
+| NFR-SEC-06 | The crate MUST NOT perform network I/O except where a feature the site enabled requires it — a delivery backend, challenge verification, or the email-domain check — and MUST NOT contact any endpoint the site did not configure.  No telemetry, no phone-home | Met (reworded 2026-09-22: the original wording said "outside the delivery layer", which `challenge-http` has contradicted since 0.5.0; the intent was always "nothing the site did not ask for") |
+| NFR-SEC-07 | A response the crate reads from an external endpoint MUST be bounded: a body beyond the bound is refused rather than parsed, so a misconfigured proxy or a hostile endpoint cannot make the server hold an unbounded amount of memory | Met (0.9.0, RFC 017): the shared HTTP module's cap, stopping the read natively and checking the declared length on wasm32 |
 
 ### 6.2 Privacy (NFR-PRIV)
 
@@ -396,6 +397,7 @@ them needs its own RFC.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-22 | Draft 30 | RFC 020 review: NFR-SEC-07 added (a bounded external response, which 0.9.0 already implements and 020-01 tests); NFR-SEC-06 reworded to the intent it always had |
 | 2026-09-22 | Draft 29 | 0.9.0 released: document status against `0.9.0`; M7 released |
 | 2026-09-22 | Draft 28 | RFC 017: `delivery-resend` added to FR-CFG-01; NFR-PORT-02 names `ResendDelivery` as a built-in delivery on Workers; FR-DEL-05 widened beyond SMTP's headers and given the no-leading-space rule; FR-DEL-08 and NFR-PERF-03 name the 10 s Resend default |
 | 2026-09-22 | Draft 27 | 0.8.0 released: document status against `0.8.0`; M6 released |

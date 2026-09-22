@@ -10,11 +10,11 @@ Review requests go to `.git-exclude/review-request/018-email-domain-check/`.
 | # | Handoff | RFC design | Depends on | Size |
 |---|---------|------------|------------|------|
 | 01 | [Step 0 spike: DNS over HTTPS through the shared transport](./01-step0-spike.md) | Step 0 | — | small (report only) |
-| 02 | The check itself: module, config, the decision table | D1, D4 | 01 reviewed | written after 01 |
-| 03 | The pipeline step and the visitor-facing error | D2, D3 | 02 | written after 01 |
-| 04 | Documentation, privacy, traceability | D5, D6 | 03 | written after 01 |
+| 02 | [The lookup, and the decision table](./02-lookup-and-decision.md) | D1, D4, A1–A4 | 01 reviewed | large |
+| 03 | [The pipeline step, and what the visitor is told](./03-pipeline-and-error.md) | D2, D3 | 02 | medium |
+| 04 | [Documentation, privacy, traceability](./04-docs-privacy-records.md) | D5, D6 | 03 | medium |
 
-**State.** Handoff 01 written 2026-09-22.
+**State.** Handoff 01 (spike) approved 2026-09-22: DoH stands, and the RFC is amended (A1–A4: a GET on both targets, three refusal shapes, fixture choice, tolerant parsing).  Handoffs 02–04 written 2026-09-22.
 
 ## Rules for this RFC
 

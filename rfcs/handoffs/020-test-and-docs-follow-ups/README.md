@@ -12,7 +12,7 @@ Review requests go to `.git-exclude/review-request/020-test-and-docs-follow-ups/
 | 01 | [The mutation follow-up tests](./01-mutation-follow-up-tests.md) | D1 | — | medium |
 | 02 | [Translations as contributed examples, and two documentation lines](./02-localization-and-docs.md) | D2, D3 | — | small |
 
-**State.** Handoffs written 2026-09-22.
+**State.** Handoffs 01 (`bfeeaea`) and 02 (`e67086e`) approved 2026-09-22.  **RFC 020 is complete**; it moves to `done/` at the release.  Its review added NFR-SEC-07 (a bounded external response) to the requirements; the matching traceability row is carried into RFC 018 handoff 04.
 
 **No production code changes in either handoff.**  If a test cannot be
 written without one, stop and report: that is a finding, not a licence.

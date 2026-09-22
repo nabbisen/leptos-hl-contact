@@ -185,3 +185,45 @@ Accepted as proposed; the questions as put, with the answers, were:
 4. **No cache** in this RFC.
 5. **A 2-second default timeout**, inside the request the visitor is waiting
    on.
+
+---
+
+## Amendment — 2026-09-22, after the step-0 spike
+
+The architect reviewed the spike
+(`.git-exclude/reviewed/018-email-domain-check/01-step0-spike.md`).
+**DNS over HTTPS stands.**  These four points supersede the text above where
+they differ.
+
+**A1 — The lookup is a GET, and both targets need one.**
+- **Why:** one major resolver answers `415` to a POST carrying a JSON body;
+  the other tolerates it.  Only GET works on both.
+- **Natively:** an `HttpClient::get`, mirroring `post` — no redirects, the
+  caller's limit, the same capped read, no body.
+- **On wasm32:** `fetch::send`'s hardcoded `POST` becomes a verb the caller
+  passes, or a sibling for GET.  **Both land in handoff 02**, not later.
+- **The shared module stays private,** and `challenge-http` and
+  `delivery-resend` are untouched by the addition.
+
+**A2 — Three refusal shapes, not two.**  D1's table said "NXDOMAIN, or no
+record at all".  The answers arrive differently, and the code must know
+each:
+
+| Shape | What the answer looks like | Outcome |
+|-------|----------------------------|---------|
+| NXDOMAIN | `Status` 3 | reject |
+| NODATA | `Status` 0 with **no** `Answer` (an `Authority` SOA only) | reject |
+| Null MX | `Status` 0, an `Answer` of type 15 whose data is exactly `"0 ."` | reject |
+| MX present | `Status` 0, an `Answer` of type 15 with a hostname | accept |
+| No MX, address record present | the MX answer carries **no** type-15 record; a second query finds A or AAAA | accept |
+| SERVFAIL and every failure of ours | `Status` 2, a timeout, a transport error, an unparsable answer | **accept**, with a `warn` |
+
+**A3 — Choose fixtures deliberately.**  `example.com` and `example.net` both
+have a **null MX**, so neither exercises the address-record fallback.  Unit
+tests use **recorded answers**, not the live network; only the `#[ignore]`d
+live test queries a resolver.
+
+**A4 — Parse tolerantly.**  One resolver appends a trailing `.` to `name`
+and sends a `Comment` field the other does not.  Ignore unknown fields, and
+do not assume either name normalisation.  Read only `Status`,
+`Answer[].type` and `Answer[].data`.
