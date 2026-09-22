@@ -238,6 +238,36 @@ async fn a_2xx_without_an_id_still_succeeds() {
     }
 }
 
+/// RFC 017 D4, FR-DEL-08: a silent endpoint ends at the configured limit as
+/// `ContactDeliveryError::Timeout`, naming that limit, so the visitor sees
+/// `delivery_timeout` — the same code and text a slow SMTP relay produces.
+/// Found missing while writing the traceability table (handoff 03): the
+/// status-row test above never exercises this path.
+#[tokio::test]
+async fn a_silent_endpoint_is_a_timeout() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}/emails", listener.local_addr().unwrap());
+    let _held = tokio::spawn(async move {
+        let (socket, _) = listener.accept().await.unwrap();
+        tokio::time::sleep(Duration::from_secs(30)).await;
+        drop(socket);
+    });
+
+    let started = std::time::Instant::now();
+    let limit = Duration::from_millis(200);
+    let cfg = config().with_timeout(limit);
+    let result = ResendDelivery::new(cfg)
+        .with_url(&url)
+        .deliver(sample_input())
+        .await;
+
+    match result {
+        Err(ContactDeliveryError::Timeout(got)) => assert_eq!(got, limit),
+        other => panic!("expected Timeout, got {other:?}"),
+    }
+    assert!(started.elapsed() < Duration::from_secs(2), "the cap held");
+}
+
 // ---- fail closed --------------------------------------------------------------
 
 /// An empty key, sender or recipient is `Configuration`, and sends nothing.

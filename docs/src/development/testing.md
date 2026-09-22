@@ -38,11 +38,14 @@ never inline.  Groups:
 | `challenge/tests.rs` | the challenge decision table, one test per row, with a mock verifier |
 | `challenge/http/tests.rs` | `HttpChallengeVerifier` against a local responder: response shapes, the request (with and without `remoteip`), timeout and error mapping; live vendor tests (ignored) |
 | `delivery/noop/tests.rs` | async no-op call |
+| `delivery/body/tests.rs` | the shared plain-text body, and `compose_subject` (the shared subject line, trimmed, no leading space with an empty prefix) |
 | `delivery/smtp/tests.rs` | message headers, `Reply-To` encoding, body content |
+| `delivery/resend/tests.rs` | `ResendDelivery` against a local responder: the request (bearer header, JSON fields, `reply_to`), the body, each status row, a timeout, redaction, and the `https` override warning |
+| `http/tests.rs` | `HttpClient` natively: the response-body cap, at and over the limit |
 | `axum_helpers/tests.rs` | closure is `Clone` |
 | `tests/server/` | the crate over HTTP, in process: every behaviour a response or a delivery shows (see below) |
 | `tests/browser/` | the component in headless Chrome: focus, token acquisition and refresh, explicit widget rendering (see below) |
-| `tests/worker/` | the wasm32 server build (Cloudflare Workers), run in headless Chrome: extension futures that are not `Send`, the form token's JavaScript clock, `DeliveryTimeout`'s JavaScript timer, `HttpChallengeVerifier` over a stubbed `fetch`.  Run by the `browser` job's `worker tests` step |
+| `tests/worker/` | the wasm32 server build (Cloudflare Workers), run in headless Chrome: extension futures that are not `Send`, the form token's JavaScript clock, `DeliveryTimeout`'s JavaScript timer, `HttpChallengeVerifier` and `ResendDelivery` over a stubbed `fetch`.  Run by the `browser` job's `worker tests` step |
 
 Tests are written from the [Requirements](./requirements.md) and
 [External Design](./external-design.md), not from the code: when a test
@@ -293,13 +296,13 @@ tests from the code side.
 | FR-DEL-02 | — | `validation::a_blank_subject_is_delivered_as_absent`, `validation::each_rule_rejects_with_its_field_code` | — | — |
 | FR-DEL-03 | `delivery::noop::noop_delivery_succeeds` | — | — | the `debug` log without PII: review |
 | FR-DEL-04 | **none** | **none** | — | review of `SmtpTlsMode` in `delivery/smtp.rs`; a TLS session needs a relay, so not testable offline |
-| FR-DEL-05 | `delivery::smtp::from_uses_configured_address`, `delivery::smtp::reply_to_uses_user_email`, `delivery::smtp::reply_to_with_special_chars_in_name`, `delivery::smtp::reply_to_uses_mailbox_new_not_string_parse`, `delivery::smtp::message_builder_creates_expected_headers` | — | — | — |
-| FR-DEL-06 | `delivery::smtp::body_includes_expected_fields` | — | — | — |
+| FR-DEL-05 | `delivery::smtp::from_uses_configured_address`, `delivery::smtp::reply_to_uses_user_email`, `delivery::smtp::reply_to_with_special_chars_in_name`, `delivery::smtp::reply_to_uses_mailbox_new_not_string_parse`, `delivery::smtp::message_builder_creates_expected_headers`, `delivery::resend::the_request_is_a_bearer_authorized_json_post_with_reply_to`, `delivery::resend::the_subject_carries_the_configured_prefix` | — | — | Resend has no header to encode a display name into: its `reply_to` is the bare address, and the row's wording is SMTP-specific — a documentation call, not mine |
+| FR-DEL-06 | `delivery::smtp::body_includes_expected_fields`, `delivery::resend::the_body_text_matches_delivery_body_rs` (byte-identical to the SMTP backend's body, via the shared `delivery/body.rs`) | — | — | — |
 | FR-DEL-07 | — | `delivery::a_valid_submission_is_delivered_once_in_both_forms`, `delivery::a_delivery_error_reaches_the_client_only_as_delivery_failed` (custom backends in `tests/server/support/doubles.rs`) | — | the error-text contract for implementers: documentation (`ContactDelivery`'s `# Errors`, the delivery guide, External Design §4.4.1) |
 | FR-CFG-01 | **none** | **none** | — | CI: `clippy` with all features and with `ssr,smtp-lettre,axum-helpers`, and the `browser` job with `hydrate` alone |
 | FR-CFG-02 | `axum_helpers::delivery_context_fn_is_clone` | `routing::context_in_the_one_closure_reaches_submit_contact` | — | the documentation of each context value: documentation |
 | FR-CFG-03 | `challenge::http::an_empty_secret_is_misconfigured_and_sends_nothing` | `routing::a_missing_delivery_context_is_not_configured`, `form_token::a_missing_token_config_fails_closed`, `challenge::challenge_decision_table_rows_1_to_7` (row 2) | — | the examples' startup panics: review |
-| FR-CFG-04 | `form_token::debug_redacts_the_secret`, `challenge::http::debug_redacts_the_secret`, `config::redirect_debug_does_not_expose_the_executor`, `delivery::smtp::debug_redacts_the_password` | — | — | — |
+| FR-CFG-04 | `form_token::debug_redacts_the_secret`, `challenge::http::debug_redacts_the_secret`, `config::redirect_debug_does_not_expose_the_executor`, `delivery::smtp::debug_redacts_the_password`, `delivery::resend::debug_redacts_the_key` | — | — | — |
 | FR-CFG-05 | `form_token::default_config_has_a_two_second_minimum_age`, `axum_helpers::cookie_defaults_are_the_documented_ones`, `config::policy_default_matches_ceiling`, `config::no_js_policy_defaults_to_reject`, `challenge::the_policy_defaults_are_the_documented_ones`, `challenge::http::the_default_timeout_is_five_seconds` | — | — | the STARTTLS default and the one-hour token TTL: review |
 | FR-I18N-01 | `config::field_text_substitutes_in_a_translated_label`, `components::the_noscript_message_escapes_label_and_class` | — | — | — |
 | FR-I18N-02 | `error::contact_error_code_round_trips_through_the_wire_string`, `config::code_text_maps_unexpected_to_delivery_failed`, `config::field_text_substitutes_min_and_max`, `error::delivery_timeout_round_trips_through_the_wire_string`, `config::code_text_renders_delivery_timeout` | `validation::field_errors_round_trip_without_javascript`, `delivery::a_delivery_timeout_reaches_the_client_as_delivery_timeout` | — | — |
@@ -327,8 +330,8 @@ tests from the code side.
 | FR-FIELD-07 | `config::an_error_message_never_carries_a_label` | `site_fields::site_field_values_and_request_keys_are_never_logged`, `site_fields::too_many_keys_log_the_count_and_never_a_key`, `site_fields::an_unknown_key_logs_its_count_and_never_the_key`, `site_fields::several_unknown_keys_are_counted` | — | `Debug` on `ContactInput`, which shows the values as it shows `message`: unchanged, out of scope (RFC 015 D6) |
 | FR-FIELD-08 | `components::site_fields::each_kind_renders_its_control_with_its_name_and_id`, `components::site_fields::a_choice_starts_with_the_empty_option_then_its_choices_in_order`, `components::site_fields::required_fields_carry_required_and_aria_required`, `components::site_fields::a_field_without_an_error_is_not_marked_invalid`, `components::site_fields::the_rows_use_the_existing_classes`, `components::site_fields::the_rows_are_still_before_the_message_without_a_subject`, `components::site_fields::labels_are_escaped` | `site_fields::each_rule_reports_its_code_under_the_key` (the no-JavaScript page: `aria-invalid`, `aria-describedby`, the error paragraph) | `site_fields::the_rows_render_with_their_names_ids_and_required`, `site_fields::the_submitted_body_carries_the_site_fields`, `site_fields::a_field_error_shows_under_its_field`, `site_fields::focus_goes_to_the_first_invalid_site_field_before_the_message`, `site_fields::the_built_in_fields_keep_their_place_around_the_site_fields`, `site_fields::a_failed_submission_keeps_what_was_typed_and_selected` | without JavaScript nothing is preserved, for any field, as before (RFC 015 A6) |
 | FR-OBS-01 | — | `logging::no_personal_data_or_secret_is_logged` | — | each event's level: review |
-| FR-OBS-02 | `server::pii_not_present_in_expected_log_messages` | `logging::no_personal_data_or_secret_is_logged`, `site_fields::site_field_values_and_request_keys_are_never_logged` | — | — |
-| FR-OBS-03 | — | `logging::no_personal_data_or_secret_is_logged` | — | — |
+| FR-OBS-02 | `server::pii_not_present_in_expected_log_messages` | `logging::no_personal_data_or_secret_is_logged`, `site_fields::site_field_values_and_request_keys_are_never_logged`, `resend::a_failing_delivery_logs_the_status_and_never_a_request_value` | — | — |
+| FR-OBS-03 | — | `logging::no_personal_data_or_secret_is_logged`, `resend::a_failing_delivery_logs_the_status_and_never_a_request_value`, `resend::an_http_override_warns`, `challenge_http::an_http_override_warns` (the secret and the overridden URL are absent) | — | — |
 | FR-OBS-04 | **none** | **none** | — | review: no storage in the crate or its dependencies |
 
 ### Non-functional requirements
@@ -378,6 +381,25 @@ cargo test -p leptos-hl-contact --no-default-features --features challenge-http 
 They need outbound HTTPS to `challenges.cloudflare.com`, `api.hcaptcha.com`
 and `www.google.com`.  Google's test secret accepts any token, so the
 reCAPTCHA test shows the round trip, not a real check.
+
+## Live delivery test
+
+`ResendDelivery` has one test that sends a real request to Resend's
+documented test recipient, `delivered@resend.dev`, which Resend answers as
+delivered without involving a real mailbox.  Unlike the live challenge
+tests above, it needs a real, private key — never a published test
+secret — so it is `#[ignore]`d **and** lives in `tests/server/resend.rs`,
+not beside the challenge tests in `src/`: it asserts a message id was
+logged, and `src/` has no log capture (see `tests/server/support/logs.rs`).
+
+```bash
+RESEND_API_KEY=re_... RESEND_FROM=you@yourdomain.example cargo test \
+    -p leptos-hl-contact --all-features --test server -- --ignored resend::live_
+```
+
+`RESEND_TO` overrides the recipient, for a site that wants to see a real
+message; without it, nothing reaches a real mailbox.  Run it by hand before
+a release that touches `delivery/resend.rs`, `delivery/body.rs`, or `http.rs`.
 
 ## Running the examples
 

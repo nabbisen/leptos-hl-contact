@@ -395,6 +395,41 @@ pub enum SmtpTlsMode { StartTls /* default */, Tls, DangerousPlaintext }
 `SmtpConfig` and `LettreSmtpDelivery` implement `Debug` with the password
 redacted.
 
+### `delivery::resend` (feature `delivery-resend`)
+
+Not re-exported at the crate root — like `delivery::smtp`, reached by the
+full path.
+
+```rust,ignore
+#[non_exhaustive]
+pub struct ResendConfig { /* private */ }
+impl ResendConfig {
+    pub const DEFAULT_TIMEOUT: Duration;   // 10 s
+    pub fn new(api_key: impl Into<String>, from_address: impl Into<String>, to_address: impl Into<String>) -> Self;
+    pub fn with_subject_prefix(self, prefix: impl Into<String>) -> Self;
+    pub fn with_timeout(self, timeout: Duration) -> Self;
+}
+
+pub struct ResendDelivery { /* private */ }
+impl ResendDelivery {
+    pub fn new(config: ResendConfig) -> Self;
+    pub fn with_url(self, url: impl Into<String>) -> Self;   // a proxy or a test server; must be https outside local testing
+}
+impl ContactDelivery for ResendDelivery { /* one JSON POST, natively and on a wasm32 server */ }
+```
+
+`ResendConfig::new` takes only the three required values; `subject_prefix`
+defaults to empty and `timeout` to `DEFAULT_TIMEOUT`.  Both `ResendConfig`
+and `ResendDelivery` implement `Debug` with the key redacted.  Runs natively
+and on a Cloudflare Workers server, through the same private HTTP transport
+`challenge-http` uses — no `tokio` runtime needed.
+
+Errors: 401/403 → `Configuration`; 422 → `MessageBuild`; 429, 5xx, or
+anything else non-2xx → `Transport`, naming the status code and nothing
+else — never the vendor's own error text.  `HttpError::Timeout` (the shared
+module's) becomes `ContactDeliveryError::Timeout(config.timeout)`, the same
+code and text a slow SMTP relay produces.
+
 ## `security`
 
 ```rust,ignore

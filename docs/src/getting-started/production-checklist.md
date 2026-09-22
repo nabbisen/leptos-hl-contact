@@ -15,6 +15,7 @@ that explains it.
 | ☐ | Reverse proxy sets and validates `X-Forwarded-For` | [Hardening](../security/hardening.md#rate-limiting) |
 | ☐ | SMTP credentials loaded from environment or a secret store, never source | [Hardening](../security/hardening.md#secrets) |
 | ☐ | `SmtpTlsMode::StartTls` or `Tls`, never `DangerousPlaintext` | [Delivery Backends](../guides/delivery-backends.md) |
+| ☐ | Using `ResendDelivery`: the API key comes from the environment; the sender's domain is verified at the provider; a delivery failure has been seen once in staging, not only imagined | [Delivery Backends](../guides/delivery-backends.md#resenddelivery) |
 | ☐ | Server policy set if the UI requires a subject or caps the message | [Customization](../guides/customization.md#contactserverpolicy) |
 | ☐ | Logs reviewed: no message bodies, addresses, or secrets | [Security](../security/README.md) |
 | ☐ | Success page configured (`success_redirect`) if visitors without JavaScript must see a confirmation | [Customization](../guides/customization.md#success-page) |
@@ -27,7 +28,7 @@ In addition to the rows above that apply (TLS and body limits are Cloudflare's):
 
 | Done | Item | Where |
 |------|------|-------|
-| ☐ | Features: `ssr`, `form-token`, `challenge-http`, `axum-helpers`, `delivery-timeout`; not `smtp-lettre` | [Cloudflare Workers](../guides/cloudflare-workers.md#what-works) |
+| ☐ | Features: `ssr`, `form-token`, `delivery-resend` (or your own backend), `axum-helpers`, `delivery-timeout`; not `smtp-lettre`, which cannot run here | [Cloudflare Workers](../guides/cloudflare-workers.md#what-works) |
 | ☐ | `ChallengeClientIp` provided from `CF-Connecting-IP`, if you use a challenge | [The visitor's IP](../guides/cloudflare-workers.md#the-visitors-ip) |
 | ☐ | Rate limit on `POST` verified on the deployed Worker: the Rate Limiting binding before the router, or a rate-limiting rule | [Rate limiting](../guides/cloudflare-workers.md#rate-limiting) |
 | ☐ | Content Security Policy per the challenge provider; honeypot class and `honeypot_inline_style: false` without `'unsafe-inline'` | [Challenge: CSP](../security/challenge.md#content-security-policy) |

@@ -4,6 +4,18 @@ Delivery is separated from the form through the `ContactDelivery` trait.
 The server function hands every validated submission to whatever
 implementation you registered as `ContactDeliveryContext`.
 
+**Which backend to use:**
+
+| Backend | Runs on | Needs |
+|---------|---------|-------|
+| `LettreSmtpDelivery` | native only | an SMTP relay you run or rent |
+| `ResendDelivery` | native **and** Cloudflare Workers | an API key at [Resend](https://resend.com) |
+| Your own | any target your code targets | whatever your backend needs |
+
+On a Worker, SMTP cannot run at all (no `tokio` runtime); `ResendDelivery` is
+the built-in option there — see
+[Cloudflare Workers](./cloudflare-workers.md#delivery-on-a-worker).
+
 ## NoopDelivery
 
 Discards every submission and logs one line at `debug`.  No feature flag.
@@ -88,6 +100,50 @@ Message:
 ```
 
 A site that defines no fields sends the same body as before.
+
+## ResendDelivery
+
+Sends through [Resend](https://resend.com)'s HTTP API.  Requires the
+`delivery-resend` feature.  Unlike SMTP, it needs no `tokio` runtime, so it
+also runs on a Cloudflare Workers server.
+
+```rust,ignore
+use std::sync::Arc;
+use leptos_hl_contact::delivery::{
+    ContactDeliveryContext,
+    resend::{ResendConfig, ResendDelivery},
+};
+
+let delivery: ContactDeliveryContext = Arc::new(ResendDelivery::new(
+    ResendConfig::new(
+        std::env::var("RESEND_API_KEY")?,
+        std::env::var("RESEND_FROM")?,
+        std::env::var("CONTACT_TO")?,
+    )
+    .with_subject_prefix("[Contact]"),
+));
+```
+
+`ResendConfig::new` takes only the three values it cannot work without —
+the API key, the sender, and the recipient.  Everything else has a default
+and is changed with a builder (`with_subject_prefix`, `with_timeout`), so a
+field added to the config later needs no migration line, unlike
+`SmtpConfig`'s plain fields.
+
+| What | Where |
+|------|-------|
+| The API key | an environment variable — never source; see [Hardening](../security/hardening.md) |
+| The sender (`from`) | a domain verified with Resend; an unverified one is rejected by Resend itself, not checked here |
+| The recipient (`to`) | wherever enquiries should land |
+| A missing value | `api_key`, `from_address` or `to_address` left empty is accepted at construction and reported as `Configuration` on the first delivery — naming which one, never a value — so a missing environment variable fails closed rather than at startup, which a Worker does not have |
+| The deadline | `ResendConfig::DEFAULT_TIMEOUT` (10 s) bounds the one HTTP request this backend makes.  `DeliveryTimeout` still composes around it (an outer bound), but the adapter's own limit is what normally applies first |
+| The body | the same plain text `LettreSmtpDelivery` sends, including the site's own fields |
+| Errors | 401/403 → `Configuration`; 422 → `MessageBuild`; 429, 5xx, or anything else non-2xx → `Transport`.  The message carries the status code (`"HTTP 429"`) and nothing else — never the vendor's own error text |
+| An overridden endpoint (`with_url`) | for a forwarding proxy or a test server, like `HttpChallengeVerifier::with_verify_url`; **must be `https`** outside local testing — the crate warns, once, when it is not (see [Hardening](../security/hardening.md)) |
+
+On success the provider's message id is logged at `info`, for tracing an
+enquiry the recipient says never arrived; nothing else from the answer is
+read.
 
 ## Writing your own backend
 

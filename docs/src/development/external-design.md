@@ -327,7 +327,7 @@ Covered by §2.2.  Additional guarantees:
 | Concurrency | may be called concurrently; implementations hold no per-call mutable state |
 | Errors | four categories: `Configuration`, `Transport`, `MessageBuild`, `Internal`; detail is logged by the crate, never shown to the visitor |
 | Error text | logged verbatim for operators: the category and transport detail (status codes, the relay's reply), never the submission — no name, email address, subject, message, token or credential [FR-OBS-02, FR-OBS-03] |
-| Time | bounded (0.6.0, RFC 009): the SMTP backend stops at `SmtpConfig::timeout` (default 30 s, connect through the final reply); any other backend is bounded by wrapping it in `DeliveryTimeout`.  On expiry the delivery is dropped and the visitor sees `delivery_timeout`.  A queue adapter remains a Future item [FR-DEL-08] |
+| Time | bounded (0.6.0, RFC 009): the SMTP backend stops at `SmtpConfig::timeout` (default 30 s, connect through the final reply); the Resend backend (RFC 017) stops at `ResendConfig::timeout` (default 10 s, the one HTTP request); any other backend is bounded by wrapping it in `DeliveryTimeout`, which still composes around either built-in backend as an outer bound.  On expiry the delivery is dropped and the visitor sees `delivery_timeout`.  A queue adapter remains a Future item [FR-DEL-08] |
 | Cancellation | a delivery may be cancelled at any `.await` when wrapped in a timeout; implementations do not leave shared state half-updated across an `.await` |
 
 #### 4.4.2 Email message specification (SMTP backend)
@@ -370,7 +370,20 @@ because it is body content, not a header.
 |---------|---------|-----------|-----------|------|
 | `NoopDelivery` | none | discards | — | `debug` "discarding contact form submission" |
 | `LettreSmtpDelivery` | `smtp-lettre` | SMTP via `lettre`, tokio, native TLS | `StartTls` (587, default), `Tls` (465), `DangerousPlaintext` | `info` on success, `error` with transport detail on failure |
+| `ResendDelivery` | `delivery-resend` | one JSON `POST` through the shared HTTP transport (RFC 011 D3, RFC 017 D1); `reqwest` with rustls natively, `fetch` on a wasm32 server — no `tokio` on either | `https` always (the endpoint is a fixed `const`; an overridden one warns if it is not) | `info` with the provider's message id on success (absent or unparsable is not an error); `error` on every failure it produces itself except a timeout, which `submit_contact` logs |
 | custom | — | integrator-defined | — | integrator-defined; MUST follow [FR-OBS-02] |
+
+**`ResendDelivery`'s error mapping** (RFC 017 D4), the text carrying the
+status code and never the vendor's own:
+
+| Vendor status | `ContactDeliveryError` |
+|---------------|------------------------|
+| 2xx | — (success) |
+| 401, 403 | `Configuration("HTTP {status}")` |
+| 422 | `MessageBuild("HTTP {status}")` |
+| 429, 5xx, anything else non-2xx | `Transport("HTTP {status}")` |
+| a network failure, or an unusable answer | `Transport(<the shared module's own text>)`, never a URL |
+| the time limit | `Timeout(config.timeout)` |
 
 ### 4.5 Configuration interface
 
@@ -386,6 +399,7 @@ because it is body content, not a header.
 | `axum-helpers` | `ssr` | `axum_helpers` | supported |
 | `form-token` | `ssr` | `form_token` module, token field verification | supported (JavaScript clock) |
 | `challenge-http` | `ssr` | `HttpChallengeVerifier` (vendor siteverify calls over HTTPS) | supported (`fetch`) |
+| `delivery-resend` | `ssr` | `delivery::resend` (Resend's HTTP API over HTTPS) | supported (`fetch`) |
 
 `default = []`.  Features are additive; enabling one never removes an API.
 
@@ -451,7 +465,7 @@ reputation); visitor PII in transit; the application's availability.
 | T12 | Silent insecure misconfiguration | missing context, default secret | fail-closed; examples require env vars | crate + examples | Met |
 | T13 | Stored XSS through the form | echoing input in HTML | input never echoed; Leptos escapes | crate | Met |
 | T14 | Relay abuse as open relay | attacker-controlled `To` | `To` fixed by config | crate | Met |
-| T15 | Slow relay holding connections | delivery without timeout | the SMTP backend's deadline (`SmtpConfig::timeout`, 30 s by default, covering the whole exchange); `DeliveryTimeout` for any other backend; the visitor sees `delivery_timeout` | crate | Met (0.6.0); residual: a custom backend not wrapped in `DeliveryTimeout` |
+| T15 | Slow relay or vendor holding connections | delivery without timeout | the SMTP backend's deadline (`SmtpConfig::timeout`, 30 s by default, covering the whole exchange); the Resend backend's deadline (`ResendConfig::timeout`, 10 s by default, RFC 017); `DeliveryTimeout` for any other backend; the visitor sees `delivery_timeout` | crate | Met (0.6.0, RFC 017); residual: a custom backend not wrapped in `DeliveryTimeout` |
 | T16 | Open redirect or header injection through the success page | a configured redirect path that leaves the site, or carries CR/LF into the `Location` header | `ContactSuccessRedirect::new` accepts only site-relative paths: it requires a leading `/`, rejects `//`, `\`, `://`, and every control or whitespace character, so neither an off-site target nor a header break survives construction.  The path is fixed at startup and never read from form input or a query parameter | crate | Met (0.4.0) |
 | T17 | Cookie tossing defeats binding | a sibling subdomain sets the binding cookie with `Domain` and `SameSite=None`, paired with a token the attacker fetched for that nonce | `__Host-` cookie prefix, applied when the cookie is `Secure` on `/`; a second `__Host-` cookie from our own origin fails closed (`BindingMismatch`); Origin validation still rejects the POST | crate + app | Met at defaults (0.5.0); not with `secure: false` or a non-root path, documented |
 | T18 | Detection oracle on silent outcomes | a bot compares the response to a honeypot hit or `SilentDrop` with a genuine submission's: with a success page configured, only the genuine one carried the redirect | every successful outcome applies the success redirect through one helper | crate | Met (0.5.0, `67c1ac1`); regressed in 0.4.0 |

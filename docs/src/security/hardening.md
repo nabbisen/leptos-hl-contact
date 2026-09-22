@@ -108,11 +108,16 @@ fallback for older clients.
 
 ## Secrets
 
-Load `SMTP_PASS`, `FORM_TOKEN_SECRET`, and any API keys from environment
-variables or a secret store.  Never commit them, never fall back to a
-built-in default, and refuse to start when they are missing.  The crate's
-config types redact secrets in `Debug` output so an accidental
+Load `SMTP_PASS`, `FORM_TOKEN_SECRET`, and any API keys (Resend's included)
+from environment variables or a secret store.  Never commit them, never
+fall back to a built-in default, and refuse to start when they are missing.
+The crate's config types redact secrets in `Debug` output so an accidental
 `{:?}` does not leak them.
+
+An overridden endpoint — `ResendDelivery::with_url`,
+`HttpChallengeVerifier::with_verify_url` — carries that same secret, so it
+must be `https` outside local testing; the crate itself logs one warning
+when it is not.
 
 ## Layer order
 

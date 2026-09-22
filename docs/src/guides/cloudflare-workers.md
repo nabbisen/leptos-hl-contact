@@ -14,10 +14,13 @@ runtime.  This page covers what differs from
 | `challenge-http` | supported: the same request through the global `fetch` |
 | `axum-helpers` | supported |
 | `delivery-timeout` | supported: a JavaScript timer instead of tokio's |
+| `delivery-resend` | supported: the same request through the global `fetch` |
 | `smtp-lettre` | **not supported**: lettre's transport needs tokio and native TLS |
 
-Delivery on a Worker is your own backend, such as a mail provider's HTTP
-API; see [Writing your own backend](./delivery-backends.md#writing-your-own-backend).
+`ResendDelivery` (`delivery-resend`) is the built-in delivery for a Worker
+without a backend of its own — see [Delivery on a Worker](#delivery-on-a-worker).
+A site that needs a different provider still writes its own backend; see
+[Writing your own backend](./delivery-backends.md#writing-your-own-backend).
 
 ## Dependencies
 
@@ -68,7 +71,34 @@ feature for server builds on wasm32, which selects its JavaScript backend.
 
 ## Delivery on a Worker
 
-On a Worker, a delivery's future need not be `Send`, so it may hold
+**Use `ResendDelivery` (`delivery-resend`) unless you already have a
+different provider.**  It has no `Send` bound to satisfy — the shared HTTP
+transport it uses goes through the global `fetch` the same way
+`challenge-http` does — and needs no wiring beyond an API key:
+
+```rust,ignore
+use std::sync::Arc;
+use leptos_hl_contact::delivery::{
+    ContactDeliveryContext,
+    resend::{ResendConfig, ResendDelivery},
+};
+
+let delivery: ContactDeliveryContext = Arc::new(ResendDelivery::new(
+    ResendConfig::new(
+        env.secret("RESEND_API_KEY")?.to_string(),
+        env.var("RESEND_FROM")?.to_string(),
+        env.var("CONTACT_TO")?.to_string(),
+    ),
+));
+```
+
+See [Delivery Backends](./delivery-backends.md#resenddelivery) for the full
+config, the deadline, and the error mapping.
+
+### Writing your own backend instead
+
+For a different provider, or anything that is not an HTTP API, write your
+own.  On a Worker, a delivery's future need not be `Send`, so it may hold
 JavaScript values, such as a pending `fetch`, across an `.await`.  Return the
 `DeliveryFuture` alias, which drops `Send` on a wasm32 server and keeps it
 natively:

@@ -183,3 +183,56 @@ async fn an_https_override_does_not_warn() {
 
     assert!(!logs.any_contains(HTTPS_WARNING), "{:?}", logs.lines());
 }
+
+// ---- live: Resend's own test recipient (RFC 017 D6) --------------------------
+
+/// One real request to Resend's documented test recipient,
+/// `delivered@resend.dev`, which Resend always answers as delivered without
+/// involving a real mailbox (Resend, "Send test emails", checked
+/// 2026-09-22).  `RESEND_TO` overrides the recipient, for a site that wants
+/// a real one — otherwise no mail reaches a real person.
+///
+/// Skipped by default.  Run it explicitly, with a real key:
+///
+/// ```bash
+/// RESEND_API_KEY=re_... RESEND_FROM=you@yourdomain.example cargo test \
+///     -p leptos-hl-contact --all-features --test server -- --ignored resend::live_
+/// ```
+///
+/// The key never appears in this file, a fixture, or the request beyond the
+/// `Authorization` header Resend itself requires.
+///
+/// This test needs log capture (for the id, `deliver`'s `Ok` carries none)
+/// and so lives here, in the server suite, rather than beside the
+/// `#[ignore]`d live challenge tests in `src/challenge/http/tests.rs`: `src/`
+/// has no log capture (see the module doc of `tests/server/support/logs.rs`).
+#[tokio::test]
+#[ignore = "calls Resend"]
+async fn live_test_recipient_is_delivered_and_logs_an_id() {
+    let api_key = std::env::var("RESEND_API_KEY").expect("RESEND_API_KEY");
+    let from = std::env::var("RESEND_FROM").expect("RESEND_FROM");
+    let to = std::env::var("RESEND_TO").unwrap_or_else(|_| "delivered@resend.dev".into());
+
+    let (logs, _guard) = capture_logs();
+    let delivery = ResendDelivery::new(ResendConfig::new(api_key, from, to));
+    let input = ContactInput::from_raw(
+        "Live Test".into(),
+        "live-test@example.test".into(),
+        Some("RFC 017 live test".into()),
+        "Sent by the leptos-hl-contact live test suite.".into(),
+        String::new(),
+    );
+
+    delivery.deliver(input).await.expect("Resend answered");
+
+    assert!(
+        logs.any_contains("contact form submission delivered via Resend"),
+        "the capture saw:\n{}",
+        logs.lines().join("\n")
+    );
+    assert!(
+        logs.lines().iter().any(|line| line.contains(" id=")),
+        "a message id was logged; the capture saw:\n{}",
+        logs.lines().join("\n")
+    );
+}

@@ -24,16 +24,18 @@ ContactForm  →  submit_contact (server fn)  →  ContactDelivery (trait)
   as a plain POST without JavaScript.
 - **`submit_contact`** runs on the server only: token check, normalise,
   honeypot, validate, policy, deliver.
-- **`ContactDelivery`** is a trait.  SMTP (`LettreSmtpDelivery`) and a
-  no-op backend ship with the crate; anything else is one `impl` away.
+- **`ContactDelivery`** is a trait.  SMTP (`LettreSmtpDelivery`), Resend's
+  HTTP API (`ResendDelivery`, native and Cloudflare Workers), and a no-op
+  backend ship with the crate; anything else is one `impl` away.
 
 ---
 
 ## When to use it
 
 - A Leptos SSR or Islands app needs a contact form.
-- You want SMTP delivery with minimal wiring and no credentials in WASM.
-- You may swap the backend later (SendGrid, SES, Resend, a database).
+- You want SMTP or Resend delivery with minimal wiring and no credentials in
+  WASM.
+- You may swap the backend later (SendGrid, SES, a database).
 
 ---
 

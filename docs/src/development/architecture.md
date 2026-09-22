@@ -57,6 +57,7 @@ conditions and security notes; behaviour is specified in
 | `delivery` | trait + `ContactDeliveryContext` | server |
 | `delivery::noop` | `NoopDelivery` | server |
 | `delivery::smtp` | `LettreSmtpDelivery`, `SmtpConfig`, `SmtpTlsMode` | `smtp-lettre` |
+| `delivery::resend` | `ResendDelivery`, `ResendConfig` | `delivery-resend` |
 | `form_token` | `FormTokenConfig`, `FormToken`, `issue_form_token`, `verify_form_token` | `form-token` |
 | `axum_helpers` | `provide_contact_delivery`, `delivery_context_fn` | `axum-helpers` |
 
@@ -115,6 +116,7 @@ delivery-timeout  + tokio (time)             (server)
 axum-helpers      + axum, leptos_axum        (server)
 form-token        + hmac, sha2, rand, hex    (server)
 challenge-http    + reqwest (native), web-sys fetch (wasm32 server)
+delivery-resend   + reqwest (native), web-sys fetch (wasm32 server)
 ```
 
 ## Build paths
@@ -124,9 +126,9 @@ places the code differs.
 
 | Path | Condition | What changes |
 |------|-----------|--------------|
-| **Native server** | `not(target_arch = "wasm32")`, `ssr` | tokio for `DeliveryTimeout` and the SMTP backend; reqwest for `HttpChallengeVerifier`; `SystemTime` for the form token; extension futures are `Send` |
+| **Native server** | `not(target_arch = "wasm32")`, `ssr` | tokio for `DeliveryTimeout` and the SMTP backend; reqwest for `HttpChallengeVerifier` and `ResendDelivery`, through the shared `http.rs`; `SystemTime` for the form token; extension futures are `Send` |
 | **Browser** | `target_arch = "wasm32"`, `hydrate`, no `ssr` | client code only: the component, token refresh, widget rendering.  None of the server paths is compiled |
-| **wasm32 server** (Cloudflare Workers) | `all(target_arch = "wasm32", feature = "ssr")` | extension futures need not be `Send` (the `DeliveryFuture`, `VerifyFuture` and `FilterFuture` aliases), and `submit_contact` awaits them through `SendWrapper`; `js_sys::Date` for the form token's clock; `wasm_timer.rs` (`setTimeout` from the global scope) for `DeliveryTimeout` and the verifier's limit; `challenge/http/fetch.rs` (the global `fetch`, `redirect: "manual"`, an `AbortController`) for `HttpChallengeVerifier`.  tokio is compiled in through `leptos_axum`, but no tokio runtime is started |
+| **wasm32 server** (Cloudflare Workers) | `all(target_arch = "wasm32", feature = "ssr")` | extension futures need not be `Send` (the `DeliveryFuture`, `VerifyFuture` and `FilterFuture` aliases), and `submit_contact` awaits them through `SendWrapper`; `js_sys::Date` for the form token's clock; `wasm_timer.rs` (`setTimeout` from the global scope) for `DeliveryTimeout` and the shared HTTP transport's limit; `http/fetch.rs` (the global `fetch`, `redirect: "manual"`, an `AbortController`) for both `HttpChallengeVerifier` and `ResendDelivery` (RFC 017 D1).  tokio is compiled in through `leptos_axum`, but no tokio runtime is started |
 
 RFC 011 records the decisions; `tests/worker/` runs the wasm32 server paths
 in headless Chrome.
@@ -148,11 +150,13 @@ crates/leptos-hl-contact/src/
   form_token.rs          form_token/tests.rs
   challenge.rs           challenge/tests.rs
                          challenge/http.rs  challenge/http/tests.rs
-                         challenge/http/fetch.rs   (wasm32 server)
   filter.rs              filter/tests.rs
   delivery.rs            delivery/noop.rs  delivery/noop/tests.rs
+                         delivery/body.rs  delivery/body/tests.rs
                          delivery/smtp.rs  delivery/smtp/tests.rs
+                         delivery/resend.rs  delivery/resend/tests.rs
                          delivery/timeout.rs  delivery/timeout/tests.rs
+  http.rs                http/fetch.rs (wasm32 server)  http/tests.rs (native)
   axum_helpers.rs        axum_helpers/tests.rs
   wasm_timer.rs          a JavaScript timer (wasm32 server)
 examples/

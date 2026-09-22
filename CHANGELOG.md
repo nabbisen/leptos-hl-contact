@@ -11,7 +11,22 @@
   site's own fields.  `ResendConfig::new` takes only the three required
   values (the API key, the sender and the recipient); everything else has a
   default and is changed with a builder, so a config added later needs no
-  migration line.
+  migration line.  A failure carries a status code and never the vendor's
+  own text; `with_url`, for a proxy or a test server, warns once if it is
+  not `https`.  This is the built-in delivery for a Worker without a
+  backend of its own; see the Cloudflare Workers guide.
+
+### Documentation
+
+- **Which delivery backend to use.**  Delivery Backends opens with a table
+  (SMTP, Resend, your own) and gains a `ResendDelivery` section.  The
+  Cloudflare Workers guide no longer says "bring your own backend": Resend
+  is the built-in option there, with writing your own kept as an
+  alternative.  Also updated: Feature Flags, the API reference, the
+  Production Checklist, Hardening (an overridden endpoint's secret needs
+  `https`), the README, and the `development/` pages (external design's
+  delivery table and error mapping, architecture's source layout and module
+  map, testing's traceability and the live test).
 
 ### Fixed
 
