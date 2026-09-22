@@ -36,6 +36,7 @@ leptos-hl-contact = { version = "0.8", default-features = false, features = [
     "ssr",
     "form-token",
     "challenge-http",
+    "delivery-resend", # the built-in delivery on a Worker; see below
     "axum-helpers",
     "delivery-timeout",
 ] }
