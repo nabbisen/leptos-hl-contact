@@ -15,7 +15,9 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Priority |
 |----|-------|----------|
-| — | *(none)* | |
+| 018 | [An opt-in check that the email domain can receive mail](./proposed/018-email-domain-check.md) | High (M8) |
+| 019 | [An opt-in `novalidate`](./proposed/019-optional-novalidate.md) | Medium (M8) |
+| 020 | [Test follow-ups, and translations as contributed examples](./proposed/020-test-and-docs-follow-ups.md) | Low (M8) |
 
 ## Accepted
 

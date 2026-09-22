@@ -107,7 +107,17 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 
 ## Current
 
-No milestone in progress.  The next milestone is planned jointly with the owner; candidates are listed under Unscheduled below.
+### M8 — Fewer dead-end enquiries → next release — **authorized 2026-09-22**
+
+Owner decision 2026-09-22, on the question "which of these profits an app team": **P-35** as the theme, **P-41** alongside it, **P-38** folded in as tests, and **P-20 reshaped into documentation** rather than shipped translations.  RFCs 018, 019 and 020 proposed the same day, awaiting acceptance.
+
+| ID | Item | Priority | Kind | Evidence |
+|----|------|----------|------|----------|
+| P-35 | An opt-in check that an address's domain can receive mail at all: MX with the RFC 5321 §5.1 address-record fallback, null MX refused, every failure of ours accepted with a `warn`; the lookup goes over the shared HTTPS transport so it works natively **and** on a Worker, which has no UDP | **High** | [RFC 018](./rfcs/proposed/018-email-domain-check.md) (proposed; step-0 spike on DNS over HTTPS first) | the owner's original question, 2026-09-13: a syntactically valid address that cannot receive mail wastes the site owner's reply |
+| P-41 | An opt-in `novalidate` (`ContactFormOptions::native_validation`, default `true`), so a translated site's own error text is what the visitor reads instead of the browser's pop-up in the browser's language | Medium | [RFC 019](./rfcs/proposed/019-optional-novalidate.md) (proposed) | the reflerd.com team, 2026-09-17: a Japanese page in an English browser |
+| P-38 | Mutation-run follow-up tests, from 0.6.0 to 0.9.0: the token's TTL and future-skew boundaries, four `Debug` impls, `provide_contact_delivery`, two logging-only arms, and a 64,000-byte response body (the cap's own value) | Low | [RFC 020](./rfcs/proposed/020-test-and-docs-follow-ups.md) D1 (proposed) | no defect found; each would catch a silent regression |
+| P-20 | Multi-language labels — **reshaped 2026-09-22**: the Localization guide keeps a complete copyable example and gains a contribution path, instead of the crate shipping translations it cannot verify and must keep complete for every new error code | Low | [RFC 020](./rfcs/proposed/020-test-and-docs-follow-ups.md) D2 (proposed) | the strings are a security-adjacent interface; a plausible-but-wrong translation is worse than none |
+
 
 ---
 
@@ -115,11 +125,7 @@ No milestone in progress.  The next milestone is planned jointly with the owner;
 
 | ID | Item | Priority | Kind |
 |----|------|----------|------|
-| P-20 | Multi-language label presets (GUI rule requires i18n) | Medium | RFC |
 | P-26 | Scheduled CI job running the `#[ignore]` live vendor tests; deferred by the owner on 2026-09-12 because it carries a cost | TBD (owner) | RFC |
-| P-35 | Opt-in mail-domain check: a DNS lookup for a mail exchanger (falling back to an address record, RFC 5321 §5.1) behind a feature, time-bounded, reported as an error under the email field so a visitor can fix a typo; accepts with a `warn` log when DNS does not answer.  Catches non-existent domains, not non-existent mailboxes | Low — **approved** 2026-09-13, less prioritized | RFC |
-| P-41 | An opt-in `novalidate` on the form, so a site's translated field errors replace the browser's own validation pop-ups (`required`, `type="email"`), which no label reaches; the server checks are unchanged and the default markup stays as it is.  `novalidate` is current in the HTML Living Standard.  Open for its RFC: whether the hydrated form validates before submitting, focus without the pop-up, keeping `required`/`aria-required`/`maxlength` | Low — **proposed** | RFC |
-| P-38 | Mutation-run follow-up from 0.6.0: pin the form token's TTL and future-skew boundaries with tests; assert the `challenge unavailable` and missing-context log events; test `provide_contact_delivery`; browser tests for `remove_widget`, the reCAPTCHA v2 `ready` arm, hCaptcha and reCAPTCHA global names, and the hydrating path.  From 0.7.0's run: a worker test that finishes a delivery before its deadline and waits past it, so `wasm_timer`'s `Sleep::drop` must clear the timer.  No defect found; each would catch a silent regression.  From 0.9.0's run: a 64,000-byte response body is accepted (the cap's boundary tests build their bodies from the constant, so they cannot catch a change to its value) | Low — **proposed** | handoff (tests only) |
 
 ### Future
 
@@ -139,7 +145,9 @@ No milestone in progress.  The next milestone is planned jointly with the owner;
 
 ## Decisions required from the owner
 
-*(none open)*
+- **RFC 018** (the email domain check): accept, with its five questions — MX plus the address-record fallback and null MX only; a distinct error code and label so the visitor is told what is actually wrong; **no default resolver**, because that would choose a third party for the site; no cache; a 2-second timeout.
+- **RFC 019** (the opt-in `novalidate`): accept, with `native_validation` defaulting to `true`.
+- **RFC 020** (tests, and translations as contributed examples): accept, with P-20 as documentation rather than shipped presets.
 
 ---
 
@@ -260,3 +268,5 @@ Owner decisions of 2026-09-22: P-22 next, one adapter first; RFC 017 accepted as
 - 2026-09-22: M7 authorized — P-22, delivery through an email HTTP API, one adapter first.  RFC 017 proposed.
 - 2026-09-22: M7 released as 0.9.0 (decided); the live delivery test does not hold the release — it is run if a key is available and its state is stated either way.
 - 2026-09-22: 0.9.0 released — tag `0.9.0` on `2732490`, published by the architect under the owner's authorisation; M7 complete.  The live delivery test is still unrun and is recorded as a known issue; the reflerd.com letter asks about it without obligation.
+- 2026-09-22: M8 authorized — P-35 (the theme), P-41, P-38, and P-20 reshaped into documentation.  RFCs 018, 019 and 020 proposed.
+- 2026-09-22: **an integrator's report is evidence, not a work item.**  The reflerd.com team asked that their reports be information rather than a queue (letter of 2026-09-22 §5).  Four releases in nine days were shaped by their reports; each was taken because it was right for the crate, and "not now, or not at all" is a complete answer.  P-20 is the current test of it: reshaped rather than built as asked.
