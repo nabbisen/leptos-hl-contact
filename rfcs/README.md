@@ -15,7 +15,7 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Priority |
 |----|-------|----------|
-| — | *(none)* | |
+| 017 | [Delivery through an email HTTP API](./proposed/017-http-api-delivery.md) | High (M7) |
 
 ## Accepted
 

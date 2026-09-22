@@ -99,7 +99,13 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 
 ## Current
 
-No milestone in progress.  The next milestone is planned jointly with the owner; candidates are listed under Unscheduled below.
+### M7 — Delivery without SMTP → next release — **authorized 2026-09-22**
+
+Owner decision 2026-09-22: P-22 is the next milestone, one adapter first.  RFC 017 proposed the same day, recommending Resend, with a private HTTP module shared with `challenge-http` extracted first.  Awaiting acceptance.
+
+| ID | Item | Priority | Kind | Evidence |
+|----|------|----------|------|----------|
+| P-22 | Delivery through an email HTTP API: one built-in backend that posts the enquiry as JSON, natively and on a Worker, so a site without SMTP — and every Worker, which cannot run SMTP — has a built-in option | **High** | [RFC 017](./rfcs/proposed/017-http-api-delivery.md) (proposed; owner questions on the provider, the names, the refactor-first handoff, idempotency and the live test) | the reflerd.com team had to write an SMTP backend over raw sockets for their Worker (2026-09-16) |
 
 ---
 
@@ -108,7 +114,6 @@ No milestone in progress.  The next milestone is planned jointly with the owner;
 | ID | Item | Priority | Kind |
 |----|------|----------|------|
 | P-20 | Multi-language label presets (GUI rule requires i18n) | Medium | RFC |
-| P-22 | HTTP-API delivery adapters: Resend, SendGrid, AWS SES; one adapter first, working natively and on Workers (`fetch`) | TBD — **after M6** (owner, 2026-09-17) | RFC per adapter |
 | P-26 | Scheduled CI job running the `#[ignore]` live vendor tests; deferred by the owner on 2026-09-12 because it carries a cost | TBD (owner) | RFC |
 | P-35 | Opt-in mail-domain check: a DNS lookup for a mail exchanger (falling back to an address record, RFC 5321 §5.1) behind a feature, time-bounded, reported as an error under the email field so a visitor can fix a typo; accepts with a `warn` log when DNS does not answer.  Catches non-existent domains, not non-existent mailboxes | Low — **approved** 2026-09-13, less prioritized | RFC |
 | P-41 | An opt-in `novalidate` on the form, so a site's translated field errors replace the browser's own validation pop-ups (`required`, `type="email"`), which no label reaches; the server checks are unchanged and the default markup stays as it is.  `novalidate` is current in the HTML Living Standard.  Open for its RFC: whether the hydrated form validates before submitting, focus without the pop-up, keeping `required`/`aria-required`/`maxlength` | Low — **proposed** | RFC |
@@ -132,7 +137,7 @@ No milestone in progress.  The next milestone is planned jointly with the owner;
 
 ## Decisions required from the owner
 
-*(none open)*
+- **RFC 017** (delivery through an email HTTP API): accept, with its five questions — Resend first; the names `delivery-resend` / `ResendDelivery`; extracting the shared HTTP module in its own handoff; no idempotency key yet; an `#[ignore]`d live test.
 
 ---
 
@@ -242,3 +247,4 @@ Owner decisions of 2026-09-17: site-defined fields accepted as a **bounded** fea
 - 2026-09-17: RFCs 014, 015 and 016 accepted.  RFC 015's maximum lowered from 8 to 4: 8 had no evidence behind it, the known need is 3, and raising a bound later is additive while lowering breaks sites.  RFC 016 weighed item by item for profit and cost: all kept; Dependabot for GitHub Actions only, monthly, one grouped pull request; no CI cache action.
 - 2026-09-22: 0.8.0 released — tag `0.8.0` on `64e05b6`, published by the architect under the owner's authorisation; M6 complete.  The release candidate was approved on one condition, a test pinning the `Text` length boundary the mutation run found unpinned.
 - 2026-09-22: the 0.8.0 letter to the reflerd.com team sent: the upgrade (Rust 1.88 and three struct fields), how to define their own fields and why the bound is four, and `ChallengeSize::Compact` for their 360 px layout.
+- 2026-09-22: M7 authorized — P-22, delivery through an email HTTP API, one adapter first.  RFC 017 proposed.
