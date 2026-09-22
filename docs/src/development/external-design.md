@@ -385,6 +385,28 @@ status code and never the vendor's own:
 | a network failure, or an unusable answer | `Transport(<the shared module's own text>)`, never a URL |
 | the time limit | `Timeout(config.timeout)` |
 
+#### 4.4.4 Email domain check (RFC 018)
+
+Runs after field validation and before the server policy and the challenge
+(§5.3, row 8); one GET always, a second only when the MX answer carries no
+MX record.  Decision, from the DoH JSON answer's `Status` and
+`Answer[].type`:
+
+| Case | `DomainVerdict` |
+|------|-----------------|
+| MX present, not a null MX | `Accept` |
+| No MX, an A or AAAA record present | `Accept` |
+| Null MX (`"0 ."`, RFC 7505) | `Reject` |
+| NXDOMAIN, or NODATA on both queries | `Reject` |
+| SERVFAIL, or any RCODE this module does not specifically recognise | `Unknown("servfail")` |
+| The GET itself times out | `Unknown("timeout")` |
+| A transport failure, or a non-2xx HTTP status from the resolver | `Unknown("transport")` |
+| The body does not parse as the expected JSON shape | `Unknown("unparsable")` |
+
+`Reject` becomes `FieldErrorCode::EmailDomain` under the email field.
+`Unknown(reason)` accepts and logs `reason` at `warn` — one of the four
+fixed strings above, never the address or the domain (D5).
+
 ### 4.5 Configuration interface
 
 #### 4.5.1 Feature flags
@@ -400,6 +422,7 @@ status code and never the vendor's own:
 | `form-token` | `ssr` | `form_token` module, token field verification | supported (JavaScript clock) |
 | `challenge-http` | `ssr` | `HttpChallengeVerifier` (vendor siteverify calls over HTTPS) | supported (`fetch`) |
 | `delivery-resend` | `ssr` | `delivery::resend` (Resend's HTTP API over HTTPS) | supported (`fetch`) |
+| `email-domain-check` | `ssr` | `email_domain` module (DNS-over-HTTPS mail-route check) | supported (`fetch`) |
 
 `default = []`.  Features are additive; enabling one never removes an API.
 
@@ -492,10 +515,13 @@ expensive checks run.
    since render (RFC 004).
 6. Honeypot (crate).
 7. Field validation and server policy (crate).
-8. Optional challenge verification (crate, `challenge` feature, RFC 005):
+8. Optional email domain check (crate, `email-domain-check` feature, RFC
+   018): after field validation, so a syntax-invalid address never reaches
+   it; every failure of the lookup itself accepts.
+9. Optional challenge verification (crate, `challenge` feature, RFC 005):
    the only layer that needs JavaScript; no-JS submissions rejected by
    default when enabled.
-9. Optional pre-delivery filter hook (crate, RFC 006).
+10. Optional pre-delivery filter hook (crate, RFC 006).
 
 ### 5.4 Anti-forgery token: current design and decision
 

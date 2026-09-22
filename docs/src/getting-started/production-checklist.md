@@ -21,6 +21,7 @@ that explains it.
 | ☐ | Success page configured (`success_redirect`) if visitors without JavaScript must see a confirmation | [Customization](../guides/customization.md#success-page) |
 | ☐ | Form smoke-tested with JavaScript disabled | [Troubleshooting](../help/troubleshooting.md) |
 | ☐ | Optional: a challenge for high-value forms — widget and `ChallengeContext` both set, and the widget's no-JS policy matching the server's; `ChallengeContext` provided whenever the widget renders, with an empty secret if the secret is missing | [Challenge](../security/challenge.md), [A missing secret](../security/challenge.md#what-the-server-decides) |
+| ☐ | Optional: `EmailDomainCheck` — the resolver is named, and your privacy notice mentions it | [Email Domain Check](../security/email-domain.md#privacy) |
 
 ## Cloudflare Workers
 

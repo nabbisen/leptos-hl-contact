@@ -267,6 +267,40 @@ fn the_default_timeout_is_two_seconds() {
 }
 
 // ---------------------------------------------------------------------------
+// Live: a real resolver (RFC 018 D6)
+// ---------------------------------------------------------------------------
+
+/// Two real lookups against a real DNS-over-HTTPS resolver, for the two
+/// shapes whose answers are stable enough to assert on: a well-known domain
+/// with an MX record, and RFC 7505's own null-MX example.
+///
+/// Skipped by default.  Run it explicitly:
+///
+/// ```bash
+/// cargo test -p leptos-hl-contact --all-features --lib -- --ignored email_domain::tests::live_
+/// ```
+///
+/// No key or secret is needed — a public DoH endpoint takes none.  Asserts
+/// nothing about either domain beyond the one shape each is known for; a
+/// third-party domain's other records can change at any time.
+#[tokio::test]
+#[ignore = "queries a real resolver"]
+async fn live_a_well_known_domain_with_an_mx_record_accepts() {
+    let config = EmailDomainCheck::new("https://cloudflare-dns.com/dns-query");
+    let verdict = check("github.com", &config).await;
+    assert_eq!(verdict, DomainVerdict::Accept, "{verdict:?}");
+}
+
+/// RFC 7505's own null-MX example, queried live.
+#[tokio::test]
+#[ignore = "queries a real resolver"]
+async fn live_a_null_mx_domain_rejects() {
+    let config = EmailDomainCheck::new("https://cloudflare-dns.com/dns-query");
+    let verdict = check("example.com", &config).await;
+    assert_eq!(verdict, DomainVerdict::Reject, "{verdict:?}");
+}
+
+// ---------------------------------------------------------------------------
 // Break checks (required by the handoff), reported in the review request —
 // not asserted here: each is a temporary local edit, run, and reverted.
 // ---------------------------------------------------------------------------

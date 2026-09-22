@@ -42,6 +42,7 @@ never inline.  Groups:
 | `delivery/smtp/tests.rs` | message headers, `Reply-To` encoding, body content |
 | `delivery/resend/tests.rs` | `ResendDelivery` against a local responder: the request (bearer header, JSON fields, `reply_to`), the body, each status row, a timeout, redaction, and the `https` override warning |
 | `http/tests.rs` | `HttpClient` natively: the response-body cap, at and over the limit |
+| `email_domain/tests.rs` | the decision table against recorded DoH answers (both resolvers' shapes); the lookup over a local responder, including the address-query skip and a real timeout; two live tests against a real resolver (ignored) |
 | `axum_helpers/tests.rs` | closure is `Clone` |
 | `tests/server/` | the crate over HTTP, in process: every behaviour a response or a delivery shows (see below) |
 | `tests/browser/` | the component in headless Chrome: focus, token acquisition and refresh, explicit widget rendering (see below) |
@@ -74,7 +75,8 @@ else, and so does CI.
 
 - **`Harness::new(Setup { … })`** builds the router with just the context
   values a test needs: delivery, the form token (plain, bound to a cookie, or
-  absent), a success page, a server policy, a challenge, a filter.
+  absent), a success page, a server policy, a challenge, a filter, an
+  email domain check (a resolver URL, `email-domain-check` only).
   Everything is per test except the log subscriber, which is installed once
   for the binary and collects per test thread (see `support/logs.rs`).
 - **`submit_nojs`** posts as a browser without JavaScript does
@@ -214,6 +216,16 @@ for the test.  A real wait is allowed only where a JavaScript timer is the
 thing under test, and only for tens of milliseconds.  Cite the requirement
 ID in the doc comment.
 
+**Not covered here: the `email-domain-check` lookup's wasm32 path.**
+`email_domain::check`, `DomainVerdict` and `Answer` are `pub(crate)`, so
+this suite — which sees only `pub` items, the way every case above reaches
+its target through `ResendDelivery` or `HttpChallengeVerifier` — cannot
+reach them.  The shared transport's GET path (`fetch::get`, added
+alongside this feature) compiles and lints clean on this target, but has
+no test executing it on it; the decision logic itself is covered natively
+(`email_domain/tests.rs`) and through the router
+(`tests/server/email_domain.rs`).
+
 ## Requirement traceability
 
 Every **MUST** row of the [Requirements Specification](./requirements.md)
@@ -272,7 +284,7 @@ tests from the code side.
 | FR-SUB-09 | — | `delivery::a_delivery_error_reaches_the_client_only_as_delivery_failed`, `logging::no_personal_data_or_secret_is_logged`, `delivery::a_delivery_timeout_reaches_the_client_as_delivery_timeout` | — | — |
 | FR-SUB-10 | **none** | **none** | — | review: `std::env` appears in `src/` only inside rustdoc examples |
 | FR-VAL-01 | `model::empty_name_fails`, `model::newline_in_name_fails`, `model::over_long_name_still_yields_length_code`, `model::newline_in_name_yields_line_breaks_code` | `validation::each_rule_rejects_with_its_field_code` | — | — |
-| FR-VAL-02 | `model::invalid_email_fails`, `model::bad_email_yields_format_code`, `model::email::reply_to_addresses_are_accepted`, `model::email::a_single_label_domain_is_a_format_error`, `model::email::an_address_literal_is_a_format_error`, `model::email::an_empty_domain_label_is_a_format_error`, `model::email::a_254_character_address_is_accepted`, `model::email::a_255_character_address_is_a_length_error`, `model::email::a_long_invalid_address_reports_its_length`, `model::email::a_blank_email_keeps_its_format_code` | `validation::each_rule_rejects_with_its_field_code`, `validation::field_errors_round_trip_without_javascript` | — | — |
+| FR-VAL-02 | `model::invalid_email_fails`, `model::bad_email_yields_format_code`, `model::email::reply_to_addresses_are_accepted`, `model::email::a_single_label_domain_is_a_format_error`, `model::email::an_address_literal_is_a_format_error`, `model::email::an_empty_domain_label_is_a_format_error`, `model::email::a_254_character_address_is_accepted`, `model::email::a_255_character_address_is_a_length_error`, `model::email::a_long_invalid_address_reports_its_length`, `model::email::a_blank_email_keeps_its_format_code`, `email_domain::tests::*` (the decision table, RFC 018) | `validation::each_rule_rejects_with_its_field_code`, `validation::field_errors_round_trip_without_javascript`, `email_domain::a_domain_with_no_route_is_refused_in_both_forms`, `email_domain::absent_from_context_the_check_never_runs`, `email_domain::a_servfail_answer_still_delivers_and_logs_a_warning`, `email_domain::a_honeypot_hit_never_reaches_the_resolver`, `email_domain::a_syntax_invalid_address_is_refused_without_a_lookup`, `email_domain::the_challenge_is_not_reached_when_the_domain_is_refused` | — | — |
 | FR-VAL-03 | `model::newline_in_subject_fails`, `model::over_long_subject_yields_length_code_with_zero_min`, `model::empty_subject_uses_fallback` | `validation::each_rule_rejects_with_its_field_code`, `validation::a_blank_subject_is_delivered_as_absent` | — | — |
 | FR-VAL-04 | `model::too_long_message_fails`, `model::empty_message_yields_required_code`, `model::over_long_message_yields_length_code_at_the_ceiling` | `validation::each_rule_rejects_with_its_field_code` | — | — |
 | FR-VAL-05 | `model::honeypot_input_is_detected` | `silent::a_silent_outcome_is_indistinguishable_from_delivery` | — | — |
@@ -329,8 +341,8 @@ tests from the code side.
 | FR-FIELD-06 | `model::site_fields::valid_values_follow_definition_order`, `model::site_fields::labels_come_from_the_definition`, `model::site_fields::an_absent_optional_field_is_omitted`, `delivery::smtp::a_body_without_site_fields_is_byte_identical_to_0_7`, `delivery::smtp::site_fields_have_one_block_each_between_the_subject_and_the_message`, `delivery::smtp::a_multi_line_text_value_is_kept_intact`, `delivery::smtp::a_site_value_never_reaches_a_header` | `site_fields::a_valid_submission_is_delivered_with_the_values_in_definition_order`, `site_fields::a_blank_optional_field_is_left_out_of_delivery`, `site_fields::no_fields_at_all_with_an_empty_definition_is_todays_behaviour` | — | a custom backend's handling of the values: documentation (Delivery Backends) |
 | FR-FIELD-07 | `config::an_error_message_never_carries_a_label` | `site_fields::site_field_values_and_request_keys_are_never_logged`, `site_fields::too_many_keys_log_the_count_and_never_a_key`, `site_fields::an_unknown_key_logs_its_count_and_never_the_key`, `site_fields::several_unknown_keys_are_counted` | — | `Debug` on `ContactInput`, which shows the values as it shows `message`: unchanged, out of scope (RFC 015 D6) |
 | FR-FIELD-08 | `components::site_fields::each_kind_renders_its_control_with_its_name_and_id`, `components::site_fields::a_choice_starts_with_the_empty_option_then_its_choices_in_order`, `components::site_fields::required_fields_carry_required_and_aria_required`, `components::site_fields::a_field_without_an_error_is_not_marked_invalid`, `components::site_fields::the_rows_use_the_existing_classes`, `components::site_fields::the_rows_are_still_before_the_message_without_a_subject`, `components::site_fields::labels_are_escaped` | `site_fields::each_rule_reports_its_code_under_the_key` (the no-JavaScript page: `aria-invalid`, `aria-describedby`, the error paragraph) | `site_fields::the_rows_render_with_their_names_ids_and_required`, `site_fields::the_submitted_body_carries_the_site_fields`, `site_fields::a_field_error_shows_under_its_field`, `site_fields::focus_goes_to_the_first_invalid_site_field_before_the_message`, `site_fields::the_built_in_fields_keep_their_place_around_the_site_fields`, `site_fields::a_failed_submission_keeps_what_was_typed_and_selected` | without JavaScript nothing is preserved, for any field, as before (RFC 015 A6) |
-| FR-OBS-01 | — | `logging::no_personal_data_or_secret_is_logged` | — | each event's level: review |
-| FR-OBS-02 | `server::pii_not_present_in_expected_log_messages` | `logging::no_personal_data_or_secret_is_logged`, `site_fields::site_field_values_and_request_keys_are_never_logged`, `resend::a_failing_delivery_logs_the_status_and_never_a_request_value`, `challenge::a_verifier_error_logs_challenge_verifier_unavailable`, `challenge::a_token_with_no_context_logs_the_missing_context_message` | — | — |
+| FR-OBS-01 | — | `logging::no_personal_data_or_secret_is_logged`, `email_domain::no_address_and_no_domain_is_ever_logged` | — | each event's level: review |
+| FR-OBS-02 | `server::pii_not_present_in_expected_log_messages` | `logging::no_personal_data_or_secret_is_logged`, `site_fields::site_field_values_and_request_keys_are_never_logged`, `resend::a_failing_delivery_logs_the_status_and_never_a_request_value`, `challenge::a_verifier_error_logs_challenge_verifier_unavailable`, `challenge::a_token_with_no_context_logs_the_missing_context_message`, `email_domain::a_servfail_answer_still_delivers_and_logs_a_warning` | — | — |
 | FR-OBS-03 | — | `logging::no_personal_data_or_secret_is_logged`, `resend::a_failing_delivery_logs_the_status_and_never_a_request_value`, `resend::an_http_override_warns`, `challenge_http::an_http_override_warns` (the secret and the overridden URL are absent) | — | — |
 | FR-OBS-04 | **none** | **none** | — | review: no storage in the crate or its dependencies |
 
@@ -344,7 +356,8 @@ tests from the code side.
 | NFR-SEC-04 | `challenge::row_7_verifier_error_is_unavailable_for_every_variant`, `challenge::http::a_server_error_is_unavailable` | `form_token::a_missing_token_config_fails_closed`, `routing::a_missing_delivery_context_is_not_configured`, `challenge::challenge_decision_table_rows_1_to_7` | — | — |
 | NFR-SEC-05 | **none** | **none** | — | review, at each RFC that adds a data flow |
 | NFR-SEC-06 | **none** | **none** | — | review of the dependency tree at the release security audit |
-| NFR-PRIV-01 | `server::pii_not_present_in_expected_log_messages` | `logging::no_personal_data_or_secret_is_logged` | — | never persisted: see FR-OBS-04 |
+| NFR-SEC-07 | `http::tests::a_body_at_the_cap_is_returned_whole`, `http::tests::a_body_one_byte_over_the_cap_is_unusable`, `http::tests::a_64_000_byte_body_is_accepted_65_537_bytes_is_unusable` (RFC 020 handoff 01: the first two size their bodies from `MAX_RESPONSE_BODY` itself, so neither can notice the constant's own value change; the third uses literal byte counts instead) | — | `worker::fetch_verifier::an_oversized_body_is_unavailable`, `worker::fetch_verifier::a_body_at_the_cap_is_returned_whole` (wasm32 server, headless Chrome) | — |
+| NFR-PRIV-01 | `server::pii_not_present_in_expected_log_messages` | `logging::no_personal_data_or_secret_is_logged`, `email_domain::no_address_and_no_domain_is_ever_logged` | — | never persisted: see FR-OBS-04 |
 | NFR-PRIV-02 | **none** | **none** | — | documentation (per-provider notes) |
 | NFR-COMPAT-01 | **none** | **none** | **none** | CI builds: `cargo test --all-features` (the `ssr`, `hydrate` and `islands` features together) and the `browser` job (`hydrate` on wasm32); Islands mode behaviour: review |
 | NFR-COMPAT-02 | **none** | **none** | **none** | CI: the `msrv` job builds the crate on Rust 1.88 (native, wasm32 `hydrate`, and the Workers feature set), each `--locked` |
@@ -400,6 +413,22 @@ RESEND_API_KEY=re_... RESEND_FROM=you@yourdomain.example cargo test \
 `RESEND_TO` overrides the recipient, for a site that wants to see a real
 message; without it, nothing reaches a real mailbox.  Run it by hand before
 a release that touches `delivery/resend.rs`, `delivery/body.rs`, or `http.rs`.
+
+## Live email domain check tests
+
+`email_domain::check` has two tests against a real DNS-over-HTTPS resolver,
+for the two answer shapes stable enough to assert on: a well-known domain
+with an MX record, and RFC 7505's own null-MX example.  No key or secret is
+needed — a public resolver takes none — so unlike the live delivery test
+these need no environment variable; they are `#[ignore]`d only because a
+real network call does not belong in the default run.
+
+```bash
+cargo test -p leptos-hl-contact --all-features --lib -- --ignored email_domain::tests::live_
+```
+
+Run it by hand before a release that touches `email_domain.rs` or the
+shared `http.rs`.
 
 ## Running the examples
 

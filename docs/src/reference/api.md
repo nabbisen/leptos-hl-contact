@@ -116,7 +116,7 @@ pub struct ContactErrorLabels {
     pub required, length, format_email, format, line_breaks, token_invalid, too_fast,
         not_configured, delivery_failed, delivery_timeout,
         challenge_required, challenge_failed, challenge_unavailable, challenge_requires_js,
-        rejected: String,
+        rejected, email_domain: String,   // email_domain default: "We could not find a mail server for that domain. Please check the spelling."
 }
 pub enum NoJsPolicy { Reject /* default */, AcceptWithHoneypotOnly }
 
@@ -290,7 +290,7 @@ pub const CONTACT_ERROR_PREFIX: &str = "contact_error:";
 pub enum ContactField { Name, Email, Subject, Message }
 
 #[serde(tag = "kind", rename_all = "snake_case")]
-pub enum FieldErrorCode { Required, Length { min: usize, max: usize }, Format, LineBreaks }
+pub enum FieldErrorCode { Required, Length { min: usize, max: usize }, Format, LineBreaks, EmailDomain }
 
 #[serde(untagged)]
 pub enum FieldError { Code(FieldErrorCode), Text(String) }
@@ -590,3 +590,30 @@ Runs after the challenge and before delivery, on validated input only.
 delivery.  Both are logged at `warn` inside a `contact_filter` span: `filter`
 names the filter in context, and for a `FilterChain`, `decided_by` names the
 member that decided.  Guide and examples: [Filter](../security/filter.md).
+
+## `email_domain` module (feature `email-domain-check`)
+
+```rust,ignore
+#[non_exhaustive]
+pub struct EmailDomainCheck { /* private */ }
+impl EmailDomainCheck {
+    pub const DEFAULT_TIMEOUT: Duration;   // 2 s
+    pub fn new(resolver_url: impl Into<String>) -> Self;
+    pub fn with_timeout(self, timeout: Duration) -> Self;
+}
+```
+
+Not re-exported at the crate root — like `delivery::smtp` and
+`delivery::resend`, reached by the full path,
+`leptos_hl_contact::email_domain::EmailDomainCheck`.
+
+Provided in context like every other optional server piece.  Runs once per
+submission, after field validation and before the server policy and the
+challenge, over the same private HTTP transport `challenge-http` and
+`delivery-resend` use — no `tokio` runtime needed on a Cloudflare Workers
+server.  A domain with no mail route (no MX and no address record, a null
+MX, or NXDOMAIN) is `FieldErrorCode::EmailDomain`, under the email field.
+Every failure of the lookup itself — a timeout, a transport error, an
+unparsable answer, or the resolver's own `SERVFAIL` — accepts and logs a
+fixed reason (`servfail`, `timeout`, `transport`, `unparsable`), never the
+address or the domain.  Guide: [Email Domain Check](../security/email-domain.md).

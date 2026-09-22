@@ -15,6 +15,7 @@ runtime.  This page covers what differs from
 | `axum-helpers` | supported |
 | `delivery-timeout` | supported: a JavaScript timer instead of tokio's |
 | `delivery-resend` | supported: the same request through the global `fetch` |
+| `email-domain-check` | supported: the lookup runs over DNS over HTTPS, not ordinary DNS, so it needs no UDP — the same `fetch` path as the other two |
 | `smtp-lettre` | **not supported**: lettre's transport needs tokio and native TLS |
 
 `ResendDelivery` (`delivery-resend`) is the built-in delivery for a Worker

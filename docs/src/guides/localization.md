@@ -70,6 +70,7 @@ let labels = ContactFormLabels {
         challenge_unavailable: "現在セキュリティ確認を利用できません。しばらくしてからお試しください。".into(),
         challenge_requires_js: "このフォームでは、人による操作であることの確認に JavaScript が必要です。".into(),
         rejected:              "お送りいただいたメッセージは受け付けられませんでした。".into(),
+        email_domain:          "そのドメイン宛てのメールサーバーが見つかりませんでした。スペルをご確認ください。".into(),
     },
     ..Default::default()
 };
@@ -92,6 +93,7 @@ let labels = ContactFormLabels {
 | `challenge_unavailable` | the challenge vendor could not be reached |
 | `challenge_requires_js` | shown inside `<noscript>` next to the widget, under `NoJsPolicy::Reject` |
 | `rejected` | a [filter](../security/filter.md) returned `Reject`; deliberately generic |
+| `email_domain` | the [email domain check](../security/email-domain.md) found no mail route for the address's domain |
 
 `{min}` and `{max}` are the only placeholders, and they are replaced by plain
 string substitution — there is no format syntax, so translated text may put
@@ -129,6 +131,7 @@ let labels = ContactFormLabels {
         challenge_unavailable: "現在セキュリティ確認を利用できません。しばらくしてからお試しください。".into(),
         challenge_requires_js: "このフォームでは、人による操作であることの確認に JavaScript が必要です。".into(),
         rejected:              "お送りいただいたメッセージは受け付けられませんでした。".into(),
+        email_domain:          "そのドメイン宛てのメールサーバーが見つかりませんでした。スペルをご確認ください。".into(),
     },
 };
 ```

@@ -26,6 +26,7 @@
   - [Hardening](./security/hardening.md)
   - [Challenge (CAPTCHA)](./security/challenge.md)
   - [Filter](./security/filter.md)
+  - [Email Domain Check](./security/email-domain.md)
 
 # Reference
 

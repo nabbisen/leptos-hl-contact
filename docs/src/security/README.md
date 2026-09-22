@@ -22,10 +22,11 @@ full threat model is in [External Design](../development/external-design.md#5-se
 | TLS | — | ✅ proxy |
 | [Challenge](./challenge.md) — Turnstile, hCaptcha, reCAPTCHA | ✅ widget and verification (`challenge-http`) | ✅ vendor keys, if needed |
 | [Filter](./filter.md) — your own content rules | ✅ the hook | ✅ your rules, if needed |
+| [Email domain check](./email-domain.md) — can the domain receive mail | ✅ the lookup (`email-domain-check`) | ✅ a DNS-over-HTTPS resolver, if used |
 
 ## Which layer decides what
 
-Six mechanisms inside the crate can stop a submission.  Each answers one
+Seven mechanisms inside the crate can stop a submission.  Each answers one
 question; pick the one whose question is yours.
 
 | Mechanism | The question it answers | Configured by | Runs | Visitor sees on failure |
@@ -34,6 +35,7 @@ question; pick the one whose question is yours.
 | [Form token](./form-token.md) | Did the sender fetch our page recently and wait before submitting — and, with binding, from this browser? | `FormTokenContext` | when configured | "reload" / "wait a moment" |
 | [Site-field allow-list](../guides/customization.md#site-defined-fields) | Is every field key, and every choice, one this site defined? | `ContactServerPolicy::site_fields` | always | generic rejection for an unknown key or too many keys; field error for a bad value or an unlisted choice |
 | [Server policy](../guides/customization.md#contactserverpolicy) | Does the input meet this site's structural limits? | `ContactServerPolicy` | when configured | field error |
+| [Email domain check](./email-domain.md) | Can the email address's domain receive mail at all? | `EmailDomainCheck` | when configured | field error (`email_domain`) |
 | [Challenge](./challenge.md) | Did a vendor judge the sender human? | `ChallengeContext` + `challenge` prop | when configured | "complete the check" |
 | [Filter](./filter.md) | Does this site want this content? | `ContactFilterContext` | when configured | generic rejection or silent |
 
@@ -53,8 +55,9 @@ Cheap checks first, so expensive ones rarely run:
 5. [Form token](./form-token.md)
 6. Honeypot
 7. Field validation and [server policy](../guides/customization.md#contactserverpolicy)
-8. Optional [challenge](./challenge.md)
-9. Optional [filter](./filter.md)
+8. Optional [email domain check](./email-domain.md)
+9. Optional [challenge](./challenge.md)
+10. Optional [filter](./filter.md)
 
 ## Pages in this section
 
@@ -62,3 +65,4 @@ Cheap checks first, so expensive ones rarely run:
 - [Hardening](./hardening.md) — rate limiting, origin validation, body limit, secrets
 - [Challenge](./challenge.md) — Turnstile, hCaptcha or reCAPTCHA
 - [Filter](./filter.md) — your own content rules, before delivery
+- [Email Domain Check](./email-domain.md) — can the address's domain receive mail, before the challenge

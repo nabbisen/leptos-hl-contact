@@ -58,6 +58,7 @@ conditions and security notes; behaviour is specified in
 | `delivery::noop` | `NoopDelivery` | server |
 | `delivery::smtp` | `LettreSmtpDelivery`, `SmtpConfig`, `SmtpTlsMode` | `smtp-lettre` |
 | `delivery::resend` | `ResendDelivery`, `ResendConfig` | `delivery-resend` |
+| `email_domain` | `EmailDomainCheck`, the DoH lookup and decision table | `email-domain-check` |
 | `form_token` | `FormTokenConfig`, `FormToken`, `issue_form_token`, `verify_form_token` | `form-token` |
 | `axum_helpers` | `provide_contact_delivery`, `delivery_context_fn` | `axum-helpers` |
 
@@ -156,6 +157,7 @@ crates/leptos-hl-contact/src/
                          delivery/smtp.rs  delivery/smtp/tests.rs
                          delivery/resend.rs  delivery/resend/tests.rs
                          delivery/timeout.rs  delivery/timeout/tests.rs
+  email_domain.rs        email_domain/tests.rs
   http.rs                http/fetch.rs (wasm32 server)  http/tests.rs (native)
   axum_helpers.rs        axum_helpers/tests.rs
   wasm_timer.rs          a JavaScript timer (wasm32 server)
