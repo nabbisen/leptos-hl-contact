@@ -258,7 +258,10 @@ label), and widening any of them needs a change to the crate.
 
 - **Controls.**  A `Line` is `<input type="text">`, a `Text` a `<textarea>`, a
   `Choice` a native `<select>` whose first option is an empty "—".  A
-  required choice cannot be submitted on that option.
+  required choice cannot be submitted on that option.  Keep a choice label
+  short enough to read inside a phone's select box: a native select shows
+  only what fits, the label is what a visitor sees, and the key is what
+  delivery records.
 - **Names and ids.**  The control is named `fields[key]` and has the id
   `contact-field-{key}`; its error paragraph is `contact-field-{key}-error`.
 - **Trimmed first.**  A value is trimmed before it is checked, so a blank

@@ -1,5 +1,9 @@
 # Localization
 
+The crate ships English defaults.  Every string a visitor can see is the
+site's own to set, and nothing on this page — including a contributed
+translation below — is a guarantee about a language none of us speak.
+
 ## Component strings
 
 Every string the component renders comes from
@@ -160,8 +164,32 @@ server policy in [Customization](./customization.md#contactserverpolicy)).
 Non-ASCII display names and subjects are encoded correctly in email headers
 by the SMTP backend.
 
-## Presets
+## Contributing a language
 
-A set of ready-made label presets for common languages is planned (roadmap
-P-20).  Until then, keep your translations in your own crate and pass them
-as shown above.
+There is no built-in preset for any language beyond the English defaults;
+the two blocks above are the whole of what the crate ships.  Anyone can add
+a translation to this page for others to copy.
+
+**What a contribution is.**  One complete set — every field of
+[`ContactFormLabels`](./customization.md#contactformlabels) and
+[`ContactErrorLabels`](#error-messages), no gaps — in the contributor's own
+language, as a copyable Rust block on this page, in the same shape as
+[the Japanese example above](#a-complete-japanese-form).
+
+**Why complete.**  A partial set leaves a visitor reading two languages in
+one form: the fields translated, the errors not, or the reverse. A
+contribution stands or falls as a whole set.
+
+**Why the page, and not the crate.**  The crate ships English defaults, and
+every visible string is the site's own to set; nothing here carries a
+version coupling to a crate release. A translation added to this page
+needs no new crate version, and a new error code added to the crate cannot
+silently leave a shipped language's preset half-translated, because there
+is no shipped preset to leave behind.
+
+**What we check.**  That the set is complete — every field of both structs
+present — and that `{min}` and `{max}` are still intact wherever the
+English original uses them. **We do not vouch for the wording.** The
+contributor's language is theirs; a native speaker reviewing wording is
+welcome, but nothing here is proofread against meaning or tone by anyone
+who does not speak the language.
