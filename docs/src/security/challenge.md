@@ -26,7 +26,7 @@ on the server.
 **1. Enable the built-in verifier** on the server binary:
 
 ```toml
-leptos-hl-contact = { version = "0.9", features = ["ssr", "axum-helpers", "form-token", "challenge-http"] }
+leptos-hl-contact = { version = "0.10", features = ["ssr", "axum-helpers", "form-token", "challenge-http"] }
 ```
 
 **2. Render the widget.**  The site key is public:

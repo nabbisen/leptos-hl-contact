@@ -1,6 +1,9 @@
 # Changelog
 
-## [Unreleased]
+## [0.10.0] — 2026-09-22
+
+This is the minor release that stops a mistyped or dead email domain from
+becoming an enquiry nobody can answer.
 
 ### Added
 

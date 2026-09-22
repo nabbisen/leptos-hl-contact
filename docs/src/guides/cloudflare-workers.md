@@ -33,7 +33,7 @@ crate-type = ["cdylib"]
 leptos = { version = "0.8", features = ["ssr"] }
 leptos_axum = { version = "0.8", default-features = false, features = ["wasm"] }
 axum = { version = "0.8", default-features = false }
-leptos-hl-contact = { version = "0.9", default-features = false, features = [
+leptos-hl-contact = { version = "0.10", default-features = false, features = [
     "ssr",
     "form-token",
     "challenge-http",

@@ -230,6 +230,18 @@ them, and never put one in a `ContactDeliveryError`'s text.  A value that goes
 into a header, a URL or a query needs the escaping that header, URL or query
 needs; the SMTP backend puts them in the body only.
 
+## Privacy
+
+Whichever backend delivers a submission sends the whole thing — name,
+email, subject, message, and any site-defined fields — to a third party.
+Say so in your privacy notice, and name the provider.
+
+- **`LettreSmtpDelivery`** sends it to the SMTP relay you configured
+  (`SmtpConfig::host`) — your own mail server, or a relay you rent.
+- **`ResendDelivery`** sends it to [Resend](https://resend.com)'s API.
+- **A custom backend** sends it wherever you send it; the same disclosure
+  applies.
+
 ## Testing delivery locally
 
 Run [MailHog](https://github.com/mailhog/MailHog) and point the SMTP backend

@@ -56,6 +56,12 @@ validation.
 | NXDOMAIN, or no record at all | **reject** |
 | The resolver answers `SERVFAIL`, times out, or answers something this crate cannot parse | **accept**, with a `warn` log naming the reason |
 
+**An internationalised (non-ASCII) domain is not checked.**  The lookup
+refuses to send a query for it — the same `accept`, with the reason
+`unparsable` — rather than risk sending anything other than a hostname to
+the resolver.  This is the safe direction: a visitor with a real
+internationalised address is never refused on that basis.
+
 A rejection is reported under the email field as `email_domain`
 (`FieldErrorCode::EmailDomain`), distinct from `format_email` — it tells
 the visitor what is actually wrong: not that the address is malformed, but
