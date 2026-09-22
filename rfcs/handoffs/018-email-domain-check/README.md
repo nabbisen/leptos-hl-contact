@@ -14,7 +14,7 @@ Review requests go to `.git-exclude/review-request/018-email-domain-check/`.
 | 03 | [The pipeline step, and what the visitor is told](./03-pipeline-and-error.md) | D2, D3 | 02 | medium |
 | 04 | [Documentation, privacy, traceability](./04-docs-privacy-records.md) | D5, D6 | 03 | medium |
 
-**State.** Handoffs 02 (`b8d0d1c`) and 03 (`691a1e3`) conditionally approved 2026-09-22, one r2 covering both: **C1** the lookup must check the domain's own characters rather than trust a caller's validation, and **C2** the pipeline step must skip rather than `unreachable!` when an address has no `@`.  Handoff 04 (`b73eb7a`) approved, live tests run and passing.  Handoff 01 (spike) approved 2026-09-22: DoH stands, and the RFC is amended (A1–A4: a GET on both targets, three refusal shapes, fixture choice, tolerant parsing).  Handoffs 02–04 written 2026-09-22.
+**State.** Handoffs 02 (`b8d0d1c`) and 03 (`691a1e3`) approved 2026-09-22 at r2 (`d92d522`: the lookup validates its own domain; no panic in the request path; the challenge gate's `unreachable!` left as is, because that control has no safe skip).  **RFC 018 is complete**; it moves to `done/` at the release.  Handoff 04 (`b73eb7a`) approved, live tests run and passing.  Handoff 01 (spike) approved 2026-09-22: DoH stands, and the RFC is amended (A1–A4: a GET on both targets, three refusal shapes, fixture choice, tolerant parsing).  Handoffs 02–04 written 2026-09-22.
 
 ## Rules for this RFC
 
