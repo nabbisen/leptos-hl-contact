@@ -13,7 +13,7 @@ Review requests go to `.git-exclude/review-request/017-http-api-delivery/`.
 | 02 | [The Resend adapter: config, request, errors, tests](./02-resend-adapter.md) | D1a, D2–D4, D6 | 01 | large |
 | 03 | [Workers, documentation, records, the live test](./03-workers-docs-and-records.md) | D5–D7 | 02 | medium |
 
-**State.** Handoffs written 2026-09-22.  Handoff 01 approved 2026-09-22 (`603330d`); its three follow-ups landed in handoff 02 (§1a).  Handoff 03 conditionally approved 2026-09-22 (`cb71be2`): r2 for C1, the Workers "Dependencies" snippet must list `delivery-resend`, which the same page tells the reader to use.  Handoff 02 approved 2026-09-22 at r2 (`aa79c55`, CI fix `42ddf8a`, r2 `0d28fde`): the adapter, the `https` warning on both override methods, a cap that bounds the native read and states its wasm32 limit, and one shared subject composer.
+**State.** Handoffs written 2026-09-22.  Handoff 01 approved 2026-09-22 (`603330d`); its three follow-ups landed in handoff 02 (§1a).  Handoff 03 approved 2026-09-22 at r2 (`cb71be2`, r2 `4d6e7b8`).  **RFC 017 is complete**; it moves to `done/` at the release.  Handoff 02 approved 2026-09-22 at r2 (`aa79c55`, CI fix `42ddf8a`, r2 `0d28fde`): the adapter, the `https` warning on both override methods, a cap that bounds the native read and states its wasm32 limit, and one shared subject composer.
 
 ## Rules for this RFC
 
