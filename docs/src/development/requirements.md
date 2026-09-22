@@ -1,6 +1,6 @@
 # Requirements Specification
 
-> **Document status.** Draft 30, 2026-09-22, against release `0.9.0`.
+> **Document status.** Draft 31, 2026-09-22, against release `0.9.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
 > M1–M7 are released; the document as a whole awaits formal approval.
 > Once approved, this document is the requirements baseline; later changes
@@ -152,6 +152,7 @@ crate's boundaries.  [Architecture](./architecture.md) describes internals.
 | FR-VAL-06 | `form_token` | When the `form-token` feature is enabled: MUST be present, verify, and be at least `min_age_secs` old | MUST | Met (0.5.0) |
 | FR-VAL-07 | *all* | Length limits MUST be counted in characters consistently by the UI `maxlength`, the validator, and the server policy | MUST | Met (M1) |
 | FR-VAL-08 | `message` | 4 000 characters is the hard ceiling; UI options and server policy MUST NOT be able to raise it and SHOULD be clamped or rejected if they try | MUST | Met (M1: `MESSAGE_MAX_LEN`, clamped) |
+| FR-VAL-09 | `email`, optional | A site MAY enable a check (`EmailDomainCheck`, feature `email-domain-check`) that the address's **domain** can receive mail: an MX record, or an address record under RFC 5321 §5.1.  A null MX (RFC 7505), NXDOMAIN or no record at all MUST be refused under the address's own field.  **Every failure of the lookup itself — SERVFAIL, a timeout, a transport error, an unparsable answer — MUST accept the submission.**  The crate MUST NOT send probe mail, MUST send only the domain, and MUST NOT cache | MAY | Met (RFC 018, unreleased) |
 
 Known tolerance: browsers count `maxlength` in UTF-16 code units, which is
 never fewer than the character count, so the browser limit is equal to or
@@ -195,7 +196,7 @@ input the browser accepted.
 
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
-| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr` and `delivery-timeout`), `delivery-timeout` (implies `ssr`), `axum-helpers` (implies `ssr`), `form-token` (implies `ssr`), `challenge-http` (implies `ssr`), `delivery-resend` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met (0.6.0; `delivery-resend` added in RFC 017) |
+| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr` and `delivery-timeout`), `delivery-timeout` (implies `ssr`), `axum-helpers` (implies `ssr`), `form-token` (implies `ssr`), `challenge-http` (implies `ssr`), `delivery-resend` (implies `ssr`), `email-domain-check` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met (0.6.0; `delivery-resend` added in RFC 017) |
 | FR-CFG-02 | Required context values MUST be documented for the context closure, and helpers MUST exist for Axum | MUST | Met (RFC 007) |
 | FR-CFG-03 | Misconfiguration MUST surface loudly (startup panic in examples, `error` log in the crate) and MUST NOT fall back to an insecure default | MUST | Met |
 | FR-CFG-04 | Types holding secrets MUST redact them in `Debug` output | MUST | Met |
@@ -256,7 +257,7 @@ them needs its own RFC.
 
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
-| FR-OBS-01 | The crate MUST emit `tracing` events for: honeypot trigger (`warn`), validation failure (`debug`, flags only), token failure (`warn`), missing context (`error`), delivery failure (`error`), delivery success (`info`) | MUST | Met |
+| FR-OBS-01 | The crate MUST emit `tracing` events for: honeypot trigger (`warn`), validation failure (`debug`, flags only), token failure (`warn`), missing context (`error`), delivery failure (`error`), delivery success (`info`), and — when the feature is enabled — an email-domain lookup that could not decide (`warn`, a fixed reason only) | MUST | Met |
 | FR-OBS-02 | Log events MUST NOT contain visitor name, email, message body, tokens, or secrets | MUST | Met |
 | FR-OBS-03 | Delivery failures MUST include the error category and transport detail for operators | MUST | Met |
 | FR-OBS-04 | The crate MUST NOT persist submissions | MUST | Met |
@@ -282,7 +283,7 @@ them needs its own RFC.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | NFR-PRIV-01 | PII MUST be minimised in logs and never persisted by the crate | Met |
-| NFR-PRIV-02 | Any third-party processing added by an optional feature (challenge providers send visitor signals to the vendor) MUST be documented per provider, and the default form MUST load no third-party script | Met (0.5.0: per-provider notes in the challenge guide's Privacy section) |
+| NFR-PRIV-02 | Any third-party processing added by an optional feature MUST be documented per provider, and the default form MUST load no third-party script.  Today that is: a challenge provider (visitor signals), a delivery provider (the whole submission) and a DoH resolver (the address's domain) | Met (0.5.0: per-provider notes in the challenge guide's Privacy section) |
 
 ### 6.3 Compatibility (NFR-COMPAT)
 
@@ -299,7 +300,7 @@ them needs its own RFC.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | NFR-PORT-01 | The core (`default = []`) MUST compile for `wasm32-unknown-unknown` and native targets | Met |
-| NFR-PORT-02 | The server path (`ssr`, `form-token`, `challenge-http`, `axum-helpers`, `delivery-timeout`) MUST build for and run on Cloudflare Workers (wasm32, no tokio runtime).  Delivery there is `ResendDelivery` (`delivery-resend`, RFC 017) or the integrator's own backend | Met (0.7.0): compiles and is linted for wasm32 in CI; the wasm32 server paths tested in headless Chrome; runtime on Workers verified for 0.7.0 by an integrator, on a pre-release and in production; later releases rely on the headless-Chrome suite and integrators' reports |
+| NFR-PORT-02 | The server path (`ssr`, `form-token`, `challenge-http`, `delivery-resend`, `email-domain-check`, `axum-helpers`, `delivery-timeout`) MUST build for and run on Cloudflare Workers (wasm32, no tokio runtime).  Delivery there is `ResendDelivery` (`delivery-resend`, RFC 017) or the integrator's own backend | Met (0.7.0): compiles and is linted for wasm32 in CI; the wasm32 server paths tested in headless Chrome; runtime on Workers verified for 0.7.0 by an integrator, on a pre-release and in production; later releases rely on the headless-Chrome suite and integrators' reports |
 
 ### 6.5 Performance (NFR-PERF)
 
@@ -397,6 +398,7 @@ them needs its own RFC.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-22 | Draft 31 | RFC 018: FR-VAL-09 added (the opt-in email-domain check, with the accept-on-failure rule as a MUST); `email-domain-check` added to FR-CFG-01 and NFR-PORT-02; FR-OBS-01 names the lookup's `warn`; NFR-PRIV-02 names all three third parties |
 | 2026-09-22 | Draft 30 | RFC 020 review: NFR-SEC-07 added (a bounded external response, which 0.9.0 already implements and 020-01 tests); NFR-SEC-06 reworded to the intent it always had |
 | 2026-09-22 | Draft 29 | 0.9.0 released: document status against `0.9.0`; M7 released |
 | 2026-09-22 | Draft 28 | RFC 017: `delivery-resend` added to FR-CFG-01; NFR-PORT-02 names `ResendDelivery` as a built-in delivery on Workers; FR-DEL-05 widened beyond SMTP's headers and given the no-leading-space rule; FR-DEL-08 and NFR-PERF-03 name the 10 s Resend default |
