@@ -4,6 +4,8 @@ use std::{cell::RefCell, rc::Rc};
 
 use wasm_bindgen::{JsCast, JsValue, closure::Closure};
 
+use super::mount::settle;
+
 /// `window.fetch` replaced for the life of the value.  Every request's URL is
 /// recorded and answered by the test; nothing leaves the page.
 ///
@@ -108,14 +110,49 @@ impl FetchStub {
         self.urls.borrow().clone()
     }
 
-    /// The bodies of the requests made so far, once the page has settled, with
-    /// the brackets of a `fields[key]` name un-escaped so a test can read it.
+    /// The bodies recorded **so far**, with the brackets of a `fields[key]`
+    /// name un-escaped so a test can read it.
+    ///
+    /// A body is read from the request asynchronously (`Request::text()`),
+    /// so it can arrive after the microtask/task round a single `settle()`
+    /// drains — this is not the same as "every body that has been sent".  A
+    /// test that expects one or more bodies must wait for them with
+    /// [`Self::bodies_when`] instead of calling this once; this method
+    /// stays right only for a test asserting **absence** (no body recorded
+    /// at all), where there is nothing to wait for.
     pub fn bodies(&self) -> Vec<String> {
         self.bodies
             .borrow()
             .iter()
             .map(|body| body.replace("%5B", "[").replace("%5D", "]"))
             .collect()
+    }
+
+    /// Waits until at least `count` bodies have been recorded, settling
+    /// between checks, and returns them.
+    ///
+    /// Six settles — double `settle()`'s own three microtask/task rounds —
+    /// is generous against the one extra task tick a body's asynchronous
+    /// read needs in practice, while still failing fast: a real regression
+    /// (the body never arrives at all) never reaches `count` no matter how
+    /// long this waits, so there is nothing to gain from a larger bound.
+    /// On timeout, panics naming what **was** captured, so a real defect
+    /// reads as a failure with a body list to inspect, not a bare "false".
+    pub async fn bodies_when(&self, count: usize) -> Vec<String> {
+        const BOUND: usize = 6;
+        for _ in 0..BOUND {
+            let bodies = self.bodies();
+            if bodies.len() >= count {
+                return bodies;
+            }
+            settle().await;
+        }
+        let bodies = self.bodies();
+        panic!(
+            "expected at least {count} bod{} within {BOUND} settles; captured {}: {bodies:?}",
+            if count == 1 { "y" } else { "ies" },
+            bodies.len()
+        );
     }
 }
 

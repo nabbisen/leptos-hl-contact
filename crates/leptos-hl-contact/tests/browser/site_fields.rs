@@ -153,7 +153,7 @@ async fn the_submitted_body_carries_the_site_fields() {
     form.submit();
     settle().await;
 
-    let bodies = fetch.bodies();
+    let bodies = fetch.bodies_when(1).await;
     assert_eq!(bodies.len(), 1, "one submission: {:?}", fetch.urls());
     let body = &bodies[0];
     for pair in [
