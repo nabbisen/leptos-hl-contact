@@ -39,7 +39,7 @@ jobs:
       - name: check (wasm32 server, Workers features)
         run: >-
           cargo clippy -p leptos-hl-contact --target wasm32-unknown-unknown
-          --no-default-features --features ssr,form-token,challenge-http,axum-helpers,delivery-timeout
+          --no-default-features --features ssr,form-token,challenge-http,delivery-resend,axum-helpers,delivery-timeout
           --lib --test worker -- -D warnings
 
       - name: test
@@ -75,7 +75,7 @@ jobs:
       - name: check (wasm32 server, Workers features)
         run: >-
           cargo check -p leptos-hl-contact --target wasm32-unknown-unknown
-          --no-default-features --features ssr,form-token,challenge-http,axum-helpers,delivery-timeout
+          --no-default-features --features ssr,form-token,challenge-http,delivery-resend,axum-helpers,delivery-timeout
           --locked
 
   # Browser tests (RFC 008 L3): `ContactForm` mounted in headless Chrome, with
@@ -123,7 +123,7 @@ jobs:
       - name: worker tests (server features on wasm32)
         env:
           CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER: wasm-bindgen-test-runner
-        run: CHROMEDRIVER="$CHROMEWEBDRIVER/chromedriver" cargo test -p leptos-hl-contact --target wasm32-unknown-unknown --no-default-features --features ssr,form-token,challenge-http,delivery-timeout --test worker
+        run: CHROMEDRIVER="$CHROMEWEBDRIVER/chromedriver" cargo test -p leptos-hl-contact --target wasm32-unknown-unknown --no-default-features --features ssr,form-token,challenge-http,delivery-resend,delivery-timeout --test worker
 
   # Examples are excluded from the workspace (see Cargo.toml), so the `check`
   # job never compiles them.  Separate job so a slow example build does not
