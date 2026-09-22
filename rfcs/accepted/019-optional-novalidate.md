@@ -1,9 +1,10 @@
 # RFC 019 — An opt-in `novalidate`, so a site's own error text is what visitors read
 
-**Status.** Proposed — 2026-09-22.  Milestone M8, authorised by the owner
-2026-09-22 (P-41).
+**Status.** Accepted — 2026-09-22, as proposed: `native_validation`,
+default `true`, one form-wide switch.  Milestone M8 (P-41).
 **Tracks.** Roadmap P-41.  Requirements FR-UI-02, FR-I18N-02, FR-A11Y-*,
 FR-PE-01/02.
+**Handoffs.** [`../handoffs/019-optional-novalidate/README.md`](../handoffs/019-optional-novalidate/README.md)
 **Touches.** `config.rs` (one option), `components.rs` (one attribute),
 tests (unit, browser), docs, `CHANGELOG.md`.
 **Origin.** The reflerd.com team, 2026-09-17: on a Japanese page in an
@@ -102,7 +103,9 @@ Breaking only for a `ContactFormOptions { … }` literal without
 
 One: the option, the attribute, the tests, the documentation.
 
-## Owner questions (recommendations first)
+## Owner decisions (2026-09-22)
+
+Accepted as proposed; the questions as put, with the answers, were:
 
 1. **Default `true`.**  Alternative: `false`, which would change every
    existing site's behaviour to gain language control they may not need.

@@ -15,15 +15,15 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 018 | [An opt-in check that the email domain can receive mail](./proposed/018-email-domain-check.md) | High (M8) |
-| 019 | [An opt-in `novalidate`](./proposed/019-optional-novalidate.md) | Medium (M8) |
-| 020 | [Test follow-ups, and translations as contributed examples](./proposed/020-test-and-docs-follow-ups.md) | Low (M8) |
+| — | *(none)* | |
 
 ## Accepted
 
 | ID | Title | Handoff |
 |----|-------|---------|
-| — | *(none)* | |
+| 018 | [An opt-in check that the email domain can receive mail](./accepted/018-email-domain-check.md) | [handoffs/018-email-domain-check/](./handoffs/018-email-domain-check/README.md) |
+| 019 | [An opt-in `novalidate`](./accepted/019-optional-novalidate.md) | [handoffs/019-optional-novalidate/](./handoffs/019-optional-novalidate/README.md) |
+| 020 | [Test follow-ups, and translations as contributed examples](./accepted/020-test-and-docs-follow-ups.md) | [handoffs/020-test-and-docs-follow-ups/](./handoffs/020-test-and-docs-follow-ups/README.md) |
 
 ## Implemented
 

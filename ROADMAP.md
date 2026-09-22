@@ -109,14 +109,14 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 
 ### M8 — Fewer dead-end enquiries → next release — **authorized 2026-09-22**
 
-Owner decision 2026-09-22, on the question "which of these profits an app team": **P-35** as the theme, **P-41** alongside it, **P-38** folded in as tests, and **P-20 reshaped into documentation** rather than shipped translations.  RFCs 018, 019 and 020 proposed the same day, awaiting acceptance.
+Owner decision 2026-09-22, on the question "which of these profits an app team": **P-35** as the theme, **P-41** alongside it, **P-38** folded in as tests, and **P-20 reshaped into documentation** rather than shipped translations.  RFCs 018, 019 and 020 accepted the same day, every recommendation taken.  Order of work: RFC 018's spike first (it can stop that design), then RFC 019 and RFC 020, then RFC 018's implementation.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
-| P-35 | An opt-in check that an address's domain can receive mail at all: MX with the RFC 5321 §5.1 address-record fallback, null MX refused, every failure of ours accepted with a `warn`; the lookup goes over the shared HTTPS transport so it works natively **and** on a Worker, which has no UDP | **High** | [RFC 018](./rfcs/proposed/018-email-domain-check.md) (proposed; step-0 spike on DNS over HTTPS first) | the owner's original question, 2026-09-13: a syntactically valid address that cannot receive mail wastes the site owner's reply |
-| P-41 | An opt-in `novalidate` (`ContactFormOptions::native_validation`, default `true`), so a translated site's own error text is what the visitor reads instead of the browser's pop-up in the browser's language | Medium | [RFC 019](./rfcs/proposed/019-optional-novalidate.md) (proposed) | the reflerd.com team, 2026-09-17: a Japanese page in an English browser |
-| P-38 | Mutation-run follow-up tests, from 0.6.0 to 0.9.0: the token's TTL and future-skew boundaries, four `Debug` impls, `provide_contact_delivery`, two logging-only arms, and a 64,000-byte response body (the cap's own value) | Low | [RFC 020](./rfcs/proposed/020-test-and-docs-follow-ups.md) D1 (proposed) | no defect found; each would catch a silent regression |
-| P-20 | Multi-language labels — **reshaped 2026-09-22**: the Localization guide keeps a complete copyable example and gains a contribution path, instead of the crate shipping translations it cannot verify and must keep complete for every new error code | Low | [RFC 020](./rfcs/proposed/020-test-and-docs-follow-ups.md) D2 (proposed) | the strings are a security-adjacent interface; a plausible-but-wrong translation is worse than none |
+| P-35 | An opt-in check that an address's domain can receive mail at all: MX with the RFC 5321 §5.1 address-record fallback, null MX refused, every failure of ours accepted with a `warn`; the lookup goes over the shared HTTPS transport so it works natively **and** on a Worker, which has no UDP | **High** | [RFC 018](./rfcs/accepted/018-email-domain-check.md) (accepted 2026-09-22), handoff 01 is the step-0 spike | the owner's original question, 2026-09-13: a syntactically valid address that cannot receive mail wastes the site owner's reply |
+| P-41 | An opt-in `novalidate` (`ContactFormOptions::native_validation`, default `true`), so a translated site's own error text is what the visitor reads instead of the browser's pop-up in the browser's language | Medium | [RFC 019](./rfcs/accepted/019-optional-novalidate.md) (accepted 2026-09-22), handoff 01 written | the reflerd.com team, 2026-09-17: a Japanese page in an English browser |
+| P-38 | Mutation-run follow-up tests, from 0.6.0 to 0.9.0: the token's TTL and future-skew boundaries, four `Debug` impls, `provide_contact_delivery`, two logging-only arms, and a 64,000-byte response body (the cap's own value) | Low | [RFC 020](./rfcs/accepted/020-test-and-docs-follow-ups.md) D1 (accepted 2026-09-22), handoff 01 written | no defect found; each would catch a silent regression |
+| P-20 | Multi-language labels — **reshaped 2026-09-22**: the Localization guide keeps a complete copyable example and gains a contribution path, instead of the crate shipping translations it cannot verify and must keep complete for every new error code | Low | [RFC 020](./rfcs/accepted/020-test-and-docs-follow-ups.md) D2 (accepted 2026-09-22), handoff 02 written | the strings are a security-adjacent interface; a plausible-but-wrong translation is worse than none |
 
 
 ---
@@ -145,9 +145,7 @@ Owner decision 2026-09-22, on the question "which of these profits an app team":
 
 ## Decisions required from the owner
 
-- **RFC 018** (the email domain check): accept, with its five questions — MX plus the address-record fallback and null MX only; a distinct error code and label so the visitor is told what is actually wrong; **no default resolver**, because that would choose a third party for the site; no cache; a 2-second timeout.
-- **RFC 019** (the opt-in `novalidate`): accept, with `native_validation` defaulting to `true`.
-- **RFC 020** (tests, and translations as contributed examples): accept, with P-20 as documentation rather than shipped presets.
+*(none open)*
 
 ---
 
@@ -270,3 +268,4 @@ Owner decisions of 2026-09-22: P-22 next, one adapter first; RFC 017 accepted as
 - 2026-09-22: 0.9.0 released — tag `0.9.0` on `2732490`, published by the architect under the owner's authorisation; M7 complete.  The live delivery test is still unrun and is recorded as a known issue; the reflerd.com letter asks about it without obligation.
 - 2026-09-22: M8 authorized — P-35 (the theme), P-41, P-38, and P-20 reshaped into documentation.  RFCs 018, 019 and 020 proposed.
 - 2026-09-22: **an integrator's report is evidence, not a work item.**  The reflerd.com team asked that their reports be information rather than a queue (letter of 2026-09-22 §5).  Four releases in nine days were shaped by their reports; each was taken because it was right for the crate, and "not now, or not at all" is a complete answer.  P-20 is the current test of it: reshaped rather than built as asked.
+- 2026-09-22: RFCs 018, 019 and 020 accepted, every recommendation taken: no default resolver and a distinct error label for the domain check; `native_validation` defaulting to `true`; translations as contributed documentation.

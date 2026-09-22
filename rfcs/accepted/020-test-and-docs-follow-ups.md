@@ -1,8 +1,10 @@
 # RFC 020 — Test follow-ups, and translations as contributed examples
 
-**Status.** Proposed — 2026-09-22.  Milestone M8, authorised by the owner
-2026-09-22 (P-38, and P-20 reshaped).
+**Status.** Accepted — 2026-09-22, as proposed: the tests, and translations
+as contributed documentation rather than shipped presets.  Milestone M8
+(P-38, and P-20 reshaped).
 **Tracks.** Roadmap P-38, P-20.  Requirements NFR-TEST-*, FR-I18N-02.
+**Handoffs.** [`../handoffs/020-test-and-docs-follow-ups/README.md`](../handoffs/020-test-and-docs-follow-ups/README.md)
 **Touches.** tests only, plus `docs/src/guides/localization.md`,
 `docs/src/guides/customization.md`, and the traceability table.
 
@@ -70,7 +72,9 @@ None.  Tests and documentation only.
 | 01 | D1, the tests |
 | 02 | D2 and D3, the documentation |
 
-## Owner questions (recommendations first)
+## Owner decisions (2026-09-22)
+
+Accepted as proposed; the questions as put, with the answers, were:
 
 1. **P-20 as documentation, not presets** (D2).  The alternative is shipping
    translations we cannot check and must keep complete forever.

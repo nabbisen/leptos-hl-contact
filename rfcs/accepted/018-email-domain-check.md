@@ -1,9 +1,12 @@
 # RFC 018 — An opt-in check that the email domain can receive mail
 
-**Status.** Proposed — 2026-09-22.  Milestone M8, authorised by the owner
-2026-09-22 (P-35 as the theme).
+**Status.** Accepted — 2026-09-22, with every recommendation taken: MX plus
+the address-record fallback and null MX only; a distinct error code and
+label; **no default resolver**; no cache; a 2-second timeout.  Milestone M8
+(P-35 as the theme).
 **Tracks.** Roadmap P-35.  Requirements FR-VAL-02, FR-VAL-07, FR-OBS-01/02,
 NFR-PORT-02, NFR-PRIV-*.
+**Handoffs.** [`../handoffs/018-email-domain-check/README.md`](../handoffs/018-email-domain-check/README.md)
 **Touches.** a new module behind a new feature, `model.rs`/`server.rs` (one
 step in the pipeline), `error.rs` and `config.rs` (how the visitor is told),
 `src/http/` (the lookup's transport), tests at every layer, docs,
@@ -167,7 +170,9 @@ impl EmailDomainCheck {
 | 03 | The pipeline step, the visitor-facing error, L2 and worker tests |
 | 04 | Documentation (including the privacy paragraph), traceability, CHANGELOG |
 
-## Owner questions (recommendations first)
+## Owner decisions (2026-09-22)
+
+Accepted as proposed; the questions as put, with the answers, were:
 
 1. **Scope: MX with the address-record fallback and null MX, nothing more.**
    No SMTP probing, no mailbox verification, no disposable-domain lists.
