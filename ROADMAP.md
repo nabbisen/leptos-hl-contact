@@ -101,11 +101,11 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 
 ### M7 — Delivery without SMTP → next release — **authorized 2026-09-22**
 
-Owner decision 2026-09-22: P-22 is the next milestone, one adapter first.  RFC 017 proposed the same day, recommending Resend, with a private HTTP module shared with `challenge-http` extracted first.  Awaiting acceptance.
+Owner decisions 2026-09-22: P-22 is the next milestone, one adapter first; RFC 017 accepted as revised — Resend, a builder-and-`#[non_exhaustive]` config so future fields need no migration, fail-closed on a missing key, the vendor's specifics behind a private seam, and the shared HTTP module extracted before the adapter.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
-| P-22 | Delivery through an email HTTP API: one built-in backend that posts the enquiry as JSON, natively and on a Worker, so a site without SMTP — and every Worker, which cannot run SMTP — has a built-in option | **High** | [RFC 017](./rfcs/proposed/017-http-api-delivery.md) (proposed; owner questions on the provider, the names, the refactor-first handoff, idempotency and the live test) | the reflerd.com team had to write an SMTP backend over raw sockets for their Worker (2026-09-16) |
+| P-22 | Delivery through an email HTTP API: one built-in backend that posts the enquiry as JSON, natively and on a Worker, so a site without SMTP — and every Worker, which cannot run SMTP — has a built-in option | **High** | [RFC 017](./rfcs/accepted/017-http-api-delivery.md) (accepted 2026-09-22, as revised), handoffs 01–03 written | the reflerd.com team had to write an SMTP backend over raw sockets for their Worker (2026-09-16) |
 
 ---
 
@@ -137,7 +137,7 @@ Owner decision 2026-09-22: P-22 is the next milestone, one adapter first.  RFC 0
 
 ## Decisions required from the owner
 
-- **RFC 017** (delivery through an email HTTP API): accept, with its five questions — Resend first; the names `delivery-resend` / `ResendDelivery`; extracting the shared HTTP module in its own handoff; no idempotency key yet; an `#[ignore]`d live test to Resend's documented test recipient.  Revised 2026-09-22 after a second review: a builder-and-`#[non_exhaustive]` config so future fields need no migration, fail-closed on an empty key, the vendor's specifics behind a private seam, the provider's message id logged for traceability, feature-combination gates, and a "which backend" table in the documentation.
+*(none open)*
 
 ---
 

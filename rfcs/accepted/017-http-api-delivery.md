@@ -1,9 +1,11 @@
 # RFC 017 — Delivery through an email HTTP API
 
-**Status.** Proposed — 2026-09-22.  Milestone M7, the owner's next-milestone
-decision of 2026-09-22 (P-22, one adapter first).
+**Status.** Accepted — 2026-09-22, as revised (all five recommendations
+accepted).  Milestone M7, the owner's next-milestone decision of 2026-09-22
+(P-22, one adapter first).
 **Tracks.** Roadmap P-22.  Requirements FR-DEL-01 to FR-DEL-08 (a second
 built-in backend), FR-OBS-02/03, NFR-PORT-02, §1 scope.
+**Handoffs.** [`../handoffs/017-http-api-delivery/README.md`](../handoffs/017-http-api-delivery/README.md)
 **Touches.** `delivery/` (a new adapter and a shared body builder), a shared
 private HTTP module used by this and `challenge-http`, `Cargo.toml`, tests at
 every layer, docs, `CHANGELOG.md`.
@@ -236,7 +238,17 @@ Additive.
 | 02 | D2–D4: the adapter, its config and errors, with unit and worker tests |
 | 03 | D5–D7: Workers guidance, documentation, traceability, the live test |
 
-## Owner questions (recommendations first)
+## Owner decisions (2026-09-22)
+
+Accepted as revised: Resend first; `delivery-resend`, `ResendDelivery`,
+`ResendConfig`; the shared HTTP module extracted in its own handoff; no
+`Idempotency-Key`; an `#[ignore]`d live test to the provider's test
+recipient.  The revisions of the second review — a builder-and-
+`#[non_exhaustive]` config, fail-closed on an empty key, the private vendor
+seam, the message id logged, feature-combination gates, and the "which
+backend" table — are part of the acceptance.
+
+### The questions as put
 
 1. **Resend as the first provider.**  Alternative: SendGrid, which is more
    widely deployed but has a more nested request and no first-class

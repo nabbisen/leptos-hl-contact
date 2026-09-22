@@ -15,13 +15,13 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Priority |
 |----|-------|----------|
-| 017 | [Delivery through an email HTTP API](./proposed/017-http-api-delivery.md) | High (M7) |
+| — | *(none)* | |
 
 ## Accepted
 
 | ID | Title | Handoff |
 |----|-------|---------|
-| — | *(none)* | |
+| 017 | [Delivery through an email HTTP API](./accepted/017-http-api-delivery.md) | [handoffs/017-http-api-delivery/](./handoffs/017-http-api-delivery/README.md) |
 
 ## Implemented
 
