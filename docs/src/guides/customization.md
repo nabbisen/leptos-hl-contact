@@ -76,6 +76,7 @@ let options = ContactFormOptions {
     focus_first_error: true,   // focus the first invalid input after a failure
     token_refresh_secs: None,  // Some(ttl_secs - 60) when the server issues form tokens
     honeypot_inline_style: true, // false under a CSP without 'unsafe-inline'
+    native_validation: true,   // false to suppress the browser's own prompting
 };
 ```
 
@@ -87,6 +88,7 @@ let options = ContactFormOptions {
 | `focus_first_error` | `true` | After a failed submission, move keyboard focus to the first invalid input.  Client-side only; set `false` if your page manages focus itself |
 | `honeypot_inline_style` | `true` | Put the inline style that hides the honeypot on its wrapper.  Set `false` under a Content Security Policy without `'unsafe-inline'`, and hide the wrapper through `ContactFormClasses::honeypot` with your own CSS, or the field is visible.  [Details](./styling.md#honeypot) |
 | `token_refresh_secs` | `None` | When `Some`, the browser fetches a form token for a form reached by client-side navigation and refreshes it before expiry.  Set it to `ttl_secs - 60` whenever the server issues form tokens; without it such a form submits an empty token and shows the token-invalid message.  [Details](../security/form-token.md#tokens-in-the-browser-acquisition-and-refresh) |
+| `native_validation` | `true` | Whether the browser's own validation prompting is used.  Set `false` when every message a visitor reads must come from your own labels: the crate then renders `novalidate` on the `<form>`, which suppresses only that prompting — `required`, `type="email"`, `maxlength` and `aria-required` stay on every field, and the crate's own error wiring is unchanged.  The trade is language control against one extra round trip before the visitor is told a required field is empty, since the browser no longer blocks submission client-side.  [Details](./localization.md#the-browsers-own-prompting) |
 
 These control the browser only.  Anyone can POST to the server function
 directly, so options are **not** a security boundary.

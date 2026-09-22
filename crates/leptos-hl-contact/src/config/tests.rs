@@ -638,6 +638,23 @@ fn settings_serialized_by_0_6_still_deserialize() {
     assert!(options.honeypot_inline_style);
 }
 
+/// FR-UI-02, FR-I18N-02 (RFC 019 D1): a `ContactFormOptions` shaped like
+/// 0.9.0's — no `native_validation` field at all — still deserializes, and
+/// takes the option's default, `true`.
+#[test]
+fn a_0_9_shaped_contactformoptions_still_deserializes() {
+    let mut options = serde_json::to_value(ContactFormOptions::default()).unwrap();
+    assert!(
+        options
+            .as_object_mut()
+            .unwrap()
+            .remove("native_validation")
+            .is_some()
+    );
+    let options: ContactFormOptions = serde_json::from_value(options).unwrap();
+    assert!(options.native_validation);
+}
+
 // ---------------------------------------------------------------------------
 // Site-defined fields (RFC 015 handoff 02)
 // ---------------------------------------------------------------------------

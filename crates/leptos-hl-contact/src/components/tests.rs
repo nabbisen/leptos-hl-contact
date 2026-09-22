@@ -89,6 +89,83 @@ fn subject_hidden_when_option_false() {
     assert!(html.contains("id=\"contact-message\""));
 }
 
+// ---------------------------------------------------------------------------
+// `native_validation` (RFC 019 D1-D4)
+// ---------------------------------------------------------------------------
+
+/// The `<form>` open tag, whatever it currently renders as, byte for byte.
+/// 0.9.0's shape, unchanged by this option's default: `<form
+/// action="/api/submit_contact" method="post">`.
+const FORM_TAG_0_9_0: &str = r#"<form action="/api/submit_contact" method="post">"#;
+
+fn form_tag(html: &str) -> &str {
+    let at = html.find("<form").expect("a <form> in:\n");
+    let end = at + html[at..].find('>').expect("tag end");
+    &html[at..=end]
+}
+
+/// FR-UI-02, FR-I18N-02, FR-PE-01/02: the default (`native_validation:
+/// true`) renders no `novalidate` at all, and the `<form>` open tag is
+/// byte-identical to 0.9.0's — nobody's markup changes under them.
+#[test]
+fn native_validation_default_renders_no_novalidate() {
+    let html = render(|| view! { <ContactForm /> }.into_any());
+    let tag = form_tag(&html);
+    assert_eq!(tag, FORM_TAG_0_9_0, "the default <form> tag");
+    assert!(!tag.contains("novalidate"), "{tag}");
+}
+
+/// FR-UI-02, FR-I18N-02: `native_validation: false` renders `novalidate`
+/// exactly once, on the `<form>` — the browser's own prompting is
+/// suppressed, so every message a visitor reads comes from the site's own
+/// labels.
+#[test]
+fn native_validation_false_renders_novalidate_once() {
+    let options = ContactFormOptions {
+        native_validation: false,
+        ..Default::default()
+    };
+    let html = render(move || view! { <ContactForm options=options /> }.into_any());
+    let tag = form_tag(&html);
+    assert_eq!(
+        tag,
+        r#"<form action="/api/submit_contact" method="post" novalidate>"#
+    );
+    assert_eq!(
+        count(&html, "novalidate"),
+        1,
+        "novalidate must appear exactly once:\n{html}"
+    );
+}
+
+/// FR-A11Y-03: whichever way `native_validation` is set, the inputs keep
+/// `required` and `aria-required` — `novalidate` only suppresses the
+/// browser's own prompting, never the crate's markup contract.
+#[test]
+fn native_validation_never_touches_required_or_aria() {
+    for native_validation in [true, false] {
+        let options = ContactFormOptions {
+            native_validation,
+            ..Default::default()
+        };
+        let html = render(move || view! { <ContactForm options=options /> }.into_any());
+        for id in ["contact-name", "contact-email", "contact-message"] {
+            let field = html
+                .split('<')
+                .find(|tag| tag.contains(&format!("id=\"{id}\"")))
+                .unwrap_or_else(|| panic!("no {id} in:\n{html}"));
+            assert!(
+                field.contains("required"),
+                "native_validation={native_validation}: {field}"
+            );
+            assert!(
+                field.contains("aria-required=\"true\""),
+                "native_validation={native_validation}: {field}"
+            );
+        }
+    }
+}
+
 /// The hidden field's value is now a reactive attribute.  On the server it
 /// must still render the context token into that one field, since hydration
 /// keeps whatever the server wrote.

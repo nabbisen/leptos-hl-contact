@@ -7,6 +7,7 @@ guarantees:
 |--------|-----------|
 | Labels | Every input has a `<label for>`; placeholders are never used as labels |
 | Required fields | `required` for native validation plus `aria-required="true"` |
+| `native_validation: false` | Renders `novalidate` on the `<form>`, which suppresses only the browser's own prompting; the inputs keep `required` and `aria-required`, and the crate's own error wiring is unchanged.  [Details](./customization.md#contactformoptions) |
 | Field errors | Inline `<p role="alert" aria-live="polite" id="{input-id}-error">`; the input gains `aria-invalid="true"` and `aria-describedby` |
 | Submit state | While pending the button is `disabled`, carries `aria-busy="true"`, and its text changes to `labels.sending` |
 | Success | `role="status"` + `aria-live="polite"` |

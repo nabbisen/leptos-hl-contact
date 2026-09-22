@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- **`ContactFormOptions::native_validation`** (RFC 019).  Defaults to
+  `true`, unchanged from every prior release.  Set to `false` to suppress
+  the browser's own validation prompting — which appears in the browser's
+  language, not the page's — by rendering `novalidate` on the `<form>`;
+  `required`, `type="email"`, `maxlength` and `aria-required` stay on every
+  field, and the crate's own client-side and server-side error wiring is
+  unchanged.
+
+### Migration
+
+- A `ContactFormOptions { … }` literal that does not use
+  `..Default::default()` must add `native_validation`.
+
 ## [0.9.0] — 2026-09-22
 
 This is the minor release that adds a second built-in delivery backend, the

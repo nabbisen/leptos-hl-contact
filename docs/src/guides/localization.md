@@ -26,6 +26,21 @@ Language, text direction, and locale belong to the page: set `lang` and
 `dir` on your document or on a wrapper element.  The component never sets
 them.
 
+## The browser's own prompting
+
+Even with every label translated, an empty required field still triggers
+the browser's **own** validation message — "Please fill out this field.",
+in the browser's language, not the page's — before your labels ever get a
+chance.  Set
+[`ContactFormOptions::native_validation`](./customization.md#contactformoptions)
+to `false` and every message a visitor reads comes from your own labels: the
+crate renders `novalidate` on the `<form>`, which suppresses only that
+built-in prompting.  `required`, `aria-required` and the crate's own error
+wiring are unchanged, so a screen reader and the server-side check both
+still see exactly what they did before; the cost is one extra round trip
+before the visitor is told a required field is empty, since the browser no
+longer blocks submission itself.
+
 ## Error messages
 
 The server sends codes, never sentences, so every message a visitor can see

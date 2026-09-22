@@ -898,7 +898,7 @@ pub fn ContactForm(
                 });
 
                 view! {
-                    <ActionForm action=submit_action>
+                    <ActionForm action=submit_action attr:novalidate=(!options.with_value(|o| o.native_validation)).then_some(true)>
 
                         // Name
                         <div class=fc.clone()>

@@ -628,6 +628,24 @@ pub struct ContactFormOptions {
     /// `tabindex="-1"` and `autocomplete="off"` are rendered in both modes.
     #[serde(default = "default_true")]
     pub honeypot_inline_style: bool,
+
+    /// Whether the browser's own validation prompting is used.  Defaults to
+    /// `true`.
+    ///
+    /// Set this to `false` when every message a visitor reads must come from
+    /// the site's own labels: the browser's built-in prompt ("Please fill
+    /// out this field") renders in the browser's language, which no label
+    /// on the page can change.  The crate then renders `novalidate` on the
+    /// `<form>`, which suppresses only that prompting — `required`,
+    /// `type="email"`, `maxlength` and `aria-required` stay on every field,
+    /// including site-defined ones, and the crate's own client-side and
+    /// server-side error wiring is unchanged.
+    ///
+    /// The trade: language control against one extra round trip before the
+    /// visitor is told a required field is empty, since the browser no
+    /// longer blocks submission client-side.
+    #[serde(default = "default_true")]
+    pub native_validation: bool,
 }
 
 /// Serde default for fields added after 0.6 whose default is `true`.
@@ -644,6 +662,7 @@ impl Default for ContactFormOptions {
             focus_first_error: true,
             token_refresh_secs: None,
             honeypot_inline_style: true,
+            native_validation: true,
         }
     }
 }

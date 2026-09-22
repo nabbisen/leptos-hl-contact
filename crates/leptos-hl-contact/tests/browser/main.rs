@@ -10,6 +10,7 @@ mod support;
 
 mod challenge;
 mod focus;
+mod native_validation;
 mod pending;
 mod site_fields;
 mod token;

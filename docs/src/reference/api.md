@@ -172,6 +172,7 @@ pub struct ContactFormOptions {
     pub show_subject: bool, pub require_subject: bool, pub max_message_len: usize, pub focus_first_error: bool,
     pub token_refresh_secs: Option<u64>,
     pub honeypot_inline_style: bool,   // default true; false renders no style attribute on the honeypot wrapper
+    pub native_validation: bool,   // default true; false renders novalidate on the <form>
 }
 pub struct ContactServerPolicy { pub require_subject: bool, pub max_message_len: usize, pub site_fields: SiteFields }
 
