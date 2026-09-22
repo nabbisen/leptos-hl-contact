@@ -99,13 +99,13 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 
 ## Current
 
-### M7 — Delivery without SMTP → next release — **authorized 2026-09-22**
+### M7 — Delivery without SMTP → 0.9.0 — **authorized 2026-09-22**
 
 Owner decisions 2026-09-22: P-22 is the next milestone, one adapter first; RFC 017 accepted as revised — Resend, a builder-and-`#[non_exhaustive]` config so future fields need no migration, fail-closed on a missing key, the vendor's specifics behind a private seam, and the shared HTTP module extracted before the adapter.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
-| P-22 | Delivery through an email HTTP API: one built-in backend that posts the enquiry as JSON, natively and on a Worker, so a site without SMTP — and every Worker, which cannot run SMTP — has a built-in option | **High** | [RFC 017](./rfcs/accepted/017-http-api-delivery.md) (accepted 2026-09-22, as revised), handoffs 01–03 written; **01 approved** (`603330d`: the shared private HTTP module and the body builder); **02 approved at r2** (`aa79c55`, `42ddf8a`: the adapter, and a CI gap where the Workers steps never enabled the new feature; `0d28fde`: the `https` warning, a streaming body cap, one subject composer); **03 approved at r2** (`cb71be2`, `4d6e7b8`: the live test, the "which backend" table, the documentation and traceability).  **Implementation complete 2026-09-22**; the version is the owner's to set, then the release-readiness list | the reflerd.com team had to write an SMTP backend over raw sockets for their Worker (2026-09-16) |
+| P-22 | Delivery through an email HTTP API: one built-in backend that posts the enquiry as JSON, natively and on a Worker, so a site without SMTP — and every Worker, which cannot run SMTP — has a built-in option | **High** | [RFC 017](./rfcs/accepted/017-http-api-delivery.md) (accepted 2026-09-22, as revised), handoffs 01–03 written; **01 approved** (`603330d`: the shared private HTTP module and the body builder); **02 approved at r2** (`aa79c55`, `42ddf8a`: the adapter, and a CI gap where the Workers steps never enabled the new feature; `0d28fde`: the `https` warning, a streaming body cap, one subject composer); **03 approved at r2** (`cb71be2`, `4d6e7b8`: the live test, the "which backend" table, the documentation and traceability).  **Implementation complete 2026-09-22**; the owner set the version to 0.9.0 the same day and decided the release is not held for the live delivery test, whose state is stated instead; the release-readiness list is with the dev team | the reflerd.com team had to write an SMTP backend over raw sockets for their Worker (2026-09-16) |
 
 ---
 
@@ -248,3 +248,4 @@ Owner decisions of 2026-09-17: site-defined fields accepted as a **bounded** fea
 - 2026-09-22: 0.8.0 released — tag `0.8.0` on `64e05b6`, published by the architect under the owner's authorisation; M6 complete.  The release candidate was approved on one condition, a test pinning the `Text` length boundary the mutation run found unpinned.
 - 2026-09-22: the 0.8.0 letter to the reflerd.com team sent: the upgrade (Rust 1.88 and three struct fields), how to define their own fields and why the bound is four, and `ChallengeSize::Compact` for their 360 px layout.
 - 2026-09-22: M7 authorized — P-22, delivery through an email HTTP API, one adapter first.  RFC 017 proposed.
+- 2026-09-22: M7 released as 0.9.0 (decided); the live delivery test does not hold the release — it is run if a key is available and its state is stated either way.
