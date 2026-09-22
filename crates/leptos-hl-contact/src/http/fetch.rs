@@ -136,6 +136,19 @@ async fn exchange(request: Request) -> Result<HttpResponse, HttpError> {
         .map_err(|_| unusable("not a Response"))?;
 
     let status = response.status();
+
+    // When the answer states its length, an oversized one is refused before
+    // `array_buffer` ever reads it (RFC 017 handoff 02 review, C2).  Without
+    // the header — a chunked or unlabelled answer — the check below still
+    // catches it, after the whole body has already been read; see
+    // `MAX_RESPONSE_BODY`'s own doc comment for what that gap covers.
+    if let Ok(Some(length)) = response.headers().get("content-length")
+        && let Ok(length) = length.parse::<usize>()
+        && length > MAX_RESPONSE_BODY
+    {
+        return Err(unusable("response too large"));
+    }
+
     let buffer = response.array_buffer().map_err(|_| network_error())?;
     let buffer = JsFuture::from(buffer).await.map_err(|_| network_error())?;
     let array = Uint8Array::new(&buffer);

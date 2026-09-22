@@ -20,6 +20,8 @@ mod support;
 
 mod binding;
 mod challenge;
+#[cfg(feature = "challenge-http")]
+mod challenge_http;
 mod delivery;
 mod filter;
 mod form_token;

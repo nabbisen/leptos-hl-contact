@@ -9,11 +9,13 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    delivery::{ContactDelivery, DeliveryFuture, body::build_plain_text_body},
+    delivery::{
+        ContactDelivery, DeliveryFuture,
+        body::{build_plain_text_body, compose_subject},
+    },
     error::ContactDeliveryError,
     http::{HttpBody, HttpClient, HttpError, HttpRequest},
     model::ContactInput,
-    security::sanitize_header_value,
 };
 
 /// Resend's endpoint.  Kept in one place, in this module (RFC 017 D1a).
@@ -170,8 +172,17 @@ impl ResendDelivery {
     /// that outbound traffic must pass through, or a test server.  The same
     /// escape hatch `HttpChallengeVerifier::with_verify_url` gives the
     /// challenge verifiers (`challenge-http`).
+    ///
+    /// A `url` that does not start with `https://` logs one `warn!`, here,
+    /// naming neither the URL nor the key: the key would be sent in the
+    /// clear.  It is not refused — a local responder over `http` is exactly
+    /// what this crate's own tests, and a site's staging setup, do.
     pub fn with_url(mut self, url: impl Into<String>) -> Self {
-        self.url = url.into();
+        let url = url.into();
+        if !url.starts_with("https://") {
+            tracing::warn!("delivery URL is not https: the key will be sent in the clear");
+        }
+        self.url = url;
         self
     }
 }
@@ -238,10 +249,10 @@ impl ContactDelivery for ResendDelivery {
                 }
             }
 
-            // Composed exactly as `delivery/smtp.rs` composes it.
-            let subject_prefix = sanitize_header_value(&self.config.subject_prefix);
-            let effective_subject = sanitize_header_value(&input.effective_subject("(no subject)"));
-            let subject = format!("{subject_prefix} {effective_subject}");
+            let subject = compose_subject(
+                &self.config.subject_prefix,
+                &input.effective_subject("(no subject)"),
+            );
             let text = build_plain_text_body(&input);
 
             let payload = ResendRequestBody {

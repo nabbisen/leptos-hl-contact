@@ -145,7 +145,7 @@ async fn the_request_is_a_bearer_authorized_json_post_with_reply_to() {
     assert_eq!(body["from"], "noreply@example.com");
     assert_eq!(body["to"], "admin@example.com");
     assert_eq!(body["reply_to"], "alice@example.com");
-    assert_eq!(body["subject"], " Hello");
+    assert_eq!(body["subject"], "Hello");
 }
 
 /// RFC 017 D3: the subject is composed exactly as `delivery/smtp.rs`

@@ -139,3 +139,47 @@ async fn a_successful_delivery_with_an_id_logs_it() {
         logs.lines().join("\n")
     );
 }
+
+// ---- the endpoint override, RFC 017 handoff 02 review C1 ---------------------
+
+const HTTPS_WARNING: &str = "delivery URL is not https: the key will be sent in the clear";
+
+/// An overridden `http://` URL warns once, at construction, naming neither
+/// the URL nor the key.
+#[tokio::test]
+async fn an_http_override_warns() {
+    let (logs, _guard) = capture_logs();
+    let key = "zz-probe-resend-key-c1";
+
+    let _delivery = ResendDelivery::new(ResendConfig::new(
+        key,
+        "noreply@example.com",
+        "admin@example.com",
+    ))
+    .with_url("http://127.0.0.1:1/emails");
+
+    assert!(
+        logs.any_contains(HTTPS_WARNING),
+        "the warning is logged; the capture saw:\n{}",
+        logs.lines().join("\n")
+    );
+    for line in logs.lines() {
+        assert!(!line.contains(key), "the key was logged: {line}");
+        assert!(!line.contains("127.0.0.1"), "the URL was logged: {line}");
+    }
+}
+
+/// An overridden `https://` URL logs no such warning.
+#[tokio::test]
+async fn an_https_override_does_not_warn() {
+    let (logs, _guard) = capture_logs();
+
+    let _delivery = ResendDelivery::new(ResendConfig::new(
+        "key",
+        "noreply@example.com",
+        "admin@example.com",
+    ))
+    .with_url("https://proxy.example.test/emails");
+
+    assert!(!logs.any_contains(HTTPS_WARNING), "{:?}", logs.lines());
+}

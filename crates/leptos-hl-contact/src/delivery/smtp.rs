@@ -11,10 +11,12 @@ use lettre::{
 };
 
 use crate::{
-    delivery::{ContactDelivery, DeliveryFuture, body::build_plain_text_body},
+    delivery::{
+        ContactDelivery, DeliveryFuture,
+        body::{build_plain_text_body, compose_subject},
+    },
     error::ContactDeliveryError,
     model::ContactInput,
-    security::sanitize_header_value,
 };
 
 // ---------------------------------------------------------------------------
@@ -250,10 +252,10 @@ impl LettreSmtpDelivery {
                 })?;
         let reply_to = Mailbox::new(Some(input.name.clone()), reply_to_addr);
 
-        // Defence-in-depth: sanitize even though validation already rejects newlines.
-        let effective_subject = sanitize_header_value(&input.effective_subject("(no subject)"));
-        let subject_prefix = sanitize_header_value(&self.config.subject_prefix);
-        let subject = format!("{subject_prefix} {effective_subject}");
+        let subject = compose_subject(
+            &self.config.subject_prefix,
+            &input.effective_subject("(no subject)"),
+        );
         let body = build_plain_text_body(input);
 
         let message = Message::builder()

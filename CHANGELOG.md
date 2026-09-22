@@ -13,6 +13,13 @@
   default and is changed with a builder, so a config added later needs no
   migration line.
 
+### Fixed
+
+- **A subject line with no prefix had a stray leading space** (`" Hello"`,
+  not `"Hello"`).  Both delivery backends now compose the subject the same
+  way, and an empty prefix leaves none.  This affects `LettreSmtpDelivery`
+  too, if a site sets `SmtpConfig::subject_prefix` to an empty string.
+
 ## [0.8.0] — 2026-09-22
 
 This is the minor release in which a site can add a few fields of its own,

@@ -25,6 +25,21 @@ use std::time::Duration;
 /// is `HttpError::Unusable` instead of being parsed, so a misconfigured proxy
 /// or a hostile endpoint cannot make the server hold an unbounded amount of
 /// memory (RFC 017 handoff 01 review).
+///
+/// **What is actually bounded, per target (handoff 02 review, C2):**
+/// - **Native:** the cap bounds the read itself.  `HttpClient::post` reads
+///   `reqwest::Response::chunk()`s and stops as soon as the running total
+///   would exceed the cap, so a hostile endpoint cannot make this allocate
+///   more than one chunk past `MAX_RESPONSE_BODY`.
+/// - **wasm32:** `fetch`'s `Response` exposes no chunked reader as simple as
+///   `chunk()`.  When the answer carries `Content-Length`, that is checked
+///   **before** `array_buffer()` is called, so an oversized answer that says
+///   so is never read at all.  Without that header (a chunked or unlabelled
+///   answer), the whole body is read first and the length is checked after —
+///   the cap then bounds what a *caller* receives, not what the runtime
+///   allocated to produce it.  Every endpoint this crate talks to in
+///   production sends `Content-Length`; the gap is for an overridden
+///   endpoint (`with_verify_url`, `with_url`) that does not.
 const MAX_RESPONSE_BODY: usize = 64 * 1024;
 
 /// The body of an outgoing request.
@@ -108,16 +123,21 @@ impl HttpClient {
                 .header("content-type", "application/json")
                 .body(json.to_owned()),
         };
-        let response = builder.send().await.map_err(transport_error)?;
+        let mut response = builder.send().await.map_err(transport_error)?;
         let status = response.status().as_u16();
-        let body = response.bytes().await.map_err(transport_error)?;
-        if body.len() > MAX_RESPONSE_BODY {
-            return Err(HttpError::Unusable("response too large"));
+
+        // Read in chunks and stop as soon as the cap would be exceeded, so a
+        // hostile or misconfigured endpoint cannot make this allocate more
+        // than `MAX_RESPONSE_BODY` (RFC 017 handoff 02 review, C2).
+        // `Response::chunk` needs no extra reqwest feature.
+        let mut body = Vec::new();
+        while let Some(chunk) = response.chunk().await.map_err(transport_error)? {
+            if body.len() + chunk.len() > MAX_RESPONSE_BODY {
+                return Err(HttpError::Unusable("response too large"));
+            }
+            body.extend_from_slice(&chunk);
         }
-        Ok(HttpResponse {
-            status,
-            body: body.to_vec(),
-        })
+        Ok(HttpResponse { status, body })
     }
 }
 

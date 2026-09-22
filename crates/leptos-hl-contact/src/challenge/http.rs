@@ -99,8 +99,17 @@ impl HttpChallengeVerifier {
     /// Send verifications to `url` instead of the vendor's endpoint — for a
     /// forwarding proxy that outbound traffic must pass through, or a test
     /// server.
+    ///
+    /// A `url` that does not start with `https://` logs one `warn!`, here,
+    /// naming neither the URL nor the secret: the secret would be sent in
+    /// the clear.  It is not refused — a local responder over `http` is
+    /// exactly what this crate's own tests, and a site's staging setup, do.
     pub fn with_verify_url(mut self, url: impl Into<String>) -> Self {
-        self.verify_url = Some(url.into());
+        let url = url.into();
+        if !url.starts_with("https://") {
+            tracing::warn!("verify URL is not https: the secret will be sent in the clear");
+        }
+        self.verify_url = Some(url);
         self
     }
 

@@ -112,3 +112,27 @@ fn a_multi_line_text_value_is_kept_intact() {
         "{body}"
     );
 }
+
+// ---- compose_subject, RFC 017 handoff 02 review C3 ---------------------------
+
+/// An empty prefix leaves no leading space.
+#[test]
+fn an_empty_prefix_leaves_no_leading_space() {
+    assert_eq!(compose_subject("", "Hello"), "Hello");
+}
+
+/// A non-empty prefix is followed by one space and the subject.
+#[test]
+fn a_prefix_is_followed_by_one_space_and_the_subject() {
+    assert_eq!(compose_subject("[Contact]", "Hello"), "[Contact] Hello");
+}
+
+/// Both the prefix and the subject are sanitized against header injection
+/// (each of `\r` and `\n` becomes a space, as `sanitize_header_value` does).
+#[test]
+fn both_parts_are_sanitized_against_header_injection() {
+    assert_eq!(
+        compose_subject("[Con\r\ntact]", "He\nllo"),
+        "[Con  tact] He llo"
+    );
+}
