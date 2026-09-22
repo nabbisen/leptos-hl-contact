@@ -29,9 +29,9 @@ use.**
 | `guides/delivery-backends.md` | opens with a table: **SMTP** (native only; a relay you run or rent), **Resend** (native and Workers; an API key), **your own** (any target).  Then a section for the adapter: the config, the three required values, what happens when one is missing, the deadline and how it composes with `DeliveryTimeout`, that the body is the same as SMTP's, and that errors carry a status code only |
 | `guides/cloudflare-workers.md` | "Delivery on a Worker" stops saying bring your own backend: the adapter is the built-in option there, with the SMTP row still explaining why SMTP cannot run.  Keep the custom-backend paragraph for sites that need one |
 | `reference/feature-flags.md` | a `delivery-resend` row, with its Workers column |
-| `reference/api.md` | `ResendDelivery`, `ResendConfig`, its constructor and builders, the default timeout |
+| `reference/api.md` | `ResendDelivery`, `ResendConfig`, its constructor and builders, the default timeout, and `with_url`.  **Use the full path** `delivery::resend::{…}`: unlike most types, the SMTP and Resend backends are not re-exported at the crate root |
 | `getting-started/production-checklist.md` | one row: the API key comes from the environment, the sender's domain is verified at the provider, and a delivery failure has been seen once in staging |
-| `security/hardening.md` or `security/README.md` | one line: an API key is a secret like the SMTP password, and the crate redacts it in `Debug` |
+| `security/hardening.md` or `security/README.md` | one line: an API key is a secret like the SMTP password, and the crate redacts it in `Debug`.  Add that an overridden endpoint (`with_url`, `with_verify_url`) carries that secret, so it must be `https` outside local testing — the crate warns when it is not (handoff 02 C1) |
 | `README.md` | the delivery bullet mentions the two built-in backends |
 | `development/external-design.md` | the delivery table gains the adapter and its error mapping |
 | `development/architecture.md` | the source layout and the module map, exactly |
