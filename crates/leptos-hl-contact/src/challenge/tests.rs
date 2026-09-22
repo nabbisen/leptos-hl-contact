@@ -252,3 +252,18 @@ fn a_client_ip_debug_redacts_the_address() {
     assert!(!debug.contains("2001:db8::7"), "{debug}");
     assert!(debug.contains("ChallengeClientIp("), "{debug}");
 }
+
+/// FR-CFG-04, RFC 020 D1 (row 3): `ChallengeContext`'s `Debug` names the
+/// struct and the fixed `<dyn ChallengeVerifier>` placeholder rather than
+/// whatever the verifier itself holds — kills `<impl Debug for
+/// ChallengeContext>::fmt -> Ok(Default::default())`, which an
+/// empty-string output would satisfy just as trivially as a correct one if
+/// this only checked what the output must *not* contain.
+#[test]
+fn a_challenge_context_debug_names_the_struct_and_hides_the_verifier() {
+    let context = ctx(Ok(passed()), ChallengePolicy::default());
+    let debug = format!("{context:?}");
+    assert!(debug.contains("ChallengeContext"), "{debug}");
+    assert!(debug.contains("<dyn ChallengeVerifier>"), "{debug}");
+    assert!(!debug.contains("MockVerifier"), "{debug}");
+}

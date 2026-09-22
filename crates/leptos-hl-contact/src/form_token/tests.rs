@@ -179,6 +179,24 @@ fn an_old_token_is_expired() {
     );
 }
 
+/// FR-ABUSE-03, RFC 020 D1 (row 1): the TTL check is `age > ttl_secs`, not
+/// `>=` — a token exactly at its TTL is still valid, and one second past it
+/// is `Expired`. Kills `form_token.rs` `replace > with >= in
+/// verify_form_token` (TTL).
+#[test]
+fn a_token_at_exactly_its_ttl_is_valid_one_second_later_it_is_expired() {
+    let config = test_config().with_ttl(10);
+
+    let at_ttl = token_aged(10, &config);
+    assert_eq!(verify_form_token(&at_ttl, None, &config), Ok(()));
+
+    let past_ttl = token_aged(11, &config);
+    assert_eq!(
+        verify_form_token(&past_ttl, None, &config),
+        Err(FormTokenError::Expired)
+    );
+}
+
 #[test]
 fn a_far_future_token_is_rejected() {
     let config = test_config();
@@ -190,6 +208,39 @@ fn a_far_future_token_is_rejected() {
     let sig = sign(&payload, &config.secret_key);
     assert_eq!(
         verify_form_token(&format!("{payload}|{sig}"), None, &config),
+        Err(FormTokenError::FromFuture)
+    );
+}
+
+/// FR-ABUSE-03, RFC 020 D1 (row 2): the future-skew check is `timestamp >
+/// now + ALLOWED_FUTURE_SKEW_SECS`, not `>=` — a token exactly at the skew
+/// limit is accepted, and one second beyond it is `FromFuture`. Kills
+/// `form_token.rs` `replace > with >= in verify_form_token` (skew).
+#[test]
+fn a_token_at_exactly_the_future_skew_limit_is_accepted_one_second_beyond_is_refused() {
+    let config = test_config();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    let at_limit = format!(
+        "{}|aabbccddeeff00112233445566778899",
+        now + ALLOWED_FUTURE_SKEW_SECS
+    );
+    let sig = sign(&at_limit, &config.secret_key);
+    assert_eq!(
+        verify_form_token(&format!("{at_limit}|{sig}"), None, &config),
+        Ok(())
+    );
+
+    let beyond_limit = format!(
+        "{}|aabbccddeeff00112233445566778899",
+        now + ALLOWED_FUTURE_SKEW_SECS + 1
+    );
+    let sig = sign(&beyond_limit, &config.secret_key);
+    assert_eq!(
+        verify_form_token(&format!("{beyond_limit}|{sig}"), None, &config),
         Err(FormTokenError::FromFuture)
     );
 }
@@ -390,6 +441,16 @@ fn a_fetched_token_is_handed_to_the_issuer() {
     });
 
     assert_eq!(*seen.lock().unwrap(), vec![token.0]);
+}
+
+/// RFC 020 D1 (row 3): `FormTokenIssuer`'s `Debug` is the fixed
+/// `"FormTokenIssuer(..)"` — kills `<impl Debug for FormTokenIssuer>::fmt
+/// -> Ok(Default::default())`, which an empty string would also satisfy if
+/// this only checked what the closure's captured state must not leak.
+#[test]
+fn form_token_issuer_debug_is_the_fixed_placeholder() {
+    let issuer = FormTokenIssuer(Arc::new(|_| {}));
+    assert_eq!(format!("{issuer:?}"), "FormTokenIssuer(..)");
 }
 
 /// Fail closed, like `submit_contact`: no config, no token.

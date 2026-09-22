@@ -69,3 +69,33 @@ async fn a_body_one_byte_over_the_cap_is_unusable() {
         Err(_) => panic!("expected Unusable, got a different error"),
     }
 }
+
+/// FR-DEL-08, RFC 020 D1 (row 6): sizes here are literal byte counts, never
+/// `MAX_RESPONSE_BODY` itself — a test built from the constant it is
+/// checking can never notice the constant's own value change, which is
+/// exactly how `http.rs`'s `replace * with + in MAX_RESPONSE_BODY`
+/// (65,536 -> 1,088) survived every existing test: both `a_body_at_the_cap…`
+/// and `…_one_byte_over_the_cap` size their bodies from the constant, so
+/// they stay internally consistent under any value it takes. A 64,000-byte
+/// body is accepted and returned whole; 65,537 bytes — one over the real
+/// 64 KiB cap, also written as a literal — is `Unusable`.
+#[tokio::test]
+async fn a_64_000_byte_body_is_accepted_65_537_bytes_is_unusable() {
+    let accepted: &'static [u8] = Box::leak(vec![b'x'; 64_000].into_boxed_slice());
+    let (url, _rx) = respond_once(accepted).await;
+    let response = HttpClient::new().post(request(&url)).await.expect("ok");
+    assert_eq!(response.status, 200);
+    assert_eq!(response.body.len(), 64_000);
+    assert!(response.body.iter().all(|&b| b == b'x'), "returned whole");
+
+    let rejected: &'static [u8] = Box::leak(vec![b'x'; 65_537].into_boxed_slice());
+    let (url, _rx) = respond_once(rejected).await;
+    match HttpClient::new().post(request(&url)).await {
+        Err(HttpError::Unusable(reason)) => assert_eq!(reason, "response too large"),
+        Ok(response) => panic!(
+            "expected Unusable, got a {}-byte response",
+            response.body.len()
+        ),
+        Err(_) => panic!("expected Unusable, got a different error"),
+    }
+}

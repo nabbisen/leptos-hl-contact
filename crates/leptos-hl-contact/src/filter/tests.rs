@@ -108,3 +108,29 @@ async fn a_chain_is_usable_as_the_context() {
     let context: ContactFilterContext = Arc::new(FilterChain::new(vec![reject]));
     assert_eq!(context.filter(&input()).await, FilterDecision::Reject);
 }
+
+/// A filter with a chosen name, to prove `FilterChain`'s `Debug` actually
+/// lists each filter's name rather than nothing.
+struct Named(&'static str);
+
+impl ContactFilter for Named {
+    fn filter(&self, _input: &ContactInput) -> FilterFuture<'_> {
+        Box::pin(async { FilterDecision::Accept })
+    }
+    fn name(&self) -> &'static str {
+        self.0
+    }
+}
+
+/// RFC 020 D1 (row 3): `FilterChain`'s `Debug` lists each filter's name in
+/// order — kills `<impl Debug for FilterChain>::fmt -> Ok(Default::default())`,
+/// which an empty list would also satisfy if this only checked negatives.
+#[test]
+fn filter_chain_debug_lists_each_filters_name_in_order() {
+    let chain = FilterChain::new(vec![
+        Arc::new(Named("PROBE-FIRST")),
+        Arc::new(Named("PROBE-SECOND")),
+    ]);
+    let debug = format!("{chain:?}");
+    assert_eq!(debug, r#"["PROBE-FIRST", "PROBE-SECOND"]"#, "{debug}");
+}

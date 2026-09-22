@@ -305,6 +305,11 @@ async fn an_empty_value_is_configuration_and_sends_nothing() {
 
 // ---- configuration -------------------------------------------------------------
 
+/// FR-CFG-04, RFC 020 D1 (row 3): both `Debug` impls must actually run —
+/// `debug.contains("<redacted>")` fails under `<impl Debug for
+/// ResendDelivery>::fmt -> Ok(Default::default())`, which the earlier
+/// `!debug.contains("super-secret-key")` alone did not catch (an empty
+/// string trivially "does not contain" the key too).
 #[test]
 fn debug_redacts_the_key() {
     let config = ResendConfig::new(
@@ -323,6 +328,8 @@ fn debug_redacts_the_key() {
     ));
     let debug = format!("{delivery:?}");
     assert!(!debug.contains("super-secret-key"), "{debug}");
+    assert!(debug.contains("<redacted>"), "{debug}");
+    assert!(debug.contains("ResendDelivery"), "{debug}");
 }
 
 #[test]

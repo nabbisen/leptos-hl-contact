@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use leptos_hl_contact::{ChallengeContext, ChallengePolicy, NoJsPolicy};
 
-use crate::support::{Fields, Harness, ScriptedVerifier, Setup};
+use crate::support::{Fields, Harness, ScriptedVerifier, Setup, capture_logs};
 
 fn with_challenge(verifier: &Arc<ScriptedVerifier>, no_js: NoJsPolicy) -> Harness {
     Harness::new(Setup {
@@ -206,4 +206,47 @@ async fn the_client_ip_reaches_the_verifier() {
         assert_eq!(verifier.seen_ips(), [client_ip, client_ip], "{client_ip:?}");
         assert_eq!(verifier.seen(), ["ip-token", "ip-token"], "{client_ip:?}");
     }
+}
+
+/// FR-OBS-02, RFC 020 D1 (row 5): the verifier-unavailable branch logs at
+/// `error`, with `"challenge verifier unavailable"` — kills `server.rs`'s
+/// `delete match arm ContactErrorCode::ChallengeUnavailable`, which falls
+/// through to the generic `"challenge failed"` `warn` instead.
+#[tokio::test]
+async fn a_verifier_error_logs_challenge_verifier_unavailable() {
+    let (logs, _guard) = capture_logs();
+    let verifier = Arc::new(ScriptedVerifier::unavailable());
+    let h = with_challenge(&verifier, NoJsPolicy::Reject);
+    let fields = h.fields().set("cf-turnstile-response", "unavailable-token");
+    h.submit_fetch(&fields).await;
+
+    assert!(
+        logs.any_contains("challenge verifier unavailable"),
+        "the capture did not see it; it saw:\n{}",
+        logs.lines().join("\n")
+    );
+    assert!(
+        !logs.any_contains("challenge failed"),
+        "the unavailable branch must not fall through to the generic warning:\n{}",
+        logs.lines().join("\n")
+    );
+}
+
+/// FR-OBS-02, RFC 020 D1 (row 5): a challenge token with no `ChallengeContext`
+/// at all logs at `error`, with `"challenge token received but no
+/// ChallengeContext is provided"` — kills `server.rs`'s `replace == with !=
+/// in submit_contact` on the `NotConfigured` check, which would otherwise
+/// log this exact line for every *other* rejection code instead of this one.
+#[tokio::test]
+async fn a_token_with_no_context_logs_the_missing_context_message() {
+    let (logs, _guard) = capture_logs();
+    let h = Harness::new(Setup::default());
+    let fields = h.fields().set("cf-turnstile-response", "orphan-token");
+    h.submit_fetch(&fields).await;
+
+    assert!(
+        logs.any_contains("challenge token received but no ChallengeContext is provided"),
+        "the capture did not see it; it saw:\n{}",
+        logs.lines().join("\n")
+    );
 }

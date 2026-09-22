@@ -17,8 +17,8 @@ use leptos_hl_contact::{
     ChallengeContext, ContactDeliveryContext, ContactFilterContext, ContactForm,
     ContactServerPolicy, ContactSuccessRedirect, SiteFields,
     axum_helpers::{
-        FormTokenCookie, provide_form_token_binding, provide_form_token_issuer,
-        provide_form_token_with_cookie,
+        FormTokenCookie, provide_contact_delivery, provide_form_token_binding,
+        provide_form_token_issuer, provide_form_token_with_cookie,
     },
     form_token::{Binding, FormTokenConfig, FormTokenContext, issue_form_token},
 };
@@ -187,7 +187,10 @@ impl Harness {
                     } else {
                         delivery.clone() as ContactDeliveryContext
                     };
-                    provide_context(delivery);
+                    // Through the crate's own helper (RFC 020 D1 row 4), the
+                    // way an integrator wires it, rather than reaching
+                    // around it with a bare `provide_context`.
+                    provide_contact_delivery(delivery);
                 }
                 match token_mode {
                     TokenMode::Plain => {
