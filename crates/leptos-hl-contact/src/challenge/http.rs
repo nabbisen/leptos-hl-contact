@@ -6,7 +6,10 @@ use std::time::Duration;
 use serde::Deserialize;
 
 use super::{ChallengeError, ChallengeOutcome, ChallengeRequest, ChallengeVerifier, VerifyFuture};
-use crate::config::ChallengeProvider;
+use crate::{
+    config::ChallengeProvider,
+    http::{HttpBody, HttpClient, HttpError, HttpRequest},
+};
 
 /// How long a verification may take before it fails with
 /// [`ChallengeError::Timeout`].
@@ -61,8 +64,7 @@ pub struct HttpChallengeVerifier {
     secret: String,
     timeout: Duration,
     verify_url: Option<String>,
-    #[cfg(not(target_arch = "wasm32"))]
-    client: reqwest::Client,
+    client: HttpClient,
 }
 
 impl HttpChallengeVerifier {
@@ -84,12 +86,7 @@ impl HttpChallengeVerifier {
             secret: secret.into(),
             timeout: DEFAULT_TIMEOUT,
             verify_url: None,
-            #[cfg(not(target_arch = "wasm32"))]
-            client: reqwest::Client::builder()
-                // Never resend the secret to a `Location` of someone else's choosing.
-                .redirect(reqwest::redirect::Policy::none())
-                .build()
-                .expect("the rustls TLS backend initialises"),
+            client: HttpClient::new(),
         }
     }
 
@@ -156,47 +153,36 @@ impl ChallengeVerifier for HttpChallengeVerifier {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl HttpChallengeVerifier {
     async fn send(
         &self,
         body: &[(&'static str, String)],
     ) -> Result<ChallengeOutcome, ChallengeError> {
-        let response = self
-            .client
-            .post(self.endpoint())
-            .timeout(self.timeout)
-            .form(body)
-            .send()
-            .await
-            .map_err(transport_error)?;
-        let status = response.status();
-        if !status.is_success() {
-            return Err(ChallengeError::Unavailable(format!("HTTP {status}")));
+        let request = HttpRequest {
+            url: self.endpoint(),
+            headers: &[],
+            body: HttpBody::Form(body),
+            limit: self.timeout,
+        };
+        let response = self.client.post(request).await.map_err(map_http_error)?;
+        if !(200..=299).contains(&response.status) {
+            return Err(ChallengeError::Unavailable(format!(
+                "HTTP {}",
+                response.status
+            )));
         }
-        let body = response.bytes().await.map_err(transport_error)?;
-        parse_response(&body)
+        parse_response(&response.body)
     }
 }
 
-#[cfg(target_arch = "wasm32")]
-impl HttpChallengeVerifier {
-    async fn send(
-        &self,
-        body: &[(&'static str, String)],
-    ) -> Result<ChallengeOutcome, ChallengeError> {
-        fetch::send(self.endpoint(), body, self.timeout).await
-    }
-}
-
-/// A timeout is `Timeout`; anything else on the wire is `Unavailable`.  The
-/// URL is stripped from the message: it could be a proxy address.
-#[cfg(not(target_arch = "wasm32"))]
-fn transport_error(error: reqwest::Error) -> ChallengeError {
-    if error.is_timeout() {
-        ChallengeError::Timeout
-    } else {
-        ChallengeError::Unavailable(error.without_url().to_string())
+/// The same mapping every caller of the shared module needs: a timeout is
+/// still a timeout, and everything else the transport could not judge is
+/// `Unavailable`.  A non-2xx status is mapped by the caller instead, above.
+fn map_http_error(error: HttpError) -> ChallengeError {
+    match error {
+        HttpError::Timeout => ChallengeError::Timeout,
+        HttpError::Transport(text) => ChallengeError::Unavailable(text),
+        HttpError::Unusable(reason) => ChallengeError::Unavailable(reason.to_owned()),
     }
 }
 
@@ -226,10 +212,6 @@ pub(crate) fn parse_response(body: &[u8]) -> Result<ChallengeOutcome, ChallengeE
         error_codes: parsed.error_codes,
     })
 }
-
-// The request over the global `fetch`, on a wasm32 server (RFC 011 D3).
-#[cfg(target_arch = "wasm32")]
-mod fetch;
 
 // ---------------------------------------------------------------------------
 // Tests

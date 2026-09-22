@@ -5,6 +5,11 @@
 
 pub mod noop;
 
+// The plain-text body every backend sends (RFC 017 D1).  Private: no type
+// of it appears in the crate's API.
+#[cfg(feature = "smtp-lettre")]
+mod body;
+
 #[cfg(feature = "smtp-lettre")]
 pub mod smtp;
 

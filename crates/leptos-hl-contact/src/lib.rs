@@ -61,6 +61,12 @@ pub mod form_token;
 #[cfg(feature = "ssr")]
 pub mod challenge;
 
+// A private HTTP client shared by every feature that posts to an external
+// endpoint (RFC 017 D1).  Not public: no type of it appears in the crate's
+// API.
+#[cfg(feature = "challenge-http")]
+mod http;
+
 // Pre-delivery filter hook — the site's own content rules; no built-in rules.
 #[cfg(feature = "ssr")]
 pub mod filter;
