@@ -1,6 +1,6 @@
 # RFC 020 — Test follow-ups, and translations as contributed examples
 
-**Status.** Accepted — 2026-09-22, as proposed: the tests, and translations
+**Status.** Implemented (0.10.0) — released 2026-09-22, tag `0.10.0` on commit `24dff51`, published to crates.io.  Accepted 2026-09-22, as proposed: the tests, and translations
 as contributed documentation rather than shipped presets.  Milestone M8
 (P-38, and P-20 reshaped).
 **Tracks.** Roadmap P-38, P-20.  Requirements NFR-TEST-*, FR-I18N-02.

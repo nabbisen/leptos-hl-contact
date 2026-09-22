@@ -1,6 +1,6 @@
 # Handoffs — RFC 019, An opt-in `novalidate`
 
-Companion to [RFC 019](../../accepted/019-optional-novalidate.md).  Shared
+Companion to [RFC 019](../../done/019-optional-novalidate.md).  Shared
 rules, gates and review-request format:
 [`../001-m1-green-baseline/README.md`](../001-m1-green-baseline/README.md), plus
 the release rules in

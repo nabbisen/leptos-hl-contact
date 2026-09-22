@@ -1,6 +1,6 @@
 # Handoffs — RFC 020, Test follow-ups, and translations as contributed examples
 
-Companion to [RFC 020](../../accepted/020-test-and-docs-follow-ups.md).  Shared
+Companion to [RFC 020](../../done/020-test-and-docs-follow-ups.md).  Shared
 rules, gates and review-request format:
 [`../001-m1-green-baseline/README.md`](../001-m1-green-baseline/README.md), plus
 the release rules in

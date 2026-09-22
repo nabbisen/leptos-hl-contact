@@ -1,6 +1,6 @@
 # RFC 019 — An opt-in `novalidate`, so a site's own error text is what visitors read
 
-**Status.** Accepted — 2026-09-22, as proposed: `native_validation`,
+**Status.** Implemented (0.10.0) — released 2026-09-22, tag `0.10.0` on commit `24dff51`, published to crates.io.  Accepted 2026-09-22, as proposed: `native_validation`,
 default `true`, one form-wide switch.  Milestone M8 (P-41).
 **Tracks.** Roadmap P-41.  Requirements FR-UI-02, FR-I18N-02, FR-A11Y-*,
 FR-PE-01/02.

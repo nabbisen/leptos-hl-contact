@@ -1,6 +1,6 @@
 # Handoff 020-03 — A flaky release gate
 
-**RFC.** [RFC 020](../../accepted/020-test-and-docs-follow-ups.md), Amendment D4
+**RFC.** [RFC 020](../../done/020-test-and-docs-follow-ups.md), Amendment D4
 **Roadmap.** P-45
 **Requirements.** NFR-TEST-02/03
 

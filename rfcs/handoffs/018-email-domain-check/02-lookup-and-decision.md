@@ -1,6 +1,6 @@
 # Handoff 018-02 — The lookup, and the decision table
 
-**RFC.** [RFC 018](../../accepted/018-email-domain-check.md) D1, D4, and the Amendment (A1–A4)
+**RFC.** [RFC 018](../../done/018-email-domain-check.md) D1, D4, and the Amendment (A1–A4)
 **Roadmap.** P-35
 **Depends on.** 01 (spike, reviewed)
 

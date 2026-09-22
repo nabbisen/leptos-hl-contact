@@ -1,6 +1,6 @@
 # Handoff 019-01 — `ContactFormOptions::native_validation`
 
-**RFC.** [RFC 019](../../accepted/019-optional-novalidate.md) D1–D4
+**RFC.** [RFC 019](../../done/019-optional-novalidate.md) D1–D4
 **Roadmap.** P-41
 **Requirements.** FR-UI-02, FR-I18N-02, FR-A11Y-03, FR-PE-01/02
 

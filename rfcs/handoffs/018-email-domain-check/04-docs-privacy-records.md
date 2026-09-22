@@ -1,6 +1,6 @@
 # Handoff 018-04 — Documentation, privacy, traceability
 
-**RFC.** [RFC 018](../../accepted/018-email-domain-check.md) D5, D6
+**RFC.** [RFC 018](../../done/018-email-domain-check.md) D5, D6
 **Roadmap.** P-35
 **Depends on.** 03 (approved)
 

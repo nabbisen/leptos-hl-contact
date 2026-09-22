@@ -1,6 +1,6 @@
 # Handoffs — RFC 018, An opt-in check that the email domain can receive mail
 
-Companion to [RFC 018](../../accepted/018-email-domain-check.md).  Shared
+Companion to [RFC 018](../../done/018-email-domain-check.md).  Shared
 rules, gates and review-request format:
 [`../001-m1-green-baseline/README.md`](../001-m1-green-baseline/README.md), plus
 the release rules in

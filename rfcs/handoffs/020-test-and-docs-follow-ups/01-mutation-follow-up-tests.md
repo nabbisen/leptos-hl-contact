@@ -1,6 +1,6 @@
 # Handoff 020-01 — The mutation follow-up tests
 
-**RFC.** [RFC 020](../../accepted/020-test-and-docs-follow-ups.md) D1
+**RFC.** [RFC 020](../../done/020-test-and-docs-follow-ups.md) D1
 **Roadmap.** P-38
 **Requirements.** NFR-TEST-02/03, and the requirement each test cites
 

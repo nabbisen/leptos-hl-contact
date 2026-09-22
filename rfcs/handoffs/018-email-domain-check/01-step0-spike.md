@@ -1,6 +1,6 @@
 # Handoff 018-01 — Step 0 spike: DNS over HTTPS through the shared transport
 
-**RFC.** [RFC 018](../../accepted/018-email-domain-check.md), Step 0
+**RFC.** [RFC 018](../../done/018-email-domain-check.md), Step 0
 **Roadmap.** P-35
 **Output.** A report.  **Nothing is committed to `main`.**  Spike code lives
 on a local branch or in the scratchpad; paste the excerpts into the request.

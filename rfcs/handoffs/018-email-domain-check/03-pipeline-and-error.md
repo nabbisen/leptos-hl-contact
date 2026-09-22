@@ -1,6 +1,6 @@
 # Handoff 018-03 — The pipeline step, and what the visitor is told
 
-**RFC.** [RFC 018](../../accepted/018-email-domain-check.md) D2, D3
+**RFC.** [RFC 018](../../done/018-email-domain-check.md) D2, D3
 **Roadmap.** P-35
 **Depends on.** 02 (approved)
 

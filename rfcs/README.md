@@ -21,9 +21,7 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Handoff |
 |----|-------|---------|
-| 018 | [An opt-in check that the email domain can receive mail](./accepted/018-email-domain-check.md) | [handoffs/018-email-domain-check/](./handoffs/018-email-domain-check/README.md) |
-| 019 | [An opt-in `novalidate`](./accepted/019-optional-novalidate.md) | [handoffs/019-optional-novalidate/](./handoffs/019-optional-novalidate/README.md) |
-| 020 | [Test follow-ups, and translations as contributed examples](./accepted/020-test-and-docs-follow-ups.md) | [handoffs/020-test-and-docs-follow-ups/](./handoffs/020-test-and-docs-follow-ups/README.md) |
+| — | *(none)* | |
 
 ## Implemented
 
@@ -47,6 +45,9 @@ Planned topics that do not yet have a file are listed in
 | 015 | [Fields defined by the site, bounded](./done/015-site-defined-fields.md) | 0.8.0 (2026-09-22) — [handoffs](./handoffs/015-site-defined-fields/README.md) |
 | 016 | [A true MSRV, pinned CI actions, and constant-time comparison from the crypto crates](./done/016-msrv-and-ci-hygiene.md) | 0.8.0 (2026-09-22) — [handoffs](./handoffs/016-msrv-and-ci-hygiene/README.md) |
 | 017 | [Delivery through an email HTTP API](./done/017-http-api-delivery.md) | 0.9.0 (2026-09-22) — [handoffs](./handoffs/017-http-api-delivery/README.md) |
+| 018 | [An opt-in check that the email domain can receive mail](./done/018-email-domain-check.md) | 0.10.0 (2026-09-22) — [handoffs](./handoffs/018-email-domain-check/README.md) |
+| 019 | [An opt-in `novalidate`](./done/019-optional-novalidate.md) | 0.10.0 (2026-09-22) — [handoffs](./handoffs/019-optional-novalidate/README.md) |
+| 020 | [Test follow-ups, and translations as contributed examples](./done/020-test-and-docs-follow-ups.md) | 0.10.0 (2026-09-22) — [handoffs](./handoffs/020-test-and-docs-follow-ups/README.md) |
 
 ## Archive
 

@@ -1,8 +1,8 @@
 # Requirements Specification
 
-> **Document status.** Draft 31, 2026-09-22, against release `0.9.0`.
+> **Document status.** Draft 32, 2026-09-22, against release `0.10.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
-> M1–M7 are released; the document as a whole awaits formal approval.
+> M1–M8 are released; the document as a whole awaits formal approval.
 > Once approved, this document is the requirements baseline; later changes
 > go through RFCs listed in [`rfcs/README.md`](https://github.com/nabbisen/leptos-hl-contact/blob/main/rfcs/README.md).
 >
@@ -152,7 +152,7 @@ crate's boundaries.  [Architecture](./architecture.md) describes internals.
 | FR-VAL-06 | `form_token` | When the `form-token` feature is enabled: MUST be present, verify, and be at least `min_age_secs` old | MUST | Met (0.5.0) |
 | FR-VAL-07 | *all* | Length limits MUST be counted in characters consistently by the UI `maxlength`, the validator, and the server policy | MUST | Met (M1) |
 | FR-VAL-08 | `message` | 4 000 characters is the hard ceiling; UI options and server policy MUST NOT be able to raise it and SHOULD be clamped or rejected if they try | MUST | Met (M1: `MESSAGE_MAX_LEN`, clamped) |
-| FR-VAL-09 | `email`, optional | A site MAY enable a check (`EmailDomainCheck`, feature `email-domain-check`) that the address's **domain** can receive mail: an MX record, or an address record under RFC 5321 §5.1.  A null MX (RFC 7505), NXDOMAIN or no record at all MUST be refused under the address's own field.  **Every failure of the lookup itself — SERVFAIL, a timeout, a transport error, an unparsable answer — MUST accept the submission.**  The crate MUST NOT send probe mail, MUST send only the domain, and MUST NOT cache | MAY | Met (RFC 018, unreleased) |
+| FR-VAL-09 | `email`, optional | A site MAY enable a check (`EmailDomainCheck`, feature `email-domain-check`) that the address's **domain** can receive mail: an MX record, or an address record under RFC 5321 §5.1.  A null MX (RFC 7505), NXDOMAIN or no record at all MUST be refused under the address's own field.  **Every failure of the lookup itself — SERVFAIL, a timeout, a transport error, an unparsable answer — MUST accept the submission.**  The crate MUST NOT send probe mail, MUST send only the domain, and MUST NOT cache | MAY | Met (0.10.0, RFC 018) |
 
 Known tolerance: browsers count `maxlength` in UTF-16 code units, which is
 never fewer than the character count, so the browser limit is equal to or
@@ -398,6 +398,7 @@ them needs its own RFC.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-22 | Draft 32 | 0.10.0 released: document status against `0.10.0`; M8 released; FR-VAL-09 Met (0.10.0) |
 | 2026-09-22 | Draft 31 | RFC 018: FR-VAL-09 added (the opt-in email-domain check, with the accept-on-failure rule as a MUST); `email-domain-check` added to FR-CFG-01 and NFR-PORT-02; FR-OBS-01 names the lookup's `warn`; NFR-PRIV-02 names all three third parties |
 | 2026-09-22 | Draft 30 | RFC 020 review: NFR-SEC-07 added (a bounded external response, which 0.9.0 already implements and 020-01 tests); NFR-SEC-06 reworded to the intent it always had |
 | 2026-09-22 | Draft 29 | 0.9.0 released: document status against `0.9.0`; M7 released |

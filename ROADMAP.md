@@ -103,22 +103,20 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 - [x] Fix: a composed subject no longer starts with a space when no prefix is set, in both backends
 - [x] RFC 017 → `rfcs/done/`
 
+### 0.10.0 — Milestone M8, fewer dead-end enquiries (2026-09-22)
+
+- [x] An opt-in check that an address's domain can receive mail: MX with the RFC 5321 §5.1 address-record fallback, a null MX refused, and every failure of the lookup itself accepted; over DoH, so it works natively and on a Worker, which has no UDP (P-35)
+- [x] `ContactFormOptions::native_validation`, so a translated site's own error text is what a visitor reads instead of the browser's pop-up (P-41)
+- [x] The mutation follow-up tests from 0.6.0 to 0.9.0, and the response cap's own value pinned (P-38)
+- [x] Translations as contributed documentation examples rather than shipped presets (P-20, reshaped)
+- [x] A flaky browser gate fixed: the suite now waits for the bodies it asserts on (P-45)
+- [x] RFC 018, RFC 019, RFC 020 → `rfcs/done/`
+
 ---
 
 ## Current
 
-### M8 — Fewer dead-end enquiries → 0.10.0 — **authorized 2026-09-22**
-
-**Implementation complete 2026-09-22** (RFCs 018, 019, 020, including P-45's fix); the owner set the version to 0.10.0, and the release-readiness list is with the dev team.  Owner decision 2026-09-22, on the question "which of these profits an app team": **P-35** as the theme, **P-41** alongside it, **P-38** folded in as tests, and **P-20 reshaped into documentation** rather than shipped translations.  RFCs 018, 019 and 020 accepted the same day, every recommendation taken.  Order of work: RFC 018's spike first (it can stop that design), then RFC 019 and RFC 020, then RFC 018's implementation.
-
-| ID | Item | Priority | Kind | Evidence |
-|----|------|----------|------|----------|
-| P-35 | An opt-in check that an address's domain can receive mail at all: MX with the RFC 5321 §5.1 address-record fallback, null MX refused, every failure of ours accepted with a `warn`; the lookup goes over the shared HTTPS transport so it works natively **and** on a Worker, which has no UDP | **High** | [RFC 018](./rfcs/accepted/018-email-domain-check.md) (accepted 2026-09-22) — spike approved, DoH stands; handoffs 02 and 03 approved at r2 (`b8d0d1c`, `691a1e3`, `d92d522`: the lookup, the decision table, the pipeline step, the visitor's message, and two robustness fixes); handoff 04 approved (`b73eb7a`: documentation, privacy, traceability, and the live tests run) | the owner's original question, 2026-09-13: a syntactically valid address that cannot receive mail wastes the site owner's reply |
-| P-41 | An opt-in `novalidate` (`ContactFormOptions::native_validation`, default `true`), so a translated site's own error text is what the visitor reads instead of the browser's pop-up in the browser's language | Medium | [RFC 019](./rfcs/accepted/019-optional-novalidate.md) (accepted 2026-09-22) — **done** (`eb84632`, handoff 01 approved 2026-09-22) | the reflerd.com team, 2026-09-17: a Japanese page in an English browser |
-| P-38 | Mutation-run follow-up tests, from 0.6.0 to 0.9.0: the token's TTL and future-skew boundaries, four `Debug` impls, `provide_contact_delivery`, two logging-only arms, and a 64,000-byte response body (the cap's own value) | Low | [RFC 020](./rfcs/accepted/020-test-and-docs-follow-ups.md) D1 (accepted 2026-09-22) — **done** (`bfeeaea`, approved 2026-09-22) | no defect found; each would catch a silent regression |
-| P-45 | **done** (`4ed68ed`, approved 2026-09-22; eighteen consecutive green runs between the dev team and the architect).  A flaky browser test: `the_submitted_body_carries_the_site_fields` asserts on a request body the stub records asynchronously, after a single settle; it failed once in five local runs on code untouched since 0.8.0.  Wait for the record instead of assuming it, for every test that asserts on captured bodies.  A gate that fails at random teaches everyone to re-run it | **Medium** — a release gate | handoff (tests only), proposed 2026-09-22 | architect's own verification run of `d92d522`; [RFC 020](./rfcs/accepted/020-test-and-docs-follow-ups.md) amendment D4, handoff 03 |
-| P-20 | Multi-language labels — **reshaped 2026-09-22**: the Localization guide keeps a complete copyable example and gains a contribution path, instead of the crate shipping translations it cannot verify and must keep complete for every new error code | Low | [RFC 020](./rfcs/accepted/020-test-and-docs-follow-ups.md) D2 (accepted 2026-09-22) — **done** (`e67086e`, approved 2026-09-22) | the strings are a security-adjacent interface; a plausible-but-wrong translation is worse than none |
-
+No milestone in progress.  The next milestone is planned jointly with the owner; candidates are listed under Unscheduled below.
 
 ---
 
@@ -243,11 +241,23 @@ Owner decisions of 2026-09-22: P-22 next, one adapter first; RFC 017 accepted as
 |----|------|----------|------|----------|
 | P-22 | Delivery through an email HTTP API: one built-in backend that posts the enquiry as JSON, natively and on a Worker, so a site without SMTP — and every Worker, which cannot run SMTP — has a built-in option | **High** | [RFC 017](./rfcs/done/017-http-api-delivery.md) (accepted 2026-09-22, as revised), handoffs 01–03 written; **01 approved** (`603330d`: the shared private HTTP module and the body builder); **02 approved at r2** (`aa79c55`, `42ddf8a`: the adapter, and a CI gap where the Workers steps never enabled the new feature; `0d28fde`: the `https` warning, a streaming body cap, one subject composer); **03 approved at r2** (`cb71be2`, `4d6e7b8`: the live test, the "which backend" table, the documentation and traceability).  **Implementation complete 2026-09-22**; the owner set the version to 0.9.0 the same day and decided the release is not held for the live delivery test, whose state is stated instead; the release-readiness list is with the dev team | the reflerd.com team had to write an SMTP backend over raw sockets for their Worker (2026-09-16) |
 
+### M8 — Fewer dead-end enquiries → 0.10.0
+
+Owner decisions of 2026-09-22, on the question "which of these profits an app team": P-35 as the theme, P-41 alongside it, P-38 folded in as tests, and P-20 reshaped into documentation rather than shipped translations.  P-45 was found by the architect's own verification run and scheduled before the release.  Released 2026-09-22, tag `0.10.0` on `24dff51`.
+
+| ID | Item | Priority | Kind | Evidence |
+|----|------|----------|------|----------|
+| P-35 | An opt-in check that an address's domain can receive mail at all: MX with the RFC 5321 §5.1 address-record fallback, null MX refused, every failure of ours accepted with a `warn`; the lookup goes over the shared HTTPS transport so it works natively **and** on a Worker, which has no UDP | **High** | [RFC 018](./rfcs/done/018-email-domain-check.md) (accepted 2026-09-22) — spike approved, DoH stands; handoffs 02 and 03 approved at r2 (`b8d0d1c`, `691a1e3`, `d92d522`: the lookup, the decision table, the pipeline step, the visitor's message, and two robustness fixes); handoff 04 approved (`b73eb7a`: documentation, privacy, traceability, and the live tests run) | the owner's original question, 2026-09-13: a syntactically valid address that cannot receive mail wastes the site owner's reply |
+| P-41 | An opt-in `novalidate` (`ContactFormOptions::native_validation`, default `true`), so a translated site's own error text is what the visitor reads instead of the browser's pop-up in the browser's language | Medium | [RFC 019](./rfcs/done/019-optional-novalidate.md) (accepted 2026-09-22) — **done** (`eb84632`, handoff 01 approved 2026-09-22) | the reflerd.com team, 2026-09-17: a Japanese page in an English browser |
+| P-38 | Mutation-run follow-up tests, from 0.6.0 to 0.9.0: the token's TTL and future-skew boundaries, four `Debug` impls, `provide_contact_delivery`, two logging-only arms, and a 64,000-byte response body (the cap's own value) | Low | [RFC 020](./rfcs/done/020-test-and-docs-follow-ups.md) D1 (accepted 2026-09-22) — **done** (`bfeeaea`, approved 2026-09-22) | no defect found; each would catch a silent regression |
+| P-45 | **done** (`4ed68ed`, approved 2026-09-22; eighteen consecutive green runs between the dev team and the architect).  A flaky browser test: `the_submitted_body_carries_the_site_fields` asserts on a request body the stub records asynchronously, after a single settle; it failed once in five local runs on code untouched since 0.8.0.  Wait for the record instead of assuming it, for every test that asserts on captured bodies.  A gate that fails at random teaches everyone to re-run it | **Medium** — a release gate | handoff (tests only), proposed 2026-09-22 | architect's own verification run of `d92d522`; [RFC 020](./rfcs/done/020-test-and-docs-follow-ups.md) amendment D4, handoff 03 |
+| P-20 | Multi-language labels — **reshaped 2026-09-22**: the Localization guide keeps a complete copyable example and gains a contribution path, instead of the crate shipping translations it cannot verify and must keep complete for every new error code | Low | [RFC 020](./rfcs/done/020-test-and-docs-follow-ups.md) D2 (accepted 2026-09-22) — **done** (`e67086e`, approved 2026-09-22) | the strings are a security-adjacent interface; a plausible-but-wrong translation is worse than none |
+
 ### Past decisions
 
 - 2026-09-12: milestones M1–M3 and their priorities approved.
 - 2026-09-12: anti-forgery token direction set in RFC 004; bundled challenge providers in scope.
-- 2026-09-12, 2026-09-13, 2026-09-16, 2026-09-22: versions 0.3.4, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.8.0 and 0.9.0 approved and released.
+- 2026-09-12, 2026-09-13, 2026-09-16, 2026-09-22: versions 0.3.4, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.8.0, 0.9.0 and 0.10.0 approved and released.
 - 2026-09-13: M4 theme approved, test strategy first.
 - 2026-09-13: RFC 008 — browser tests in CI on every push; mutation testing once per milestone before the release candidate, informational.
 - 2026-09-13: email — stricter syntax approved (P-34); opt-in mail-domain check approved at lower priority (P-35); confirm-before-forward recorded only.  Untranslatable messages (P-36) wait for the app team's confirmation.
@@ -271,3 +281,4 @@ Owner decisions of 2026-09-22: P-22 next, one adapter first; RFC 017 accepted as
 - 2026-09-22: **an integrator's report is evidence, not a work item.**  The reflerd.com team asked that their reports be information rather than a queue (letter of 2026-09-22 §5).  Four releases in nine days were shaped by their reports; each was taken because it was right for the crate, and "not now, or not at all" is a complete answer.  P-20 is the current test of it: reshaped rather than built as asked.
 - 2026-09-22: RFCs 018, 019 and 020 accepted, every recommendation taken: no default resolver and a distinct error label for the domain check; `native_validation` defaulting to `true`; translations as contributed documentation.
 - 2026-09-22: M8 is 0.10.0 (decided), and the flaky browser gate (P-45) is fixed before the release rather than after: a release gate that fails at random is worth more than the days it costs.
+- 2026-09-22: 0.10.0 released — tag `0.10.0` on `24dff51`, published by the architect under the owner's authorisation; M8 complete.  The release candidate was approved after one test-only commit closing four mutation gaps, the largest being the GET path's response cap, which NFR-SEC-07 requires and nothing tested.

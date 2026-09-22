@@ -1,6 +1,6 @@
 # RFC 018 — An opt-in check that the email domain can receive mail
 
-**Status.** Accepted — 2026-09-22, with every recommendation taken: MX plus
+**Status.** Implemented (0.10.0) — released 2026-09-22, tag `0.10.0` on commit `24dff51`, published to crates.io.  Accepted 2026-09-22, with every recommendation taken: MX plus
 the address-record fallback and null MX only; a distinct error code and
 label; **no default resolver**; no cache; a 2-second timeout.  Milestone M8
 (P-35 as the theme).

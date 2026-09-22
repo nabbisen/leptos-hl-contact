@@ -1,6 +1,6 @@
 # Handoff 020-02 — Translations as contributed examples, and two documentation lines
 
-**RFC.** [RFC 020](../../accepted/020-test-and-docs-follow-ups.md) D2, D3
+**RFC.** [RFC 020](../../done/020-test-and-docs-follow-ups.md) D2, D3
 **Roadmap.** P-20 (reshaped), and the reflerd.com letter of 2026-09-22
 **Requirements.** FR-UI-02, FR-I18N-02
 
