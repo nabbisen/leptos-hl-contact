@@ -9,6 +9,7 @@ use std::{
     future::{Future, poll_fn},
     pin::{Pin, pin},
     task::Poll,
+    time::Duration,
 };
 
 use js_sys::{Function, Promise, Reflect, Uint8Array};
@@ -42,16 +43,42 @@ impl Drop for AbortOnDrop {
 }
 
 /// Post `request`, within its own time limit.
+#[cfg_attr(
+    not(any(feature = "challenge-http", feature = "delivery-resend")),
+    allow(dead_code)
+)]
 pub(super) async fn send(request: HttpRequest<'_>) -> Result<HttpResponse, HttpError> {
     let controller = AbortController::new().map_err(|_| unusable("no AbortController"))?;
     let js_request = build_request(&request, &controller)?;
+    race(js_request, controller, request.limit).await
+}
+
+/// A GET with no body, within `limit` (RFC 018 Amendment A1).
+#[cfg_attr(not(feature = "email-domain-check"), allow(dead_code))]
+pub(super) async fn get(
+    url: &str,
+    headers: &[(&str, String)],
+    limit: Duration,
+) -> Result<HttpResponse, HttpError> {
+    let controller = AbortController::new().map_err(|_| unusable("no AbortController"))?;
+    let js_request = build_get_request(url, headers, &controller)?;
+    race(js_request, controller, limit).await
+}
+
+/// Race `exchange(js_request)` against `limit`; abort and report `Timeout`
+/// if the limit wins.  Shared by every verb this module sends.
+async fn race(
+    js_request: Request,
+    controller: AbortController,
+    limit: Duration,
+) -> Result<HttpResponse, HttpError> {
     let mut guard = AbortOnDrop {
         controller,
         finished: false,
     };
 
     let mut exchange = pin!(exchange(js_request));
-    let mut timer = wasm_timer::sleep(request.limit);
+    let mut timer = wasm_timer::sleep(limit);
     let finished = poll_fn(|cx| {
         if let Poll::Ready(result) = exchange.as_mut().poll(cx) {
             return Poll::Ready(Some(result));
@@ -75,6 +102,10 @@ pub(super) async fn send(request: HttpRequest<'_>) -> Result<HttpResponse, HttpE
 }
 
 /// A `POST` that refuses redirects and listens to `controller`.
+#[cfg_attr(
+    not(any(feature = "challenge-http", feature = "delivery-resend")),
+    allow(dead_code)
+)]
 fn build_request(
     request: &HttpRequest<'_>,
     controller: &AbortController,
@@ -114,6 +145,31 @@ fn build_request(
 
     // The URL is not in the message: it could be a proxy address.
     Request::new_with_str_and_init(request.url, &init).map_err(|_| unusable("invalid URL"))
+}
+
+/// A `GET` with no body, that refuses redirects and listens to `controller`.
+#[cfg_attr(not(feature = "email-domain-check"), allow(dead_code))]
+fn build_get_request(
+    url: &str,
+    headers: &[(&str, String)],
+    controller: &AbortController,
+) -> Result<Request, HttpError> {
+    let request_headers = Headers::new().map_err(|_| unusable("no Headers"))?;
+    for (name, value) in headers {
+        request_headers
+            .set(name, value)
+            .map_err(|_| unusable("no Headers"))?;
+    }
+
+    let init = RequestInit::new();
+    init.set_method("GET");
+    init.set_headers(&request_headers);
+    // Never resend a secret or a key to a `Location` of someone else's choosing.
+    init.set_redirect(RequestRedirect::Manual);
+    init.set_signal(Some(&controller.signal()));
+
+    // The URL is not in the message: it could be a proxy address.
+    Request::new_with_str_and_init(url, &init).map_err(|_| unusable("invalid URL"))
 }
 
 /// Send `request`, and return its status and body without judging either.

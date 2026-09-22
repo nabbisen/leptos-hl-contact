@@ -4,6 +4,11 @@
 
 ### Added
 
+- **An opt-in check that a visitor's email domain can receive mail**
+  (`email-domain-check` feature, RFC 018).  Off unless the site provides an
+  `EmailDomainCheck` in context; the site names the DNS-over-HTTPS resolver
+  it trusts, since the crate ships no default.  This line will be replaced
+  with the shipped, wired-in behaviour once the pipeline step lands.
 - **`ContactFormOptions::native_validation`** (RFC 019).  Defaults to
   `true`, unchanged from every prior release.  Set to `false` to suppress
   the browser's own validation prompting — which appears in the browser's

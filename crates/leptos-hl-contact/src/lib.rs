@@ -26,6 +26,7 @@
 //! | `axum-helpers`     | `ssr`                     | Axum integration helpers (`axum`, `leptos_axum`, without their default features: the application chooses them). |
 //! | `form-token`       | `ssr`                     | Stateless HMAC-SHA256 form token; `submit_contact` requires `FormTokenContext` (fail-closed). |
 //! | `challenge-http`   | `ssr`                     | `HttpChallengeVerifier`, which calls the vendors' siteverify endpoints (`reqwest` with rustls natively, `fetch` on a wasm32 server). |
+//! | `email-domain-check` | `ssr`                   | `email_domain::EmailDomainCheck`, an opt-in check that a visitor's email domain can receive mail, over DNS over HTTPS (`reqwest` with rustls natively, `fetch` on a wasm32 server). |
 //!
 //! ## Quick start
 //!
@@ -64,22 +65,32 @@ pub mod challenge;
 // A private HTTP client shared by every feature that posts to an external
 // endpoint (RFC 017 D1).  Not public: no type of it appears in the crate's
 // API.
-#[cfg(any(feature = "challenge-http", feature = "delivery-resend"))]
+#[cfg(any(
+    feature = "challenge-http",
+    feature = "delivery-resend",
+    feature = "email-domain-check"
+))]
 mod http;
+
+// An opt-in check that the visitor's email domain can receive mail at all,
+// over DNS over HTTPS (RFC 018).
+#[cfg(feature = "email-domain-check")]
+pub mod email_domain;
 
 // Pre-delivery filter hook — the site's own content rules; no built-in rules.
 #[cfg(feature = "ssr")]
 pub mod filter;
 
 // A JavaScript timer for `DeliveryTimeout`, and for the shared HTTP module's
-// time limit (`challenge-http`, `delivery-resend`), on a wasm32 server (RFC
-// 011 D3, D7).
+// time limit (`challenge-http`, `delivery-resend`, `email-domain-check`), on
+// a wasm32 server (RFC 011 D3, D7).
 #[cfg(all(
     target_arch = "wasm32",
     any(
         feature = "delivery-timeout",
         feature = "challenge-http",
-        feature = "delivery-resend"
+        feature = "delivery-resend",
+        feature = "email-domain-check"
     )
 ))]
 mod wasm_timer;

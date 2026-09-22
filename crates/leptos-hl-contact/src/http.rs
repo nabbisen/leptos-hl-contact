@@ -43,6 +43,10 @@ use std::time::Duration;
 const MAX_RESPONSE_BODY: usize = 64 * 1024;
 
 /// The body of an outgoing request.
+#[cfg_attr(
+    not(any(feature = "challenge-http", feature = "delivery-resend")),
+    allow(dead_code)
+)]
 pub(crate) enum HttpBody<'a> {
     /// `application/x-www-form-urlencoded`.
     ///
@@ -60,6 +64,14 @@ pub(crate) enum HttpBody<'a> {
 
 /// One POST, described completely so the transport has nothing left to
 /// decide.
+///
+/// Built only by `challenge-http` and `delivery-resend`; an
+/// `email-domain-check`-only build uses [`HttpClient::get`] instead and
+/// never constructs one.
+#[cfg_attr(
+    not(any(feature = "challenge-http", feature = "delivery-resend")),
+    allow(dead_code)
+)]
 pub(crate) struct HttpRequest<'a> {
     pub url: &'a str,
     /// Headers beyond the content type, which `body` already implies.
@@ -82,15 +94,24 @@ pub(crate) enum HttpError {
     /// A transport failure.  **Never carries a URL.**
     ///
     /// Constructed only natively (`reqwest`); a wasm32 server reports every
-    /// such case through `Unusable` instead, as it always has.
+    /// such case through `Unusable` instead, as it always has.  Its text is
+    /// read only by `challenge-http` and `delivery-resend`; an
+    /// `email-domain-check`-only build discards it (`query`'s fixed
+    /// `"transport"` reason never names the detail, D5).
     #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
+    #[cfg_attr(
+        not(any(feature = "challenge-http", feature = "delivery-resend")),
+        allow(dead_code)
+    )]
     Transport(String),
     /// The environment lacks something the request needs, or the answer was
-    /// not usable at all: a fixed, caller-independent reason.
-    ///
-    /// Constructed only on a wasm32 server (`http/fetch.rs`); the native path
-    /// (`reqwest`) reports every such case through `Transport` instead.
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    /// not usable at all: a fixed, caller-independent reason.  Its text is
+    /// read only by `challenge-http` and `delivery-resend`, the same as
+    /// `Transport`'s above.
+    #[cfg_attr(
+        not(any(feature = "challenge-http", feature = "delivery-resend")),
+        allow(dead_code)
+    )]
     Unusable(&'static str),
 }
 
@@ -112,6 +133,10 @@ impl HttpClient {
         )
     }
 
+    #[cfg_attr(
+        not(any(feature = "challenge-http", feature = "delivery-resend")),
+        allow(dead_code)
+    )]
     pub(crate) async fn post(&self, request: HttpRequest<'_>) -> Result<HttpResponse, HttpError> {
         let mut builder = self.0.post(request.url).timeout(request.limit);
         for (name, value) in request.headers {
@@ -130,6 +155,32 @@ impl HttpClient {
         // hostile or misconfigured endpoint cannot make this allocate more
         // than `MAX_RESPONSE_BODY` (RFC 017 handoff 02 review, C2).
         // `Response::chunk` needs no extra reqwest feature.
+        let mut body = Vec::new();
+        while let Some(chunk) = response.chunk().await.map_err(transport_error)? {
+            if body.len() + chunk.len() > MAX_RESPONSE_BODY {
+                return Err(HttpError::Unusable("response too large"));
+            }
+            body.extend_from_slice(&chunk);
+        }
+        Ok(HttpResponse { status, body })
+    }
+
+    /// A GET with no body (RFC 018 Amendment A1): the same redirect refusal,
+    /// timeout and capped chunked read as [`Self::post`], for a caller that
+    /// has nothing to send.
+    #[cfg_attr(not(feature = "email-domain-check"), allow(dead_code))]
+    pub(crate) async fn get(
+        &self,
+        url: &str,
+        headers: &[(&str, String)],
+        limit: Duration,
+    ) -> Result<HttpResponse, HttpError> {
+        let mut builder = self.0.get(url).timeout(limit);
+        for (name, value) in headers {
+            builder = builder.header(*name, value.clone());
+        }
+        let mut response = builder.send().await.map_err(transport_error)?;
+        let status = response.status().as_u16();
         let mut body = Vec::new();
         while let Some(chunk) = response.chunk().await.map_err(transport_error)? {
             if body.len() + chunk.len() > MAX_RESPONSE_BODY {
@@ -161,8 +212,23 @@ impl HttpClient {
         Self
     }
 
+    #[cfg_attr(
+        not(any(feature = "challenge-http", feature = "delivery-resend")),
+        allow(dead_code)
+    )]
     pub(crate) async fn post(&self, request: HttpRequest<'_>) -> Result<HttpResponse, HttpError> {
         fetch::send(request).await
+    }
+
+    /// A GET with no body (RFC 018 Amendment A1).
+    #[cfg_attr(not(feature = "email-domain-check"), allow(dead_code))]
+    pub(crate) async fn get(
+        &self,
+        url: &str,
+        headers: &[(&str, String)],
+        limit: Duration,
+    ) -> Result<HttpResponse, HttpError> {
+        fetch::get(url, headers, limit).await
     }
 }
 
