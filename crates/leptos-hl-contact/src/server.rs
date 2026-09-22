@@ -275,23 +275,34 @@ pub async fn submit_contact(
         // no does not.
         #[cfg(feature = "email-domain-check")]
         if let Some(check_config) = use_context::<crate::email_domain::EmailDomainCheck>() {
-            let Some((_, domain)) = input.email.rsplit_once('@') else {
-                unreachable!("email syntax validation above already guarantees an '@'")
-            };
-            match sendable(crate::email_domain::check(domain, &check_config)).await {
-                crate::email_domain::DomainVerdict::Accept => {}
-                crate::email_domain::DomainVerdict::Reject => {
-                    let errs = crate::error::ContactFieldErrors {
-                        email: Some(crate::error::FieldError::Code(
-                            crate::error::FieldErrorCode::EmailDomain,
-                        )),
-                        ..Default::default()
-                    };
-                    return Err(ServerFnError::Args(errs.into_server_fn_message()));
+            // Validation above guarantees an `@` today, by the `return` at
+            // the end of step 4 — but that guarantee must never become a
+            // panic on attacker-supplied input if a future refactor moves
+            // it.  A missing `@` here skips the lookup (an accept, like
+            // every other lookup failure) rather than crashing the request;
+            // `debug_assert!` still catches the invariant breaking in
+            // development (handoff 03 review, C2).
+            if let Some((_, domain)) = input.email.rsplit_once('@') {
+                match sendable(crate::email_domain::check(domain, &check_config)).await {
+                    crate::email_domain::DomainVerdict::Accept => {}
+                    crate::email_domain::DomainVerdict::Reject => {
+                        let errs = crate::error::ContactFieldErrors {
+                            email: Some(crate::error::FieldError::Code(
+                                crate::error::FieldErrorCode::EmailDomain,
+                            )),
+                            ..Default::default()
+                        };
+                        return Err(ServerFnError::Args(errs.into_server_fn_message()));
+                    }
+                    crate::email_domain::DomainVerdict::Unknown(reason) => {
+                        tracing::warn!(reason, "email domain check unavailable");
+                    }
                 }
-                crate::email_domain::DomainVerdict::Unknown(reason) => {
-                    tracing::warn!(reason, "email domain check unavailable");
-                }
+            } else {
+                debug_assert!(
+                    false,
+                    "email syntax validation above should already guarantee an '@'"
+                );
             }
         }
 

@@ -220,6 +220,19 @@ async fn an_unparsable_body_is_unknown_not_a_rejection() {
     assert_eq!(verdict, DomainVerdict::Unknown("unparsable"));
 }
 
+/// Handoff 02 review, C1: a crafted "domain" that would inject extra query
+/// parameters is refused **before** any request is sent.  Proof: the
+/// listener would answer with an MX record — `Accept` — if it were ever
+/// contacted; the verdict is `Unknown("unparsable")` instead, so the
+/// request never reached it.
+#[tokio::test]
+async fn a_domain_that_is_not_a_hostname_is_refused_without_a_request() {
+    let url = respond_once("HTTP/1.1 200 OK", MX_PRESENT.as_bytes()).await;
+    let crafted = "example.com&type=TXT";
+    let verdict = check(crafted, &config(&url)).await;
+    assert_eq!(verdict, DomainVerdict::Unknown("unparsable"));
+}
+
 /// A non-2xx HTTP status (the resolver itself errored, not a DNS-level
 /// SERVFAIL) is `Unknown("transport")`, never a rejection.
 #[tokio::test]
@@ -264,6 +277,25 @@ fn the_default_timeout_is_two_seconds() {
     let c = request_config();
     let overridden = c.with_timeout(Duration::from_millis(500));
     assert_eq!(overridden.timeout, Duration::from_millis(500));
+}
+
+/// Handoff 02 review, C1: the LDH check itself, directly.
+#[test]
+fn looks_like_a_hostname_accepts_ldh_and_refuses_everything_else() {
+    for hostname in ["example.com", "mail.example.co.uk", "a-b.example", "x"] {
+        assert!(looks_like_a_hostname(hostname), "{hostname}");
+    }
+    for not_a_hostname in [
+        "",
+        "example.com&type=TXT",
+        "example.com?x=1",
+        "example.com/../x",
+        "exam ple.com",
+        "example.com\r\nHost: evil.example",
+        "例え.com",
+    ] {
+        assert!(!looks_like_a_hostname(not_a_hostname), "{not_a_hostname}");
+    }
 }
 
 // ---------------------------------------------------------------------------

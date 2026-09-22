@@ -202,16 +202,30 @@ pub(crate) async fn check(domain: &str, config: &EmailDomainCheck) -> DomainVerd
     }
 }
 
+/// Every caller in this crate syntax-validates the domain (FR-VAL-02)
+/// before this module ever runs, so in practice this is always true.  It is
+/// checked again here anyway (handoff 02 review, C1): the safety of
+/// interpolating `domain` into a query string with no percent-encoding must
+/// not depend on a caller's discipline staying correct forever — a later
+/// caller, or a test helper, could make that assumption false silently.
+/// LDH only (letters, digits, hyphens, dots): a domain that needs anything
+/// else is not a domain this function will query.
+fn looks_like_a_hostname(domain: &str) -> bool {
+    !domain.is_empty()
+        && domain
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'.')
+}
+
 /// One DoH JSON GET, over the shared transport.
-///
-/// The domain is already syntax-validated (FR-VAL-02) by every caller in
-/// this crate before this runs: it holds no `&`, `=`, `?` or whitespace, so
-/// it needs no percent-encoding to sit safely in a query string.
 async fn query(
     domain: &str,
     record_type: &str,
     config: &EmailDomainCheck,
 ) -> Result<Answer, &'static str> {
+    if !looks_like_a_hostname(domain) {
+        return Err("unparsable");
+    }
     let url = format!("{}?name={domain}&type={record_type}", config.resolver_url);
     let client = HttpClient::new();
     let response = client
