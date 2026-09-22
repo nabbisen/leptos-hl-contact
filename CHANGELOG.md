@@ -7,8 +7,13 @@
 - **An opt-in check that a visitor's email domain can receive mail**
   (`email-domain-check` feature, RFC 018).  Off unless the site provides an
   `EmailDomainCheck` in context; the site names the DNS-over-HTTPS resolver
-  it trusts, since the crate ships no default.  This line will be replaced
-  with the shipped, wired-in behaviour once the pipeline step lands.
+  it trusts, since the crate ships no default.  Runs once per submission,
+  after field validation and before the server policy and the challenge: a
+  domain with no route (no MX and no address record, a null MX, or
+  NXDOMAIN) is reported under the email field as `email_domain`; every
+  failure of the lookup itself — a timeout, a transport error, an
+  unparsable answer, or the resolver's own `SERVFAIL` — accepts the
+  submission and logs a fixed reason, never the address or the domain.
 - **`ContactFormOptions::native_validation`** (RFC 019).  Defaults to
   `true`, unchanged from every prior release.  Set to `false` to suppress
   the browser's own validation prompting — which appears in the browser's
@@ -19,6 +24,9 @@
 
 ### Migration
 
+- A `ContactErrorLabels { … }` literal without `..Default::default()` must
+  add `email_domain`.  A `match` on `FieldErrorCode` that is exhaustive
+  must add the new `EmailDomain` variant.
 - A `ContactFormOptions { … }` literal that does not use
   `..Default::default()` must add `native_validation`.
 

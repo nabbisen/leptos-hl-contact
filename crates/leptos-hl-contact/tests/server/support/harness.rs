@@ -70,6 +70,9 @@ pub struct Setup {
     /// as a site that builds one definition and shares it does.  `Some`: these,
     /// which is how a test makes the form and the server disagree.
     pub form_site_fields: Option<SiteFields>,
+    /// Provide an `EmailDomainCheck` against this resolver URL (RFC 018).
+    #[cfg(feature = "email-domain-check")]
+    pub email_domain_check: Option<String>,
 }
 
 impl Default for Setup {
@@ -86,6 +89,8 @@ impl Default for Setup {
             client_ip: None,
             filter: None,
             form_site_fields: None,
+            #[cfg(feature = "email-domain-check")]
+            email_domain_check: None,
         }
     }
 }
@@ -176,6 +181,8 @@ impl Harness {
             let challenge = setup.challenge;
             let client_ip = setup.client_ip;
             let filter = setup.filter;
+            #[cfg(feature = "email-domain-check")]
+            let email_domain_check = setup.email_domain_check.clone();
             move || {
                 provide_context(form_site_fields.clone());
                 if deliver {
@@ -219,6 +226,12 @@ impl Harness {
                 }
                 if let Some(filter) = &filter {
                     provide_context(Arc::clone(filter));
+                }
+                #[cfg(feature = "email-domain-check")]
+                if let Some(url) = &email_domain_check {
+                    provide_context(leptos_hl_contact::email_domain::EmailDomainCheck::new(
+                        url.clone(),
+                    ));
                 }
             }
         };

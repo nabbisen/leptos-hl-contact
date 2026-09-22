@@ -76,6 +76,18 @@ fn sendable<F: std::future::Future>(future: F) -> send_wrapper::SendWrapper<F> {
 /// while the request is decoded, before this function runs, and the visitor
 /// sees the generic message.
 ///
+/// # Email domain
+///
+/// With [`EmailDomainCheck`](crate::email_domain::EmailDomainCheck) in
+/// context (`email-domain-check` feature), the email address's domain is
+/// looked up after field validation and before the server policy — once
+/// per submission, and only when the address already passed syntax
+/// validation.  A domain with no mail route (RFC 018) is `email_domain`,
+/// under the email field.  A lookup failure of any kind — a timeout, a
+/// transport error, an unparsable answer, or the resolver's own
+/// `SERVFAIL` — **accepts** the submission and logs a fixed reason at
+/// `warn`, never the address or the domain.
+///
 /// # Challenge
 ///
 /// The first non-blank challenge field is the token.  With
@@ -255,7 +267,35 @@ pub async fn submit_contact(
             return Err(ServerFnError::Args(field_errors.into_server_fn_message()));
         }
 
-        // 5. Server-side policy (require_subject, max_message_len).
+        // 5. Email domain (RFC 018) — after field validation, so an address
+        // that already failed syntax never reaches here (field_errors.email
+        // would be Some, and the block above would already have returned).
+        // Skipped entirely when no EmailDomainCheck is in context.  Every
+        // failure of the lookup itself accepts (D1): only the domain saying
+        // no does not.
+        #[cfg(feature = "email-domain-check")]
+        if let Some(check_config) = use_context::<crate::email_domain::EmailDomainCheck>() {
+            let Some((_, domain)) = input.email.rsplit_once('@') else {
+                unreachable!("email syntax validation above already guarantees an '@'")
+            };
+            match sendable(crate::email_domain::check(domain, &check_config)).await {
+                crate::email_domain::DomainVerdict::Accept => {}
+                crate::email_domain::DomainVerdict::Reject => {
+                    let errs = crate::error::ContactFieldErrors {
+                        email: Some(crate::error::FieldError::Code(
+                            crate::error::FieldErrorCode::EmailDomain,
+                        )),
+                        ..Default::default()
+                    };
+                    return Err(ServerFnError::Args(errs.into_server_fn_message()));
+                }
+                crate::email_domain::DomainVerdict::Unknown(reason) => {
+                    tracing::warn!(reason, "email domain check unavailable");
+                }
+            }
+        }
+
+        // 6. Server-side policy (require_subject, max_message_len).
         if let Some(policy) = &policy {
             let errs = policy.check(&input);
             if !errs.is_empty() {
@@ -263,7 +303,7 @@ pub async fn submit_contact(
             }
         }
 
-        // 6. Every configuration check, made now: nothing below may call a
+        // 7. Every configuration check, made now: nothing below may call a
         // vendor or a mail server before the server is known to be fully
         // configured.
         let Some(delivery) = use_context::<ContactDeliveryContext>() else {
@@ -276,7 +316,7 @@ pub async fn submit_contact(
         let client_ip = use_context::<crate::challenge::ChallengeClientIp>();
         let filter = use_context::<crate::filter::ContactFilterContext>();
 
-        // 7. Challenge — after every local check, so invalid input never costs
+        // 8. Challenge — after every local check, so invalid input never costs
         // a vendor call.  Never log the token.
         {
             use crate::challenge::{self, ChallengeClientIp, ChallengeRequest, Gate};
@@ -332,7 +372,7 @@ pub async fn submit_contact(
             }
         }
 
-        // 8. Filter — the site's own content rules, on validated input only.
+        // 9. Filter — the site's own content rules, on validated input only.
         // The log names the filter: `filter` is the one in context, and a
         // chain fills `decided_by` with the member that decided.  That name
         // cannot live on the chain, which concurrent requests share.
@@ -360,7 +400,7 @@ pub async fn submit_contact(
             }
         }
 
-        // 9. Deliver.
+        // 10. Deliver.
         if let Err(e) = sendable(delivery.deliver(input)).await {
             // A timeout may have delivered the message, so it has its own code
             // (RFC 009 D3).  Both are `ServerError`, so both reach the banner.

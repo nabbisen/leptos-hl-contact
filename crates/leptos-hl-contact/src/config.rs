@@ -107,6 +107,12 @@ pub struct ContactErrorLabels {
     /// site did not define.  Deliberately generic, and distinct from every
     /// token and challenge label.
     pub rejected: String,
+    /// The email address's domain has no mail route (RFC 018): shown under
+    /// the email field, in place of [`format_email`](Self::format_email),
+    /// when the site's `EmailDomainCheck` rejects it.  Never shown unless
+    /// the site configured that check.
+    #[serde(default = "default_email_domain_label")]
+    pub email_domain: String,
 }
 
 impl Default for ContactErrorLabels {
@@ -129,8 +135,14 @@ impl Default for ContactErrorLabels {
                 "The security check is unavailable right now. Please try again later.".into(),
             challenge_requires_js: "This form needs JavaScript to verify you are human.".into(),
             rejected: "Your message could not be accepted.".into(),
+            email_domain: default_email_domain_label(),
         }
     }
+}
+
+/// Serde default for `ContactErrorLabels::email_domain`, added after 0.9.
+fn default_email_domain_label() -> String {
+    "We could not find a mail server for that domain. Please check the spelling.".into()
 }
 
 impl ContactErrorLabels {
@@ -155,6 +167,7 @@ impl ContactErrorLabels {
                     }
                 }
                 FieldErrorCode::LineBreaks => self.line_breaks.clone(),
+                FieldErrorCode::EmailDomain => self.email_domain.clone(),
             },
         }
     }

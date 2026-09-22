@@ -23,6 +23,8 @@ mod challenge;
 #[cfg(feature = "challenge-http")]
 mod challenge_http;
 mod delivery;
+#[cfg(feature = "email-domain-check")]
+mod email_domain;
 mod filter;
 mod form_token;
 mod logging;

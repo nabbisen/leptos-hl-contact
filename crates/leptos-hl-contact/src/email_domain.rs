@@ -10,14 +10,6 @@
 //   failure of the lookup — a timeout, a transport error, an unparsable
 //   answer, or the resolver's own SERVFAIL — accepts (D1).
 //
-// Handoff 02 (this file): the check and its decision table, unit-tested
-// against recorded answers.  Nothing here is called from the submission
-// pipeline yet — that is handoff 03, which is also where this module-level
-// allow comes off: once `server.rs` calls `check`, every item below is
-// reachable from a real build on every target, including the wasm32
-// `--lib`-only Workers gate that has no unit tests to exercise them today.
-#![allow(dead_code)]
-
 use std::time::Duration;
 
 use serde::Deserialize;
@@ -28,7 +20,6 @@ use crate::http::{HttpClient, HttpError};
 /// value is treated the same as `SERVFAIL`: the resolver, not the domain,
 /// said something is wrong.
 const RCODE_NOERROR: u16 = 0;
-const RCODE_SERVFAIL: u16 = 2;
 const RCODE_NXDOMAIN: u16 = 3;
 
 /// DNS record types this module reads from `Answer[].type`.
@@ -140,9 +131,9 @@ pub(crate) fn verdict(mx: &Answer, address: Option<&Answer>) -> DomainVerdict {
     match mx.status {
         RCODE_NXDOMAIN => return DomainVerdict::Reject,
         RCODE_NOERROR => {}
-        // SERVFAIL and every other RCODE this module does not specifically
+        // SERVFAIL, and every other RCODE this module does not specifically
         // recognise: the resolver said something is wrong, not the domain.
-        _ => return DomainVerdict::Unknown("servfail"),
+        _ => return DomainVerdict::Unknown("servfail"), // SERVFAIL (2) included
     }
 
     let has_mx = mx.records.iter().any(|r| r.kind == RECORD_TYPE_MX);

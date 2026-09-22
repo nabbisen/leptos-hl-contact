@@ -151,6 +151,7 @@ fn field_error_code_serde_round_trip() {
         ),
         (FieldErrorCode::Format, r#"{"kind":"format"}"#),
         (FieldErrorCode::LineBreaks, r#"{"kind":"line_breaks"}"#),
+        (FieldErrorCode::EmailDomain, r#"{"kind":"email_domain"}"#),
     ];
     for (code, json) in cases {
         assert_eq!(serde_json::to_string(&code).unwrap(), json, "{code:?}");

@@ -66,6 +66,10 @@ pub enum FieldErrorCode {
     /// The value contains a CR or LF, which is rejected to prevent email
     /// header injection.
     LineBreaks,
+    /// The email address is syntactically valid, but its domain has no mail
+    /// route: no MX and no address record, a null MX, or NXDOMAIN (RFC
+    /// 018).  Never sent unless the site configured the domain check.
+    EmailDomain,
 }
 
 /// One field's error: a code, or text a server rendered itself.

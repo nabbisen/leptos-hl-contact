@@ -231,6 +231,7 @@ fn error_label_defaults_are_non_empty() {
         ("not_configured", &l.not_configured),
         ("delivery_failed", &l.delivery_failed),
         ("delivery_timeout", &l.delivery_timeout),
+        ("email_domain", &l.email_domain),
     ] {
         assert!(!text.trim().is_empty(), "{name} must have a default");
     }
@@ -289,6 +290,21 @@ fn field_text_renders_required_and_line_breaks() {
         ),
         l.line_breaks
     );
+}
+
+/// FR-VAL-02, FR-OBS-01 (RFC 018 D3): the domain-check code renders its own
+/// label, under the email field, distinct from `format_email`.
+#[test]
+fn field_text_renders_email_domain() {
+    let l = ContactErrorLabels::default();
+    assert_eq!(
+        l.field_text(
+            ContactField::Email,
+            &FieldError::Code(FieldErrorCode::EmailDomain)
+        ),
+        l.email_domain
+    );
+    assert_ne!(l.email_domain, l.format_email);
 }
 
 /// `Unexpected` is deliberately indistinguishable from a delivery failure:
@@ -653,6 +669,26 @@ fn a_0_9_shaped_contactformoptions_still_deserializes() {
     );
     let options: ContactFormOptions = serde_json::from_value(options).unwrap();
     assert!(options.native_validation);
+}
+
+/// FR-VAL-02, FR-OBS-01 (RFC 018 D3): a `ContactErrorLabels` shaped like
+/// 0.9.0's — no `email_domain` field at all — still deserializes, and
+/// takes the field's English default.
+#[test]
+fn a_0_9_shaped_contacterrorlabels_still_deserializes() {
+    let mut labels = serde_json::to_value(ContactErrorLabels::default()).unwrap();
+    assert!(
+        labels
+            .as_object_mut()
+            .unwrap()
+            .remove("email_domain")
+            .is_some()
+    );
+    let labels: ContactErrorLabels = serde_json::from_value(labels).unwrap();
+    assert_eq!(
+        labels.email_domain,
+        ContactErrorLabels::default().email_domain
+    );
 }
 
 // ---------------------------------------------------------------------------
