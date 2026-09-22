@@ -1,6 +1,6 @@
 # Requirements Specification
 
-> **Document status.** Draft 27, 2026-09-22, against release `0.8.0`.
+> **Document status.** Draft 28, 2026-09-22, against release `0.8.0`.
 > First drafted against baseline `0.3.3` (commit `8d29d5a`).  Milestones
 > M1–M6 are released; the document as a whole awaits formal approval.
 > Once approved, this document is the requirements baseline; later changes
@@ -186,16 +186,16 @@ input the browser accepted.
 | FR-DEL-02 | A backend MUST receive only a fully validated and normalised submission | MUST | Met |
 | FR-DEL-03 | A no-op backend MUST exist for development and tests and MUST log at `debug` without PII | MUST | Met |
 | FR-DEL-04 | An SMTP backend MUST support STARTTLS, implicit TLS, and a conspicuously named plaintext mode for local development | MUST | Met |
-| FR-DEL-05 | The email MUST use the server-configured `From` and `To`; the visitor's address MUST appear only in `Reply-To`, with the display name encoded safely; the subject MUST be prefix + sanitised subject | MUST | Met |
+| FR-DEL-05 | The email MUST use the server-configured sender and recipient, never the visitor's; the visitor's address MUST reach only the reply channel (SMTP's `Reply-To` header, with the display name encoded safely; an HTTP API's equivalent field); the subject MUST be the prefix and the sanitised subject, with no leading space when no prefix is set | MUST | Met (0.6.0; widened for a second backend and the subject composed in one place, RFC 017) |
 | FR-DEL-06 | The body MUST be plain text UTF-8 containing name, email, subject, and message | MUST | Met |
 | FR-DEL-07 | Custom backends MUST be possible without modifying the UI or the server function | MUST | Met |
-| FR-DEL-08 | Delivery SHOULD complete within a bounded time so a slow relay cannot hold a request indefinitely; delivery MAY be offloaded to a queue | SHOULD | Met (0.6.0): the SMTP backend's 30 s deadline; any backend wrapped in `DeliveryTimeout` |
+| FR-DEL-08 | Delivery SHOULD complete within a bounded time so a slow relay cannot hold a request indefinitely; delivery MAY be offloaded to a queue | SHOULD | Met (0.6.0): the SMTP backend's 30 s deadline; the Resend backend's 10 s default (RFC 017); any backend wrapped in `DeliveryTimeout` |
 
 ### 5.6 Configuration and integration (FR-CFG)
 
 | ID | Requirement | Level | Status |
 |----|-------------|-------|--------|
-| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr` and `delivery-timeout`), `delivery-timeout` (implies `ssr`), `axum-helpers` (implies `ssr`), `form-token` (implies `ssr`), `challenge-http` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met (0.6.0) |
+| FR-CFG-01 | Feature flags: `default = []`, `hydrate`, `ssr`, `islands`, `smtp-lettre` (implies `ssr` and `delivery-timeout`), `delivery-timeout` (implies `ssr`), `axum-helpers` (implies `ssr`), `form-token` (implies `ssr`), `challenge-http` (implies `ssr`), `delivery-resend` (implies `ssr`).  Feature tables in docs and rustdoc MUST list all of them | MUST | Met (0.6.0; `delivery-resend` added in RFC 017) |
 | FR-CFG-02 | Required context values MUST be documented for the context closure, and helpers MUST exist for Axum | MUST | Met (RFC 007) |
 | FR-CFG-03 | Misconfiguration MUST surface loudly (startup panic in examples, `error` log in the crate) and MUST NOT fall back to an insecure default | MUST | Met |
 | FR-CFG-04 | Types holding secrets MUST redact them in `Debug` output | MUST | Met |
@@ -298,7 +298,7 @@ them needs its own RFC.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | NFR-PORT-01 | The core (`default = []`) MUST compile for `wasm32-unknown-unknown` and native targets | Met |
-| NFR-PORT-02 | The server path (`ssr`, `form-token`, `challenge-http`, `axum-helpers`, `delivery-timeout`) MUST build for and run on Cloudflare Workers (wasm32, no tokio runtime).  Delivery there is the integrator's own backend | Met (0.7.0): compiles and is linted for wasm32 in CI; the wasm32 server paths tested in headless Chrome; runtime on Workers verified for 0.7.0 by an integrator, on a pre-release and in production; later releases rely on the headless-Chrome suite and integrators' reports |
+| NFR-PORT-02 | The server path (`ssr`, `form-token`, `challenge-http`, `axum-helpers`, `delivery-timeout`) MUST build for and run on Cloudflare Workers (wasm32, no tokio runtime).  Delivery there is `ResendDelivery` (`delivery-resend`, RFC 017) or the integrator's own backend | Met (0.7.0): compiles and is linted for wasm32 in CI; the wasm32 server paths tested in headless Chrome; runtime on Workers verified for 0.7.0 by an integrator, on a pre-release and in production; later releases rely on the headless-Chrome suite and integrators' reports |
 
 ### 6.5 Performance (NFR-PERF)
 
@@ -306,7 +306,7 @@ them needs its own RFC.
 |----|-------------|--------|
 | NFR-PERF-01 | The request path MUST perform no blocking I/O; the only awaited operation is delivery | Met |
 | NFR-PERF-02 | Per-request CPU work MUST be bounded by input size limits (validation is linear in input length) | Met |
-| NFR-PERF-03 | Delivery latency is relay latency; it SHOULD be bounded (see FR-DEL-08) | Met (0.6.0): the SMTP backend's 30 s deadline; any backend wrapped in `DeliveryTimeout` |
+| NFR-PERF-03 | Delivery latency is relay latency; it SHOULD be bounded (see FR-DEL-08) | Met (0.6.0): the SMTP backend's 30 s deadline; the Resend backend's 10 s default (RFC 017); any backend wrapped in `DeliveryTimeout` |
 
 ### 6.6 Dependencies (NFR-DEP)
 
@@ -396,6 +396,7 @@ them needs its own RFC.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-09-12 | Draft 1 | Initial specification from architect baseline review of `0.3.3` |
+| 2026-09-22 | Draft 28 | RFC 017: `delivery-resend` added to FR-CFG-01; NFR-PORT-02 names `ResendDelivery` as a built-in delivery on Workers; FR-DEL-05 widened beyond SMTP's headers and given the no-leading-space rule; FR-DEL-08 and NFR-PERF-03 name the 10 s Resend default |
 | 2026-09-22 | Draft 27 | 0.8.0 released: document status against `0.8.0`; M6 released |
 | 2026-09-22 | Draft 26 | RFC 015: FR-FIELD-01 to FR-FIELD-08 added (§5.10), the bounds of site-defined fields as requirements; FR-OBS renumbered to §5.11 |
 | 2026-09-17 | Draft 25 | RFC 016: NFR-COMPAT-02 is MSRV 1.88, checked in CI; the earlier 1.85 status corrected |

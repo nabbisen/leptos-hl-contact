@@ -105,7 +105,7 @@ Owner decisions 2026-09-22: P-22 is the next milestone, one adapter first; RFC 0
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
-| P-22 | Delivery through an email HTTP API: one built-in backend that posts the enquiry as JSON, natively and on a Worker, so a site without SMTP — and every Worker, which cannot run SMTP — has a built-in option | **High** | [RFC 017](./rfcs/accepted/017-http-api-delivery.md) (accepted 2026-09-22, as revised), handoffs 01–03 written; **01 approved** (`603330d`: the shared private HTTP module and the body builder); **02 approved at r2** (`aa79c55`, `42ddf8a`: the adapter, and a CI gap where the Workers steps never enabled the new feature; `0d28fde`: the `https` warning, a streaming body cap, one subject composer) | the reflerd.com team had to write an SMTP backend over raw sockets for their Worker (2026-09-16) |
+| P-22 | Delivery through an email HTTP API: one built-in backend that posts the enquiry as JSON, natively and on a Worker, so a site without SMTP — and every Worker, which cannot run SMTP — has a built-in option | **High** | [RFC 017](./rfcs/accepted/017-http-api-delivery.md) (accepted 2026-09-22, as revised), handoffs 01–03 written; **01 approved** (`603330d`: the shared private HTTP module and the body builder); **02 approved at r2** (`aa79c55`, `42ddf8a`: the adapter, and a CI gap where the Workers steps never enabled the new feature; `0d28fde`: the `https` warning, a streaming body cap, one subject composer); **03 conditionally approved** (`cb71be2`: the live test, the "which backend" table, the documentation and traceability), r2 for one condition | the reflerd.com team had to write an SMTP backend over raw sockets for their Worker (2026-09-16) |
 
 ---
 
