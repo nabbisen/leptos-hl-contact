@@ -21,7 +21,7 @@ Planned topics that do not yet have a file are listed in
 
 | ID | Title | Handoff |
 |----|-------|---------|
-| 017 | [Delivery through an email HTTP API](./accepted/017-http-api-delivery.md) | [handoffs/017-http-api-delivery/](./handoffs/017-http-api-delivery/README.md) |
+| — | *(none)* | |
 
 ## Implemented
 
@@ -44,6 +44,7 @@ Planned topics that do not yet have a file are listed in
 | 014 | [A size option for the challenge widget](./done/014-challenge-widget-size.md) | 0.8.0 (2026-09-22) — [handoffs](./handoffs/014-challenge-widget-size/README.md) |
 | 015 | [Fields defined by the site, bounded](./done/015-site-defined-fields.md) | 0.8.0 (2026-09-22) — [handoffs](./handoffs/015-site-defined-fields/README.md) |
 | 016 | [A true MSRV, pinned CI actions, and constant-time comparison from the crypto crates](./done/016-msrv-and-ci-hygiene.md) | 0.8.0 (2026-09-22) — [handoffs](./handoffs/016-msrv-and-ci-hygiene/README.md) |
+| 017 | [Delivery through an email HTTP API](./done/017-http-api-delivery.md) | 0.9.0 (2026-09-22) — [handoffs](./handoffs/017-http-api-delivery/README.md) |
 
 ## Archive
 

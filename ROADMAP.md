@@ -95,17 +95,19 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 - [x] Corrections from the first production report: the Workers guide's size, rate-limiting and testing notes, and a missing challenge secret failing closed in the security example (P-42)
 - [x] RFC 013, RFC 014, RFC 015, RFC 016 → `rfcs/done/`
 
+### 0.9.0 — Milestone M7, delivery through an email HTTP API (2026-09-22)
+
+- [x] `ResendDelivery`: a second built-in delivery backend, posting the enquiry as JSON, natively and on a Cloudflare Worker — the first built-in delivery a Worker can use (P-22)
+- [x] One private HTTP transport shared with `challenge-http`: redirects refused, the caller's time limit, cancel-on-drop, a bounded response read, and no URL in any error
+- [x] A warning when an overridden endpoint is not `https`, on both the delivery and the challenge override
+- [x] Fix: a composed subject no longer starts with a space when no prefix is set, in both backends
+- [x] RFC 017 → `rfcs/done/`
+
 ---
 
 ## Current
 
-### M7 — Delivery without SMTP → 0.9.0 — **authorized 2026-09-22**
-
-Owner decisions 2026-09-22: P-22 is the next milestone, one adapter first; RFC 017 accepted as revised — Resend, a builder-and-`#[non_exhaustive]` config so future fields need no migration, fail-closed on a missing key, the vendor's specifics behind a private seam, and the shared HTTP module extracted before the adapter.
-
-| ID | Item | Priority | Kind | Evidence |
-|----|------|----------|------|----------|
-| P-22 | Delivery through an email HTTP API: one built-in backend that posts the enquiry as JSON, natively and on a Worker, so a site without SMTP — and every Worker, which cannot run SMTP — has a built-in option | **High** | [RFC 017](./rfcs/accepted/017-http-api-delivery.md) (accepted 2026-09-22, as revised), handoffs 01–03 written; **01 approved** (`603330d`: the shared private HTTP module and the body builder); **02 approved at r2** (`aa79c55`, `42ddf8a`: the adapter, and a CI gap where the Workers steps never enabled the new feature; `0d28fde`: the `https` warning, a streaming body cap, one subject composer); **03 approved at r2** (`cb71be2`, `4d6e7b8`: the live test, the "which backend" table, the documentation and traceability).  **Implementation complete 2026-09-22**; the owner set the version to 0.9.0 the same day and decided the release is not held for the live delivery test, whose state is stated instead; the release-readiness list is with the dev team | the reflerd.com team had to write an SMTP backend over raw sockets for their Worker (2026-09-16) |
+No milestone in progress.  The next milestone is planned jointly with the owner; candidates are listed under Unscheduled below.
 
 ---
 
@@ -226,11 +228,19 @@ Owner decisions of 2026-09-17: site-defined fields accepted as a **bounded** fea
 | P-24 | Dependency and CI hygiene — **finding 2026-09-17: the stated MSRV 1.85 does not build** (`leptos` 0.8.19 needs 1.88); RFC 016 proposes MSRV 1.88 with a CI job: consider `subtle` for constant-time comparison; CI on MSRV 1.85 plus stable; pin GitHub Actions by commit SHA rather than tag (the workflow uses `actions/checkout`, `dtolnay/rust-toolchain` and, since RFC 008, `taiki-e/install-action`).  `sha2` 0.10.9 beside our 0.11.0 comes only from a Leptos proc-macro and is not ours to unify; transitive advisories in Leptos's own dependencies (`paste`, `proc-macro-error2`, `anyhow`) remain as of 0.5.0 | Medium | [RFC 016](./rfcs/done/016-msrv-and-ci-hygiene.md) (accepted) — **done**: handoff 01 approved at r2 (`c536e12`, `1be7cd5`, `cff320e`) and handoff 02 (`87bb1ec`: CI `--locked` examples, exact version comments on pins, a release-process step for the `rust-toolchain` pin), both 2026-09-22 | 2026-09-17: `cargo +1.85 check --all-features --locked` refused; 1.88 builds |
 | P-42 | Corrections from the first production report on Cloudflare Workers: the guide no longer promises workerd testing before each release; strip the wasm `name` section (a production Worker went from 59.1 MiB to 3.9 MiB); verify the Rate Limiting binding after deploying, or use a rate-limiting rule; a missing challenge secret must fail closed — provide `ChallengeContext` with an empty secret, never leave it out (the `axum-with-security` example left it out, so submissions without a token passed) | **High** (the example's fail-open arm) | [RFC 013](./rfcs/done/013-production-report-corrections.md) (accepted 2026-09-17) — **done** (`ae6bf37`, handoff 01 approved 2026-09-17); no release required, the CHANGELOG lines ship with the next one | reflerd.com letter 2026-09-17; architect checked the strip, Cloudflare's binding page and the challenge gate |
 
+### M7 — Delivery without SMTP → 0.9.0
+
+Owner decisions of 2026-09-22: P-22 next, one adapter first; RFC 017 accepted as revised (Resend, a builder-and-`#[non_exhaustive]` config, fail-closed on a missing key, the shared HTTP module extracted first); the version is 0.9.0; the release is not held for the live delivery test.  Released 2026-09-22, tag `0.9.0` on `2732490`.
+
+| ID | Item | Priority | Kind | Evidence |
+|----|------|----------|------|----------|
+| P-22 | Delivery through an email HTTP API: one built-in backend that posts the enquiry as JSON, natively and on a Worker, so a site without SMTP — and every Worker, which cannot run SMTP — has a built-in option | **High** | [RFC 017](./rfcs/done/017-http-api-delivery.md) (accepted 2026-09-22, as revised), handoffs 01–03 written; **01 approved** (`603330d`: the shared private HTTP module and the body builder); **02 approved at r2** (`aa79c55`, `42ddf8a`: the adapter, and a CI gap where the Workers steps never enabled the new feature; `0d28fde`: the `https` warning, a streaming body cap, one subject composer); **03 approved at r2** (`cb71be2`, `4d6e7b8`: the live test, the "which backend" table, the documentation and traceability).  **Implementation complete 2026-09-22**; the owner set the version to 0.9.0 the same day and decided the release is not held for the live delivery test, whose state is stated instead; the release-readiness list is with the dev team | the reflerd.com team had to write an SMTP backend over raw sockets for their Worker (2026-09-16) |
+
 ### Past decisions
 
 - 2026-09-12: milestones M1–M3 and their priorities approved.
 - 2026-09-12: anti-forgery token direction set in RFC 004; bundled challenge providers in scope.
-- 2026-09-12, 2026-09-13, 2026-09-16, 2026-09-22: versions 0.3.4, 0.4.0, 0.5.0, 0.6.0, 0.7.0 and 0.8.0 approved and released.
+- 2026-09-12, 2026-09-13, 2026-09-16, 2026-09-22: versions 0.3.4, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.8.0 and 0.9.0 approved and released.
 - 2026-09-13: M4 theme approved, test strategy first.
 - 2026-09-13: RFC 008 — browser tests in CI on every push; mutation testing once per milestone before the release candidate, informational.
 - 2026-09-13: email — stricter syntax approved (P-34); opt-in mail-domain check approved at lower priority (P-35); confirm-before-forward recorded only.  Untranslatable messages (P-36) wait for the app team's confirmation.
@@ -249,3 +259,4 @@ Owner decisions of 2026-09-17: site-defined fields accepted as a **bounded** fea
 - 2026-09-22: the 0.8.0 letter to the reflerd.com team sent: the upgrade (Rust 1.88 and three struct fields), how to define their own fields and why the bound is four, and `ChallengeSize::Compact` for their 360 px layout.
 - 2026-09-22: M7 authorized — P-22, delivery through an email HTTP API, one adapter first.  RFC 017 proposed.
 - 2026-09-22: M7 released as 0.9.0 (decided); the live delivery test does not hold the release — it is run if a key is available and its state is stated either way.
+- 2026-09-22: 0.9.0 released — tag `0.9.0` on `2732490`, published by the architect under the owner's authorisation; M7 complete.  The live delivery test is still unrun and is recorded as a known issue; the reflerd.com letter asks about it without obligation.

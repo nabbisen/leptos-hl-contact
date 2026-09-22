@@ -1,6 +1,6 @@
 # Handoff 017-01 — A private HTTP module shared with `challenge-http`, and the body builder moved
 
-**RFC.** [RFC 017](../../accepted/017-http-api-delivery.md) D1
+**RFC.** [RFC 017](../../done/017-http-api-delivery.md) D1
 **Roadmap.** P-22
 **Requirements.** unchanged by this handoff; NFR-PORT-02 and FR-ABUSE-12 must keep their evidence
 

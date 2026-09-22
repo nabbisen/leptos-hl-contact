@@ -1,6 +1,6 @@
 # Handoff 017-03 — Workers, documentation, records, the live test
 
-**RFC.** [RFC 017](../../accepted/017-http-api-delivery.md) D5, D6 (the live test), D7
+**RFC.** [RFC 017](../../done/017-http-api-delivery.md) D5, D6 (the live test), D7
 **Roadmap.** P-22
 **Depends on.** 02 (approved)
 

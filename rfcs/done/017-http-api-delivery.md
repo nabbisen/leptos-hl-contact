@@ -1,7 +1,7 @@
 # RFC 017 — Delivery through an email HTTP API
 
-**Status.** Accepted — 2026-09-22, as revised (all five recommendations
-accepted).  Milestone M7, the owner's next-milestone decision of 2026-09-22
+**Status.** Implemented (0.9.0) — released 2026-09-22, tag `0.9.0` on commit `2732490`, published to crates.io.  Accepted 2026-09-22, as
+revised (all five recommendations accepted).  Milestone M7, the owner's next-milestone decision of 2026-09-22
 (P-22, one adapter first).
 **Tracks.** Roadmap P-22.  Requirements FR-DEL-01 to FR-DEL-08 (a second
 built-in backend), FR-OBS-02/03, NFR-PORT-02, §1 scope.

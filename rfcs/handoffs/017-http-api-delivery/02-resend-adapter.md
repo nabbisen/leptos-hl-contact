@@ -1,6 +1,6 @@
 # Handoff 017-02 — The Resend adapter: config, request, errors, tests
 
-**RFC.** [RFC 017](../../accepted/017-http-api-delivery.md) D1a, D2, D3, D4, D6
+**RFC.** [RFC 017](../../done/017-http-api-delivery.md) D1a, D2, D3, D4, D6
 **Roadmap.** P-22
 **Requirements.** FR-DEL-01 to FR-DEL-08, FR-OBS-02, FR-OBS-03, NFR-PORT-02
 **Depends on.** 01 (approved)
