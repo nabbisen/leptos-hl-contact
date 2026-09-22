@@ -23,6 +23,25 @@ delivery-resend = ["ssr", "dep:reqwest", "dep:js-sys", "dep:wasm-bindgen", "dep:
 - **`serde_json`** is already a normal dependency; use it to build the
   request body rather than formatting JSON by hand.
 
+### 1a. Three items carried from the handoff 01 review
+
+- **Remove `HttpBody::Json`'s `#[allow(dead_code)]`,** which handoff 01 added
+  because nothing constructed it yet.  This handoff does.
+- **Cap the response body in `src/http/`,** on both targets: read at most a
+  fixed maximum, for example 64 KiB, and report a body longer than that as
+  `HttpError::Unusable("response too large")`.
+  - **Why.**  Before handoff 01 each target returned early on a non-2xx and
+    never read the body; now both read it before the caller judges the
+    status.  The challenge reads at most a small JSON answer, and this
+    adapter reads none at all on an error, so nothing legitimate is near the
+    cap.
+  - **Tests:** a body at the cap is returned whole; one over it is
+    `Unusable`; the challenge's existing tests still pass.
+- **Rename the fixed string `"invalid verify URL"`** to a caller-neutral one,
+  for example `"invalid URL"`.  In a shared module "verify" belongs to one
+  caller, and a delivery failure logging it would confuse.  It is a log-only
+  string; say in the request that the challenge's text changed with it.
+
 ### 2. `src/delivery/resend.rs` (new), behind the feature
 
 **The config, per RFC D2 — a constructor and builders, not public fields:**

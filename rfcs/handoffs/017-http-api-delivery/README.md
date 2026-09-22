@@ -13,7 +13,7 @@ Review requests go to `.git-exclude/review-request/017-http-api-delivery/`.
 | 02 | [The Resend adapter: config, request, errors, tests](./02-resend-adapter.md) | D1a, D2–D4, D6 | 01 | large |
 | 03 | [Workers, documentation, records, the live test](./03-workers-docs-and-records.md) | D5–D7 | 02 | medium |
 
-**State.** Handoffs written 2026-09-22.
+**State.** Handoffs written 2026-09-22.  Handoff 01 approved 2026-09-22 (`603330d`); three items from its review are carried into handoff 02 (§1a).
 
 ## Rules for this RFC
 
