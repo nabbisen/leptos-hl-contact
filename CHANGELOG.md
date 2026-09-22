@@ -1,6 +1,9 @@
 # Changelog
 
-## [Unreleased]
+## [0.9.0] — 2026-09-22
+
+This is the minor release that adds a second built-in delivery backend, the
+first that runs on Cloudflare Workers.
 
 ### Added
 
@@ -16,6 +19,13 @@
   not `https`.  This is the built-in delivery for a Worker without a
   backend of its own; see the Cloudflare Workers guide.
 
+### Fixed
+
+- **A subject line with no prefix had a stray leading space** (`" Hello"`,
+  not `"Hello"`).  Both delivery backends now compose the subject the same
+  way, and an empty prefix leaves none.  This affects `LettreSmtpDelivery`
+  too, if a site sets `SmtpConfig::subject_prefix` to an empty string.
+
 ### Documentation
 
 - **Which delivery backend to use.**  Delivery Backends opens with a table
@@ -28,12 +38,12 @@
   delivery table and error mapping, architecture's source layout and module
   map, testing's traceability and the live test).
 
-### Fixed
+### Migration
 
-- **A subject line with no prefix had a stray leading space** (`" Hello"`,
-  not `"Hello"`).  Both delivery backends now compose the subject the same
-  way, and an empty prefix leaves none.  This affects `LettreSmtpDelivery`
-  too, if a site sets `SmtpConfig::subject_prefix` to an empty string.
+- **None needed.**  RFC 017 is additive: no type changed shape, and
+  `ResendConfig::new` takes only the three required values, with everything
+  else defaulted.  The one behaviour change (the composed subject) is the
+  *Fixed* entry above.
 
 ## [0.8.0] — 2026-09-22
 
