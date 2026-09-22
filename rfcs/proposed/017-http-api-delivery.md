@@ -66,18 +66,38 @@ shape, SES not planned.
   the two paths differ more than they appear), stop and report: duplicating a
   small amount of code is better than a shared abstraction that bends.
 
-### D2 — The adapter
+### D1a — Where the vendor's specifics live
+
+- **One private module** holds everything Resend-specific: the URL, the
+  bearer header, the JSON field names and the status mapping.  Everything
+  else — the transport, the body text, the trait plumbing — is vendor-neutral
+  already.
+- **No public provider abstraction yet.**  A second adapter should be able to
+  reuse the seam, but inventing an enum or a trait for one implementation
+  would be a framework built for a single user.  RFC for SendGrid decides
+  whether the seam becomes public.
+
+### D2 — The adapter, and a config that will not break literals again
 
 ```rust,ignore
-pub struct ResendConfig {
-    pub api_key: String,          // Debug redacts it
-    pub from_address: String,     // a verified sender at the provider
-    pub to_address: String,
-    pub subject_prefix: String,
-    pub timeout: Duration,        // DEFAULT_TIMEOUT = 10 s
+#[non_exhaustive]
+pub struct ResendConfig { /* private fields */ }
+
+impl ResendConfig {
+    /// The three values a site must give.  Everything else has a default.
+    pub fn new(
+        api_key: impl Into<String>,
+        from_address: impl Into<String>,
+        to_address: impl Into<String>,
+    ) -> Self;
+
+    pub fn with_subject_prefix(self, prefix: impl Into<String>) -> Self;
+    pub fn with_timeout(self, timeout: Duration) -> Self;
+
+    pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
 }
 
-pub struct ResendDelivery { /* config, and natively one reused client */ }
+pub struct ResendDelivery { /* the config, and natively one reused client */ }
 
 impl ResendDelivery {
     pub fn new(config: ResendConfig) -> Self;
@@ -86,13 +106,37 @@ impl ResendDelivery {
 impl ContactDelivery for ResendDelivery { … }   // DeliveryFuture
 ```
 
+**Why not `SmtpConfig`'s shape, which this would otherwise copy.**
+- **We have paid for it twice.**  `SmtpConfig` is a plain struct of public
+  fields with no `Default`, so adding `timeout` in 0.6.0 forced a migration
+  line and an edit in every integrator's literal.  0.8.0 did the same to
+  three more structs.
+- **A constructor with builders and `#[non_exhaustive]`** makes a future
+  field additive: no migration line, no edits, and the compiler still
+  refuses a half-built config because the required three are arguments.
+- **It reads the way the crate's other configurable type already does:**
+  `ChallengeWidget::new(provider, site_key)?.with_theme(…).with_size(…)`.
+  An integrator meets one pattern, not two.
+- **`SmtpConfig` is not changed** by this RFC.  Aligning it is a separate
+  question with its own migration; this RFC only stops the debt growing.
+
+**Fail closed on a missing key**, the lesson RFC 013 D4 wrote down for the
+challenge secret:
+- **An empty `api_key` is accepted at construction** and reported as
+  `Configuration` on the first delivery, so a missing environment variable
+  fails closed rather than at start-up, which a Worker does not have.
+- **The same for an empty `from_address` or `to_address`.**
+- **Never a silent success.**
+
+**Other rules:**
 - **Feature:** `delivery-resend = ["ssr", "dep:reqwest", "dep:js-sys",
-  "dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:web-sys"]`, the same
-  set `challenge-http` names.
-- **Shape mirrors `SmtpConfig`** so the two read alike: the same field names
-  where they mean the same thing, a `DEFAULT_TIMEOUT` constant, and the same
-  rustdoc rules about loading secrets from the environment.
-- **`Debug`** redacts `api_key`, as the challenge secret's does.
+  "dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:web-sys"]`, the set
+  `challenge-http` already names.
+- **`Debug` redacts `api_key`,** as the challenge secret's does, and the
+  config derives no `serde` trait, so it cannot be serialised into a log by
+  accident.
+- **No retries.**  A failed delivery is the visitor's to retry, as with
+  challenge verification.
 
 ### D3 — What it sends
 
@@ -128,6 +172,10 @@ impl ContactDelivery for ResendDelivery { … }   // DeliveryFuture
   the captured logs for a probe value.
 - **The provider's own error text is not passed through.**  It can echo
   submitted content.
+- **On success, the provider's message id is logged at `info`.**  It is an
+  opaque identifier, not content, and it is what an operator needs to trace
+  an enquiry the recipient says never arrived.  Nothing else from the
+  answer is read.
 
 ### D5 — Workers
 
@@ -148,14 +196,25 @@ impl ContactDelivery for ResendDelivery { … }   // DeliveryFuture
 - **A log test:** a failing delivery logs the status and not the probe
   values.
 - **A live test, `#[ignore]`d,** beside the live vendor challenge tests:
-  with `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_TO` set, send one real
-  message (owner question 5).
+  with `RESEND_API_KEY` and `RESEND_FROM` set, send one real request to
+  Resend's **documented test recipient**, `delivered@resend.dev`, which
+  simulates a delivered message (Resend, "Send test emails", checked
+  2026-09-22).  No real mailbox is involved, and `RESEND_TO` can override it
+  for a site that wants a real one (owner question 5).
 - **Break checks:** remove `reply_to` → its test fails; pass the provider's
   error text through → the log test fails.
+- **Feature combinations, in the gates:** `delivery-resend` alone;
+  `delivery-resend` with `challenge-http`; and the Workers set with it on
+  wasm32.  The two features share optional dependencies, so a wrong `dep:`
+  list only shows up in the combination that omits the other.
 
 ### D7 — Documentation
 
-Delivery Backends (a section, and the choice between SMTP and the API),
+**The one thing an integrator must not have to guess is which backend to
+use.**  Delivery Backends opens with a short table — SMTP (native only),
+Resend (native and Workers), your own (any target) — and the Workers guide
+stops saying "bring your own backend", which has been its advice since
+0.7.0.  Also:
 Cloudflare Workers, Feature Flags, the API reference, Production Checklist,
 README, and `development/` (external design's delivery table, architecture's
 layout, traceability).
@@ -189,9 +248,13 @@ Additive.
 3. **Extract the shared HTTP module (D1)** before the adapter, rather than
    writing a second copy.  It touches working challenge code, so the first
    handoff is a pure refactor with the existing suites as the gate.
-4. **No `Idempotency-Key` in this release.**  A retry is the visitor's, and
-   the crate never retries by itself; adding a key needs a stable value to
-   derive it from, which is its own design.
+4. **No `Idempotency-Key` in this release.**  I checked what it would buy:
+   the header dedupes *repeats of the same key*, and the crate never retries
+   by itself, so the only repeat is the visitor pressing send again — a new
+   submission, with no key we could legitimately reuse.  It would therefore
+   change nothing about the one case that worries us, a timeout after the
+   provider accepted the message.  The visitor's message already says the
+   enquiry may have been sent.
 5. **A live test, `#[ignore]`d,** run by hand before a release, costing one
    real email to a mailbox you control.  Alternative: no live test, and rely
    on the stubbed responder.

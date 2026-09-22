@@ -137,7 +137,7 @@ Owner decision 2026-09-22: P-22 is the next milestone, one adapter first.  RFC 0
 
 ## Decisions required from the owner
 
-- **RFC 017** (delivery through an email HTTP API): accept, with its five questions — Resend first; the names `delivery-resend` / `ResendDelivery`; extracting the shared HTTP module in its own handoff; no idempotency key yet; an `#[ignore]`d live test.
+- **RFC 017** (delivery through an email HTTP API): accept, with its five questions — Resend first; the names `delivery-resend` / `ResendDelivery`; extracting the shared HTTP module in its own handoff; no idempotency key yet; an `#[ignore]`d live test to Resend's documented test recipient.  Revised 2026-09-22 after a second review: a builder-and-`#[non_exhaustive]` config so future fields need no migration, fail-closed on an empty key, the vendor's specifics behind a private seam, the provider's message id logged for traceability, feature-combination gates, and a "which backend" table in the documentation.
 
 ---
 
