@@ -80,3 +80,32 @@ Accepted as proposed; the questions as put, with the answers, were:
    translations we cannot check and must keep complete forever.
 2. **No new language added by us** in this RFC: the guide gains the
    contribution path, not a second translation written by the architect.
+
+---
+
+## Amendment — 2026-09-22: D4, a flaky release gate (P-45)
+
+Added after the architect's verification run of `d92d522` failed the
+browser suite once in five runs, on code untouched since 0.8.0.  The owner
+authorised fixing it before the M8 release (2026-09-22).
+
+**What happens.**  `FetchStub` records a request's body from a **spawned
+async read** (`JsFuture::from(request.text())`), because a `Request`'s body
+cannot be read synchronously.  `the_submitted_body_carries_the_site_fields`
+asserts `bodies().len() == 1` after a single `settle()`.  When that read
+lands a tick late, the list is still empty and the test fails.
+
+**Why it matters.**  The browser suite is a release gate.  A gate that
+fails at random teaches everyone to re-run it, and that is how a real
+failure eventually gets waved through.
+
+**The fix.**  A test must **wait for the record**, not assume it:
+- a helper on `FetchStub` that settles repeatedly until a given number of
+  bodies has been recorded, up to a bound, and then returns them;
+- every test that asserts on captured bodies uses it;
+- `bodies()`'s own doc comment stops saying "once the page has settled",
+  which is the assumption that made this look safe.
+
+**Not in scope:** making the capture synchronous.  Reading a request body
+is asynchronous in the browser, and pretending otherwise would move the
+race rather than remove it.
