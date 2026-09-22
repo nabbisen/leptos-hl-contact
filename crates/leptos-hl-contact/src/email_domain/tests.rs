@@ -49,6 +49,18 @@ const ADDRESS_PRESENT: &str = r#"{"Status":0,"...":"...","Answer":[
   {"name":"cdn-host.example","type":5,"data":"cdn-host.example.cdn.example.net."},
   {"name":"cdn-host.example.cdn.example.net","type":1,"data":"203.0.113.9"}]}"#;
 
+/// (b) the same, address-only: no `CNAME` ahead of the `A` record.  Readiness
+/// review, C2: `ADDRESS_PRESENT`'s leading `CNAME` makes `.any()` return on
+/// it before the record-type comparison is ever decisive; this fixture, and
+/// [`ADDRESS_ONLY_AAAA`] below, are what actually exercise it.
+const ADDRESS_ONLY_A: &str = r#"{"Status":0,"...":"...","Answer":[
+  {"name":"cdn-host.example","type":1,"data":"203.0.113.9"}]}"#;
+
+/// (b) the same shape, but `AAAA` (28) rather than `A` (1) — the type
+/// check's other half.
+const ADDRESS_ONLY_AAAA: &str = r#"{"Status":0,"...":"...","Answer":[
+  {"name":"cdn-host.example","type":28,"data":"2001:db8::9"}]}"#;
+
 /// (c) NODATA: no `Answer` array at all, only an `Authority` SOA.
 const NODATA: &str = r#"{"Status":0,"...":"...","Authority":[{"name":"no-route.example","type":6,
   "data":"ns1.no-route.example. hostmaster.no-route.example. 1 1800 900 604800 1800"}]}"#;
@@ -79,6 +91,25 @@ fn an_mx_record_present_accepts() {
 fn no_mx_but_an_address_record_accepts() {
     let mx = parse(NO_MX_CNAME_ONLY);
     let address = parse(ADDRESS_PRESENT);
+    assert_eq!(verdict(&mx, Some(&address)), DomainVerdict::Accept);
+}
+
+/// Readiness review, C2: with no `CNAME` ahead of it, the `A` record alone
+/// is what decides `Accept` — unlike `no_mx_but_an_address_record_accepts`
+/// above, where the leading `CNAME` in `ADDRESS_PRESENT` already decides the
+/// `.any()` before the `A` record is reached.
+#[test]
+fn no_mx_but_an_a_record_only_accepts() {
+    let mx = parse(NO_MX_CNAME_ONLY);
+    let address = parse(ADDRESS_ONLY_A);
+    assert_eq!(verdict(&mx, Some(&address)), DomainVerdict::Accept);
+}
+
+/// The same, for `AAAA`.
+#[test]
+fn no_mx_but_an_aaaa_record_only_accepts() {
+    let mx = parse(NO_MX_CNAME_ONLY);
+    let address = parse(ADDRESS_ONLY_AAAA);
     assert_eq!(verdict(&mx, Some(&address)), DomainVerdict::Accept);
 }
 
@@ -207,6 +238,24 @@ async fn the_address_query_is_skipped_when_mx_already_decides() {
     assert_eq!(
         verdict,
         DomainVerdict::Accept,
+        "a second (refused) query would have produced Unknown(\"transport\") instead"
+    );
+}
+
+/// Readiness review, C3: `check`'s own decision of *whether the address
+/// query happens at all* is what this exercises — `verdict`'s pure decision
+/// is already covered by `servfail_is_unknown_not_a_rejection` above, but
+/// that never drives `check` itself, so it never proves the fallback is
+/// skipped on this status.  `respond_once`'s listener refuses any
+/// connection past its first, so a spurious second (address) query here
+/// would turn the verdict into `Unknown("transport")` instead.
+#[tokio::test]
+async fn the_address_query_is_skipped_on_an_mx_servfail() {
+    let url = respond_once("HTTP/1.1 200 OK", SERVFAIL.as_bytes()).await;
+    let verdict = check("mail.example", &config(&url)).await;
+    assert_eq!(
+        verdict,
+        DomainVerdict::Unknown("servfail"),
         "a second (refused) query would have produced Unknown(\"transport\") instead"
     );
 }

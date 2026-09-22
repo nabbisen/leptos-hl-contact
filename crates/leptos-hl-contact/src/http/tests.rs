@@ -99,3 +99,65 @@ async fn a_64_000_byte_body_is_accepted_65_537_bytes_is_unusable() {
         Err(_) => panic!("expected Unusable, got a different error"),
     }
 }
+
+/// Readiness review, C1: `get` has its own copy of the cap check — nothing
+/// above exercises it, only `post`'s.  Same three cases, through `get`.
+#[tokio::test]
+async fn a_get_body_at_the_cap_is_returned_whole() {
+    let body: &'static [u8] = Box::leak(vec![b'x'; MAX_RESPONSE_BODY].into_boxed_slice());
+    let (url, _rx) = respond_once(body).await;
+
+    let response = HttpClient::new()
+        .get(&url, &[], Duration::from_secs(5))
+        .await
+        .expect("ok");
+    assert_eq!(response.status, 200);
+    assert_eq!(response.body.len(), MAX_RESPONSE_BODY);
+}
+
+#[tokio::test]
+async fn a_get_body_one_byte_over_the_cap_is_unusable() {
+    let body: &'static [u8] = Box::leak(vec![b'x'; MAX_RESPONSE_BODY + 1].into_boxed_slice());
+    let (url, _rx) = respond_once(body).await;
+
+    match HttpClient::new()
+        .get(&url, &[], Duration::from_secs(5))
+        .await
+    {
+        Err(HttpError::Unusable(reason)) => assert_eq!(reason, "response too large"),
+        Ok(response) => panic!(
+            "expected Unusable, got a {}-byte response",
+            response.body.len()
+        ),
+        Err(_) => panic!("expected Unusable, got a different error"),
+    }
+}
+
+/// Same literal-byte-count reasoning as the `post` version above: sized from
+/// literals, not from `MAX_RESPONSE_BODY` itself.
+#[tokio::test]
+async fn a_get_64_000_byte_body_is_accepted_65_537_bytes_is_unusable() {
+    let accepted: &'static [u8] = Box::leak(vec![b'x'; 64_000].into_boxed_slice());
+    let (url, _rx) = respond_once(accepted).await;
+    let response = HttpClient::new()
+        .get(&url, &[], Duration::from_secs(5))
+        .await
+        .expect("ok");
+    assert_eq!(response.status, 200);
+    assert_eq!(response.body.len(), 64_000);
+    assert!(response.body.iter().all(|&b| b == b'x'), "returned whole");
+
+    let rejected: &'static [u8] = Box::leak(vec![b'x'; 65_537].into_boxed_slice());
+    let (url, _rx) = respond_once(rejected).await;
+    match HttpClient::new()
+        .get(&url, &[], Duration::from_secs(5))
+        .await
+    {
+        Err(HttpError::Unusable(reason)) => assert_eq!(reason, "response too large"),
+        Ok(response) => panic!(
+            "expected Unusable, got a {}-byte response",
+            response.body.len()
+        ),
+        Err(_) => panic!("expected Unusable, got a different error"),
+    }
+}

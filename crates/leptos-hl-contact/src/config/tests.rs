@@ -263,6 +263,20 @@ fn field_text_uses_format_email_only_for_the_email_field() {
     assert_eq!(l.field_text(ContactField::Subject, &err), l.format);
 }
 
+/// Readiness review, C4: pins the exact default text, the same as
+/// `challenge_labels_have_the_rfc_defaults` does for the RFC 005 labels —
+/// `error_label_defaults_are_non_empty` only checks it is non-empty and
+/// `field_text_renders_email_domain` only checks it differs from
+/// `format_email`, so neither would notice a change of wording.
+#[test]
+fn email_domain_label_has_the_rfc_018_default() {
+    let l = ContactErrorLabels::default();
+    assert_eq!(
+        l.email_domain,
+        "We could not find a mail server for that domain. Please check the spelling."
+    );
+}
+
 #[test]
 fn field_text_passes_through_pre_rendered_text() {
     let l = ContactErrorLabels::default();
