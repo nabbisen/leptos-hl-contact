@@ -18,7 +18,7 @@ use web_sys::{
     AbortController, Headers, Request, RequestInit, RequestRedirect, Response, UrlSearchParams,
 };
 
-use super::{HttpBody, HttpError, HttpRequest, HttpResponse};
+use super::{HttpBody, HttpError, HttpRequest, HttpResponse, MAX_RESPONSE_BODY};
 use crate::wasm_timer;
 
 /// Aborts its request when dropped before the exchange has finished.
@@ -113,7 +113,7 @@ fn build_request(
     init.set_signal(Some(&controller.signal()));
 
     // The URL is not in the message: it could be a proxy address.
-    Request::new_with_str_and_init(request.url, &init).map_err(|_| unusable("invalid verify URL"))
+    Request::new_with_str_and_init(request.url, &init).map_err(|_| unusable("invalid URL"))
 }
 
 /// Send `request`, and return its status and body without judging either.
@@ -138,8 +138,14 @@ async fn exchange(request: Request) -> Result<HttpResponse, HttpError> {
     let status = response.status();
     let buffer = response.array_buffer().map_err(|_| network_error())?;
     let buffer = JsFuture::from(buffer).await.map_err(|_| network_error())?;
-    let body = Uint8Array::new(&buffer).to_vec();
-    Ok(HttpResponse { status, body })
+    let array = Uint8Array::new(&buffer);
+    if array.length() as usize > MAX_RESPONSE_BODY {
+        return Err(unusable("response too large"));
+    }
+    Ok(HttpResponse {
+        status,
+        body: array.to_vec(),
+    })
 }
 
 fn unusable(reason: &'static str) -> HttpError {

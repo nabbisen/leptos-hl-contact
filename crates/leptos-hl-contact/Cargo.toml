@@ -35,6 +35,17 @@ challenge-http = [
     "dep:wasm-bindgen-futures",
     "dep:web-sys",
 ]
+# Delivery through Resend's HTTP API (RFC 017); runs natively and on a Worker.
+# The same dependency set as `challenge-http`, which the shared `src/http/`
+# transport both features compile needs on every target.
+delivery-resend = [
+    "ssr",
+    "dep:reqwest",
+    "dep:js-sys",
+    "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
+    "dep:web-sys",
+]
 
 [dependencies]
 leptos = { version = "0.8", features = [] }

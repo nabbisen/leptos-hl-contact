@@ -25,6 +25,8 @@ mod filter;
 mod form_token;
 mod logging;
 mod policy;
+#[cfg(feature = "delivery-resend")]
+mod resend;
 mod routing;
 mod silent;
 mod site_fields;

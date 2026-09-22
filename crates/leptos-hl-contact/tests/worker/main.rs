@@ -7,6 +7,7 @@
 //!   timer (D7).
 //! - `fetch_verifier`: `HttpChallengeVerifier` over a stubbed `fetch` (D3,
 //!   D5).
+//! - `resend`: `ResendDelivery` over a stubbed `fetch` (RFC 017 D3, D5).
 //!
 //! ```bash
 //! cargo test -p leptos-hl-contact --target wasm32-unknown-unknown \
@@ -28,5 +29,8 @@ mod timer;
 #[cfg(feature = "challenge-http")]
 mod fetch_verifier;
 
-#[cfg(feature = "challenge-http")]
+#[cfg(feature = "delivery-resend")]
+mod resend;
+
+#[cfg(any(feature = "challenge-http", feature = "delivery-resend"))]
 mod support;

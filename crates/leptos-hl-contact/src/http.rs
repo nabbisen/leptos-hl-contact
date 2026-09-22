@@ -19,15 +19,27 @@
 
 use std::time::Duration;
 
+/// The largest response body either target reads.
+///
+/// Every answer this crate reads is a small JSON document.  A body over this
+/// is `HttpError::Unusable` instead of being parsed, so a misconfigured proxy
+/// or a hostile endpoint cannot make the server hold an unbounded amount of
+/// memory (RFC 017 handoff 01 review).
+const MAX_RESPONSE_BODY: usize = 64 * 1024;
+
 /// The body of an outgoing request.
 pub(crate) enum HttpBody<'a> {
     /// `application/x-www-form-urlencoded`.
+    ///
+    /// Constructed only by the challenge verifiers (`challenge-http`); a
+    /// `delivery-resend`-only build never builds a form body.
+    #[cfg_attr(not(feature = "challenge-http"), allow(dead_code))]
     Form(&'a [(&'static str, String)]),
     /// `application/json`.
-    #[allow(
-        dead_code,
-        reason = "constructed by delivery-resend, RFC 017 handoff 02"
-    )]
+    ///
+    /// Constructed only by the Resend adapter (`delivery-resend`); a
+    /// `challenge-http`-only build never builds a JSON body.
+    #[cfg_attr(not(feature = "delivery-resend"), allow(dead_code))]
     Json(&'a str),
 }
 
@@ -48,6 +60,7 @@ pub(crate) struct HttpResponse {
 }
 
 /// What can go wrong before a status is known.
+#[derive(Debug)]
 pub(crate) enum HttpError {
     /// The limit passed.  The request was aborted where the target allows it.
     Timeout,
@@ -97,8 +110,14 @@ impl HttpClient {
         };
         let response = builder.send().await.map_err(transport_error)?;
         let status = response.status().as_u16();
-        let body = response.bytes().await.map_err(transport_error)?.to_vec();
-        Ok(HttpResponse { status, body })
+        let body = response.bytes().await.map_err(transport_error)?;
+        if body.len() > MAX_RESPONSE_BODY {
+            return Err(HttpError::Unusable("response too large"));
+        }
+        Ok(HttpResponse {
+            status,
+            body: body.to_vec(),
+        })
     }
 }
 
@@ -130,3 +149,10 @@ impl HttpClient {
 // The request over the global `fetch`, on a wasm32 server (RFC 011 D3).
 #[cfg(target_arch = "wasm32")]
 mod fetch;
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests;

@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- **Delivery through Resend's HTTP API** (`delivery-resend` feature,
+  `ResendConfig` and `ResendDelivery`).  Runs natively and on a Cloudflare
+  Workers server — unlike the SMTP backend, it needs no `tokio` runtime.
+  Sends the same plain-text body `LettreSmtpDelivery` sends, including the
+  site's own fields.  `ResendConfig::new` takes only the three required
+  values (the API key, the sender and the recipient); everything else has a
+  default and is changed with a builder, so a config added later needs no
+  migration line.
+
 ## [0.8.0] — 2026-09-22
 
 This is the minor release in which a site can add a few fields of its own,

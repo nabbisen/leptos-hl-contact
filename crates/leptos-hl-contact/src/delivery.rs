@@ -7,11 +7,16 @@ pub mod noop;
 
 // The plain-text body every backend sends (RFC 017 D1).  Private: no type
 // of it appears in the crate's API.
-#[cfg(feature = "smtp-lettre")]
+#[cfg(any(feature = "smtp-lettre", feature = "delivery-resend"))]
 mod body;
 
 #[cfg(feature = "smtp-lettre")]
 pub mod smtp;
+
+// Delivery through Resend's HTTP API (RFC 017); runs natively and on a
+// Worker.
+#[cfg(feature = "delivery-resend")]
+pub mod resend;
 
 #[cfg(feature = "delivery-timeout")]
 pub mod timeout;

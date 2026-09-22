@@ -142,3 +142,31 @@ async fn a_dropped_verification_aborts_its_request() {
         "dropping aborts the request"
     );
 }
+
+/// The largest response body the shared `http` module reads, matching its
+/// own `MAX_RESPONSE_BODY` (RFC 017 handoff 01 review).
+const MAX_RESPONSE_BODY: usize = 64 * 1024;
+
+/// A body of exactly the cap, valid JSON padded with leading whitespace
+/// (insignificant to a JSON parser), is read and parsed whole.
+#[wasm_bindgen_test]
+async fn a_body_at_the_cap_is_returned_whole() {
+    let json = r#"{"success":true}"#;
+    let body = format!("{}{json}", " ".repeat(MAX_RESPONSE_BODY - json.len()));
+    assert_eq!(body.len(), MAX_RESPONSE_BODY);
+
+    let _stub = FetchStub::answering(200, &body);
+    let outcome = verifier().verify("tok").await.expect("answered");
+    assert!(outcome.passed);
+}
+
+/// One byte over the cap is `Unavailable`, not parsed.
+#[wasm_bindgen_test]
+async fn an_oversized_body_is_unavailable() {
+    let body = " ".repeat(MAX_RESPONSE_BODY + 1);
+    let _stub = FetchStub::answering(200, &body);
+    match verifier().verify("tok").await {
+        Err(ChallengeError::Unavailable(m)) => assert_eq!(m, "response too large"),
+        other => panic!("expected Unavailable, got {other:?}"),
+    }
+}
