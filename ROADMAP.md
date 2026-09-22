@@ -107,9 +107,9 @@ Release tags use the form `X.Y.Z` (no `v` prefix).
 
 ## Current
 
-### M8 — Fewer dead-end enquiries → next release — **authorized 2026-09-22**
+### M8 — Fewer dead-end enquiries → 0.10.0 — **authorized 2026-09-22**
 
-Owner decision 2026-09-22, on the question "which of these profits an app team": **P-35** as the theme, **P-41** alongside it, **P-38** folded in as tests, and **P-20 reshaped into documentation** rather than shipped translations.  RFCs 018, 019 and 020 accepted the same day, every recommendation taken.  Order of work: RFC 018's spike first (it can stop that design), then RFC 019 and RFC 020, then RFC 018's implementation.
+**Implementation complete 2026-09-22** (RFCs 018, 019, 020); the owner set the version to 0.10.0 and scheduled P-45 before the release, so the readiness list waits on RFC 020 handoff 03.  Owner decision 2026-09-22, on the question "which of these profits an app team": **P-35** as the theme, **P-41** alongside it, **P-38** folded in as tests, and **P-20 reshaped into documentation** rather than shipped translations.  RFCs 018, 019 and 020 accepted the same day, every recommendation taken.  Order of work: RFC 018's spike first (it can stop that design), then RFC 019 and RFC 020, then RFC 018's implementation.
 
 | ID | Item | Priority | Kind | Evidence |
 |----|------|----------|------|----------|
@@ -270,3 +270,4 @@ Owner decisions of 2026-09-22: P-22 next, one adapter first; RFC 017 accepted as
 - 2026-09-22: M8 authorized — P-35 (the theme), P-41, P-38, and P-20 reshaped into documentation.  RFCs 018, 019 and 020 proposed.
 - 2026-09-22: **an integrator's report is evidence, not a work item.**  The reflerd.com team asked that their reports be information rather than a queue (letter of 2026-09-22 §5).  Four releases in nine days were shaped by their reports; each was taken because it was right for the crate, and "not now, or not at all" is a complete answer.  P-20 is the current test of it: reshaped rather than built as asked.
 - 2026-09-22: RFCs 018, 019 and 020 accepted, every recommendation taken: no default resolver and a distinct error label for the domain check; `native_validation` defaulting to `true`; translations as contributed documentation.
+- 2026-09-22: M8 is 0.10.0 (decided), and the flaky browser gate (P-45) is fixed before the release rather than after: a release gate that fails at random is worth more than the days it costs.
